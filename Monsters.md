@@ -1,0 +1,134 @@
+# Monsters
+
+Four sets of files describe the monsters: the monster list (`/data/prm/mon_list.gp2/mon_list_<lang>.nat`), the battle data (`/data/prm/mon_btldata.nat`), the name and grammar records (`/data/prm/mon_data.gp2/mon_data_<lang>.nat`) and the models (`/data/pack_lv5/enemy.gp2`). The head words, the record sizes, monster numbers, codes, name and plural offsets and drops are confirmed; experience, gold, HP, MP, attack, defence, agility, the six actions and the boss bit are INFERRED; several fields in each record are not established.
+
+All observations were made on the European release (game code `YDQP`). Where the ARM9 binary is mentioned, it is the *unpacked* binary of that release.
+
+## The shared head word
+
+The monster list, the battle data, the name records, the [system strings](System-Strings) and the [action tables](Actions) all open with the same head word:
+
+| bits | meaning |
+|---|---|
+| 0–11 | the record count |
+| 12–31 | the size of the string section, in bytes |
+
+In the monster list its low 12 bits are 345 on all five languages, and its upper 20 the size of the string section — 5,445 bytes in English, 5,785 in German, 5,788 in French. On all five the strings start at `4 + 345 × 32` = 11,044 and run exactly to the end of the file.
+
+## The monster list — `mon_list_<lang>.nat`
+
+`/data/prm/mon_list.gp2/mon_list_<lang>.nat`: the head word, then 345 records of 32 bytes, then the strings. It holds a code and a name for each monster, the codes first from `0x2b24` in English: `z000a` slime, `z000b` she-slime…
+
+| offset | type | meaning |
+|---|---|---|
+| `+0x00` | `u32` | 0 on every record |
+| `+0x04` | `u32` | the code's offset from the strings: `z000a` … |
+| `+0x08` | `u32` | the name's offset from the strings |
+| `+0x0C` | `u16` | the monster's number |
+| `+0x0E` | `u16` | not established — 364, 356, 246 … on the first |
+| `+0x10` | 16 bytes | not established |
+
+Every offset lands at the start of a string on all five languages. Several records share a name — records 250 and 251 are both named at offset 6, the first monster's — so the offsets do not climb record by record.
+
+The numbers run 1 to 64 and then 75 on, with gaps. Every code is a letter, three digits and a letter: 278 open `z`, numbered 1 to 298, and 67 open `b`, numbered 284 to 514. What the two letters divide is not established.
+
+**The record numbered 38 is `z009a`, 39 `z009b` and 40 `z009c`** — cannibox, mimic and Pandora's box. These are the values of the monster rows in the chest tables; see [Treasure](Treasure).
+
+## Monster data — `mon_btldata.nat` and `mon_data_<lang>.nat`
+
+Two files of 438 records each, one a monster, both opening with the shared head word:
+
+- `/data/prm/mon_btldata.nat`: 132-byte records and no strings;
+- `/data/prm/mon_data.gp2/mon_data_<lang>.nat`: 28-byte records and then the strings.
+
+**Each record's monster number agrees between the two on all 438**, so they are read side by side.
+
+### Battle data
+
+| offset | type | reading | evidence |
+|---|---|---|---|
+| `+0x00` | `u16` | the monster's number, bit 15 set on all 438 | agrees with the names file |
+| `+0x04` | `u16` ×2 | its two drops | every one is an item id |
+| `+0x08` | `u32` | experience, INFERRED | the metal family: 4,096, 40,200 and 120,040, against a median of 940 |
+| `+0x0C` | `u16` | gold, INFERRED | a median of 2,490 on the bosses against 120 |
+| `+0x14` | | not established | 500 to 605 on ordinary monsters and 0 on most bosses — Hexagoon's among them, though not the Wight Knight's or Morag's |
+| `+0x18` | `u16` ×6 | its six ways of acting: action numbers (see [Actions](Actions)), INFERRED | 1 Attack on 1,064 of the 2,628 words and 225 Flee on 109; the healslime's Heal, the drakulard's Inferno, the uncommon cold's C-C-Cold Breath. The reference's own boss, Ragin' Contagion (`b006a`), has 1, 275, 1, 48, 44, 228 — the reference's six candidates exactly and in order: attack, poison attack, attack, Deceleratle, Kasap, Sweet Breath |
+| `+0x27`, bit 4 | | fights as a boss: draws its ways by the falling weight table — INFERRED, see [Battle-Weight-Tables](Battle-Weight-Tables) | set on 144 of 159 boss-coded monsters and the five grotto bosses; clear on the bosses' minions and every ordinary monster |
+| `+0x5C` | `u16` | maximum HP, INFERRED | a median of 6,500 on the bosses against 134; the metal slime's 4 |
+| `+0x5E` | `u16` | maximum MP, INFERRED | 255 on most bosses and the metal family |
+| `+0x60` | `u16` | attack, INFERRED | by order |
+| `+0x62` | `u16` | defence, INFERRED | the metal family's 256 and 512 |
+| `+0x64` | `u16` | agility, INFERRED | by order; high on the metal family |
+
+The rest of the record is not established. Hexagoon is `b003a`.
+
+"The reference" is DQIX/BattleEmulator (MIT, © 2024 DaisukeDaisuke), which reproduces the game's arithmetic.
+
+**How a monster chooses among its six**: the reference draws a number from 1 to 256 against six weights — an even table, 43, 42, 43, 43, 42, 43, and for Ragin' Contagion a falling one, 68, 58, 48, 38, 27, 17. Both are in the ARM9 binary once it is unpacked, and `+0x27` bit 4 says which a monster draws by. See [Battle-Weight-Tables](Battle-Weight-Tables).
+
+The field data's attack and defence equal the battle data's on all 438; see [Encounters](Encounters).
+
+### Names and grammar
+
+A `mon_data_<lang>.nat` record:
+
+| offset | type | meaning |
+|---|---|---|
+| `+0x00` | `u32` | the name's offset from the strings |
+| `+0x04` | `u32` | the code's offset from the strings |
+| `+0x08` | `u16` | the monster's number |
+| `+0x0A` | 10 bytes | not established |
+| `+0x14` | `u32` | the plural's offset from the strings |
+| `+0x18` | `u32` | the name's grammar: its articles and gender — see [Articles](Articles) |
+
+The strings run name, plural, code for each monster — `slime`, `slimes`, `z000a` — and the plural's offset starts a string on all 438 records in all five languages.
+
+**Codes repeat**: 438 records carry 312 codes, a code naming the story's versions of one monster (the scarlet fever four times); the lowest number is the ordinary one.
+
+## Monster models — `/data/pack_lv5/enemy.gp2`
+
+601 members, `<code>.mon` and `<code>_f.mon`, stored whole — see [GPC2](GPC2) on members with no region prefix. Each is a `NARC` (see [NitroFS](NitroFS)) of three files:
+
+| file | contents |
+|---|---|
+| `.cchr` | an LZ10-compressed `NARC` (see [DS-Compression](DS-Compression)): the model (`<code>.nsbmd`), its first motions (`appear`, `attack0a`, `run`, `stand` on the slime) and a `.bcfg` |
+| `.cmot` | another: the rest of its motions — `attack1a`, `call`, `damage`, `death`, `escape`, `sake` on the slime — and a `.bcfg` |
+| `.bact` | no Nitro signature in it: not read |
+
+The `_f` members have no `.cmot`. Every roaming monster has a field model, `<code>_f.mon`, beside its battle one, with its `appear`, `attack0a`, `run` and `stand` motions.
+
+INFERRED: the models are in the characters' own space, as the cast's are — the slime stands 9 units and Hexagoon 35, to a person's 23.
+
+`/data/effect/<family>000.chr` and its siblings, which a search by code finds first, are the monsters' attack effects — the slime's a splash textured `z000a_at1`, the chest monster's smoke, `z009a_kem01` — not their bodies.
+
+## Evidence
+
+- Head word: count and string size checked on all five languages of the monster list; strings run exactly to the end of the file.
+- Monster numbers agree between `mon_btldata.nat` and `mon_data_<lang>.nat` on all 438 records.
+- Drops: every `+0x04` word is an item id.
+- Six actions: Ragin' Contagion's record against the reference's candidates.
+- Boss bit: 144 of 159 boss-coded monsters and the five grotto bosses.
+
+## Earlier readings
+
+- In English the monster list's head word happens to read `YQT` (`0x01545159`: 345, and 5,445 × 4,096). It was first taken for a magic number; the other languages' do not read so. It is the count and the string size.
+- The two weight tables were first searched for in the packed ARM9 bytes and missed; they are in the unpacked binary.
+
+## Not established
+
+- Monster list `+0x0E` and `+0x10`–`+0x1F`.
+- What the code letters `z` and `b` divide.
+- Battle data `+0x14`, and every field not in the table above.
+- Names record `+0x0A`–`+0x13`.
+- The `.bact` file in each model archive.
+
+## See also
+
+- [Battle-Weight-Tables](Battle-Weight-Tables)
+- [Actions](Actions)
+- [Articles](Articles)
+- [Encounters](Encounters)
+- [Event-Battles](Event-Battles)
+- [Treasure](Treasure)
+- [System-Strings](System-Strings)
+- [GPC2](GPC2) · [NSBMD](NSBMD)
