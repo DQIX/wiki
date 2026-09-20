@@ -54,13 +54,22 @@ Two files of 438 records each, one a monster, both opening with the shared head 
 | `+0x14` | | not established | 500 to 605 on ordinary monsters and 0 on most bosses — Hexagoon's among them, though not the Wight Knight's or Morag's |
 | `+0x18` | `u16` ×6 | its six ways of acting: action numbers (see [Actions](Actions)), INFERRED | 1 Attack on 1,064 of the 2,628 words and 225 Flee on 109; the healslime's Heal, the drakulard's Inferno, the uncommon cold's C-C-Cold Breath. The reference's own boss, Ragin' Contagion (`b006a`), has 1, 275, 1, 48, 44, 228 — the reference's six candidates exactly and in order: attack, poison attack, attack, Deceleratle, Kasap, Sweet Breath |
 | `+0x27`, bit 4 | | fights as a boss: draws its ways by the falling weight table — INFERRED, see [Battle-Weight-Tables](Battle-Weight-Tables) | set on 144 of 159 boss-coded monsters and the five grotto bosses; clear on the bosses' minions and every ordinary monster |
-| `+0x5C` | `u16` | maximum HP, INFERRED | a median of 6,500 on the bosses against 134; the metal slime's 4 |
-| `+0x5E` | `u16` | maximum MP, INFERRED | 255 on most bosses and the metal family |
-| `+0x60` | `u16` | attack, INFERRED | by order |
-| `+0x62` | `u16` | defence, INFERRED | the metal family's 256 and 512 |
-| `+0x64` | `u16` | agility, INFERRED | by order; high on the metal family |
+| `+0x5C` | `u16` | maximum HP — **read by the game's code**, below | a median of 6,500 on the bosses against 134; the metal slime's 4 |
+| `+0x5E` | `u16` | maximum MP — likewise | 255 on most bosses and the metal family |
+| `+0x60` | `u16` | attack — likewise | by order |
+| `+0x62` | `u16` | defence — likewise | the metal family's 256 and 512 |
+| `+0x64` | `u16` | agility — likewise | by order; high on the metal family |
+| `+0x68` | `u32` | three 10-bit numbers the code copies into the battle status; not established | |
+| `+0x6C` | `u8` ×22 | **resistances**: what it takes of each of 21 elements, in hundredths, by `element − 1` — below | firespirit 50 of fire and 150 of ice; slime 125 of all seven; metal slime 0 of every status |
+| `+0x82` | `u8` ×2 | copied beside them; not established | 0 on every monster looked at |
 
 The rest of the record is not established. Hexagoon is `b003a`.
+
+**The five numbers and the resistances are read from the game's code.** The battle builds a monster's status from this record **at `+0x2C`** (`func_02089630`, called from overlay 0 at USA `0x0215eed0`): HP from that block's `+0x30`, MP `+0x32`, three `u16`s to `+0x38`, a packed word at `+0x3C`, and 24 bytes copied from its `+0x40` — which are this record's `+0x5C` to `+0x64`, `+0x68` and `+0x6C`.
+
+**Resistances.** A byte an element, a hundredth each: 100 is whole, 0 immune, 125 a quarter more. Fifteen values are in use — 0, 1, 5, 10, 15, 25, 30, 35, 50, 60, 75, 100, 125, 150, 200. Damage is multiplied by the byte for the action's element; a change of state's accuracy likewise; and what rides on a blow lands under its chance times it. **Element 8, the plain Attack's, is 100 on all 438.** A metal slime takes all of every element — it is the actions that do not work on a metal body — and nothing of sleep, poison or a fall in defence. The elements are listed on [Battle resolution](Battle-Resolution).
+
+**A monster's HP is drawn**: it comes to a battle with `(int)(0.5 + HP × r)`, `r` a random float from 0.8 to 1.0, so this table's HP is the most it can have. Not so where the battle's setup says otherwise — INFERRED: a scripted battle.
 
 "The reference" is DQIX/BattleEmulator (MIT, © 2024 DaisukeDaisuke), which reproduces the game's arithmetic.
 

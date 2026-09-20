@@ -55,3 +55,4 @@
 - [Event battles](Event-Battles)
 - [Encounters](Encounters)
 - [Actions](Actions)
+- [Battle resolution](Battle-Resolution)
