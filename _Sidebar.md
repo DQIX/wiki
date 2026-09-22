@@ -46,6 +46,7 @@
 
 **Game data**
 - [Items](Items)
+- [Equipment battle parameters](Equipment-Battle-Parameters)
 - [Vocation skill trees](Vocation-Skill-Trees)
 - [Battle weight tables](Battle-Weight-Tables)
 - [Level tables](Level-Tables)

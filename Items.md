@@ -1,6 +1,6 @@
 # Items
 
-Item names live in `/data/prm/itemname.gp2` (`itemname_<lang>.nat`) and item records in `/data/prm/itemdt_*.gp2` (`itemdt_<c>_<lang>.nat`, one table per category). Each equipment table also carries, after its records, a table of stats. Shops are in `/data/bin/menu/shopdata1.bin`, and talk lines hand over to shops, inns and churches with service tags. The name records, the record layout's id, actions and price, and the stats table's shape are confirmed. The price scale, rarity, the attack, defence and other stat fields, and who may use a piece are INFERRED. Several fields are not established. Observations are from the European release (game code `YDQP`).
+Item names live in `/data/prm/itemname.gp2` (`itemname_<lang>.nat`) and item records in `/data/prm/itemdt_*.gp2` (`itemdt_<c>_<lang>.nat`, one table per category). Each equipment table also carries, after its records, a table of stats. Shops are in `/data/bin/menu/shopdata1.bin`, and talk lines hand over to shops, inns and churches with service tags. The name records, the record layout's id, actions and both prices, and the stats table's shape are confirmed. The price scale, rarity, the attack, defence and other stat fields, and who may use a piece are INFERRED. Several fields are not established. Observations are from the European release (game code `YDQP`).
 
 ## Names — `itemname_<lang>.nat`
 
@@ -48,8 +48,8 @@ The categories, by their first records:
 |---|---|---|---|
 | `+0x00` | 4 | `u16` ×2 | what using it does: two action numbers (see [Actions](Actions)), 252 for nothing |
 | `+0x04` | 2 | `u16` | the item's id |
-| `+0x06` | 2 | `u16` | its price word, INFERRED — what a shop asks is it scaled by `+0x08`; see "The price" |
-| `+0x08` | 2 | `u16` | how the price word scales: `0xFFFF` twice, `0xFFFE` twice and one, `0xFFFD` twice less one, `0xFFFC` ten times — INFERRED; 0 and a few other values on some items, not established |
+| `+0x06` | 2 | `u16` | **what a shop gives for it** — its selling price; see "The price" |
+| `+0x08` | 2 | `u16` | **what a shop asks for it**: the price itself, or a code on the selling price — `0xFFFF` twice, `0xFFFE` twice and one, `0xFFFD` twice less one, `0xFFFC` ten times; 0 on some items no shop sells |
 | `+0x0A` | 22 | | a sort position; at `+0x10` a `u16`; a run of numbers that count the records; and an icon (see below) |
 | `+0x15`, bits 1–3 | | | **rarity**, the equipment screen's stars, 0 to 5 — INFERRED (see below) |
 
@@ -87,7 +87,14 @@ The byte's bit 0 is 1 on the armour tables and 0 on weapons and shields, and its
 
 A check that does not lean on those 18: of the 13 sold items with one of the last three values, all 13 then ask a price ending in 0 or 5 — the paring knife 70, the oak staff 120, the softwort 95, the tangleweb 35, the leather hat 65, among ones the let's play does not show — where doubling their word gives such an ending for only 1 of them.
 
-Two sold items carry another value: the bamboo lance (`0x55`) and the halberd (`0x2BC0`). What they ask is not established. Why the scale is kept this way is not known. A shop's rate (see "Shops") multiplies the price: 100 on all shops but one.
+**The word is what a shop gives, and `+0x08` what it asks** — 22 September 2026, from the *Dragon Quest IX* Signature Series guide, whose item lists print a buying and a selling price for every item. That corrects two readings above:
+
+- The two "other" values are prices, not scales. The **bamboo lance**, `0x55`, costs **85** and sells for **8**; the **halberd**, `0x2BC0`, costs **11,200** and sells for **6,600** — `+0x08` and `+0x06` exactly. Stornway's weapon shop prices the lance at 85 too.
+- **What a shop gives is the word itself**, not half what it asks. The copper sword, a `0xFFFC` item, sells for **15** — a tenth of its 150, not 75. Where the code is `0xFFFF` the word is half what is asked, which is why halving looked right: the soldier's sword 240 and 120, the rapier 480 and 240, the iron lance 450 and 225. Items no shop sells have a selling price all the same, and it is the word: the star's suit 11,750, the stud poker 24,000.
+
+The guide prints the copper sword's buying price as 159, against 150 on its own shop pages and in the let's play: a misprint.
+
+Why the scale is kept this way is not known. A shop's rate (see "Shops") multiplies what is asked: 100 on all shops but one. Whether it touches what a shop gives is not established.
 
 ## The stats — the table after an equipment category's records
 
@@ -216,6 +223,8 @@ These found nothing, and are recorded so they are not repeated:
 - Whether the Omnivocational passives show on the equipment screen's "Used by" grid.
 
 ## See also
+
+- [Equipment battle parameters](Equipment-Battle-Parameters) — what a worn thing does in a battle, and the resistances it carries
 
 - [Item-Kinds](Item-Kinds) — category, subtype and bag order
 - [Item-Descriptions](Item-Descriptions)

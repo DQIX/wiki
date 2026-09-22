@@ -101,6 +101,10 @@ Every roaming monster has a field model beside its battle one, `<code>_f.mon` in
 
 An earlier reading took the zone numbers for places in the map list, and put late-game monsters in the village's houses. It is the `0x69` value that names the map.
 
+## How a fight opens
+
+Walking into a roaming monster does not always open an even fight. As the two meet, the encounter check (`func_ov017_02196430`) measures each one's facing against the bearing to the other and calls it a turned back past 49.48°, then rolls for a surprise round: `func_ov017_021970a0`. Face to face the party surprises the monsters on `2 + deftness ÷ 20` in a hundred and is surprised on 2; walk into a monster whose back is turned and the party's chance is `12 + deftness ÷ 20` and it cannot be surprised; let one reach the party from behind and the monsters take the round on 12. The answer travels to `[battle + 0xe49]`, and a scripted battle carries its own value instead. See [Battle resolution](Battle-Resolution).
+
 ## Not established
 
 - How a map chooses among its zones.

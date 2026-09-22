@@ -1,6 +1,6 @@
 # Spell Table
 
-A loose file, `/data/prm/spelltable.bin`, listing the spells in order and which vocation learns which spell at which level. It is a [tagged data table](Tagged-Data-Table). The spell-list records are confirmed against action names; the learning records' (vocation, place, level) reading is INFERRED. Observations are from the European release (game code `YDQP`).
+A loose file, `/data/prm/spelltable.bin`, listing the spells in order and which vocation learns which spell at which level. It is a [tagged data table](Tagged-Data-Table). The spell-list records are confirmed against action names; the learning records' (vocation, place, level) reading is confirmed for the Minstrel and INFERRED for the rest. Observations are from the European release (game code `YDQP`).
 
 ## Layout
 
@@ -47,6 +47,7 @@ The list runs a family at a time, each family's last member one of actions 779 t
 - The Warrior, the Martial Artist and the Gladiator — 1, 4 and 7 — learn nothing, and they are the three whose magical might and magical mending are both 0 at level 1 (see [Level-Tables](Level-Tables)). The Guardian, 0, learns nothing either.
 - The Minstrel, 6, learns Heal at 3, Crack at 8, Evac at 10, Woosh at 12, Crackle at 16, Midheal at 21, Zing at 24, Swoosh at 30 and Kaswoosh at 36.
 - The Hero's vocation names itself three ways at number 6: `level6`, `str_tm` 2106 `Minstrel` (see [System-Strings](System-Strings)), and the spell table's 6.
+- **Confirmed for the Minstrel, 22 September 2026**: the *Dragon Quest IX* Signature Series guide's Minstrel page lists those nine spells, each at the level read here, with the MP the actions' own records give — Heal 2, Crack 3, Evac 3, Woosh 3, Crackle 8, Midheal 4, Zing 8, Swoosh 8, Kaswoosh 26. So a `0x67` record is (vocation, place, level), at least on the Minstrel's; the other vocations' are read the same way and have not been checked.
 
 ## Not established
 

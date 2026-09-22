@@ -123,14 +123,105 @@ A float to the end. In order:
 2. **× the target's resistance** to the action's element (`+0x08` bits 22–26) — `0x021e6e8c`.
 3. For a party attacker with an elemental weapon, on an action with `+0x10` bit 18, a second product by the weapon's element. Not followed.
 4. **Blocked, then dodged, each zero it** (`0x021e777c`, `0x021e77a0`).
-5. A metal body zeroes certain non-critical blows. Not followed.
+5. **A metal body zeroes it** (`0x021e77a4`): a target whose record's `+0x0A` bit 12 is set — `func_ov000_02156068(battle, target, 0, 1)`, and never a party member — under an action that **carries** `+0x10` bit 24 and is of kind 1 (or is action `0xDB`), where the blow is not a critical and the action is not `0x205` or `0x82`. The damage becomes exactly 0. Note the polarity: the flag must be *set* for the zeroing, so it reads less like "works on metal" than like "deals damage at all".
 6. **The coin**: if the damage is not above 0, and it was not blocked or dodged, the action is not `0x70`, `0x48` or `0x1B` (Kamikazee), the target's resistance is above 0, and the target is not a metal body under an action that does not work on one — `(float)NextRandomMax(2)`. **Whoever struck it**: no test of the attacker's side.
 7. Metal Slash (`0x40`) and Metalicker (`0x7E`) on a metal body, not critical: `1.0f + NextRandomMax(2)`.
-8. `× 0.5f` for an action of kind 1 whose target carries status bit `0x1000000`. INFERRED: defending — but nothing that sets the bit was found, and this would make a defended 0-or-1 always 0.
-9. Truncated, and held to the action's cap (`+0x1C` low 14 bits, where not 0).
-10. Action `0xAF` (Double-Edged Slash) has a quarter of the number kept — INFERRED: its recoil.
+8. `× 0.5f` for an action of kind 1 whose target carries status bit `0x1000000`. This page once read that as defending; **it is maximum tension** — see below. Defending is a guard level, and is applied earlier, at step 6 of the tail.
+9. **The combo table** at `0x021fe778` — `1.0, 1.2, 1.5, 2.0` — for an action with `+0x2C` bit 27 and damage of at least 1, indexed by a counter byte at `[battle + 0x8e83]` held to 3. Anything else resets that counter (`func_ov000_0215cd80`). What increments it was not followed.
+10. Truncated, and held to the action's cap (`+0x1C` low 14 bits, where not 0).
+11. Action `0xAF` (Double-Edged Slash) has a quarter of the number kept — INFERRED: its recoil.
+
+Between the resistance and the guard sit the wards and the slayer multipliers: `× 0.75` of fire or of ice for a target under status `+0x18` bit 1 or bit 2 (five turns each); `× 0.5` under status `+0x14` bit `0x20000000` (four turns) when the **attacker** is a monster of one family; and twelve family-slayer products for a party attacker, gated by `func_ov000_02156068(battle, target, N, 0)` for N of 1 to 12 against what they hold. A party member with a certain skill adds **1** to the damage against a metal body (`+0x10` bit 18).
 
 A blow that strikes several weakens as it goes, by `func_02074948` [`GetMultiTargetFalloff`]: **1.0, 0.8, 0.6, 0.4, 0.2**, for actions with `+0x10` bit 17; and action `0x79` deals four fifths.
+
+## Defending — the guard level
+
+A byte on the combatant's battle status, **`[combatant + 0x138] + 0x21`**, from 0 to 3. `func_ov024_021e57c0` sets it to **1**, and is reached only through the action's sub-effect table at `0x021ff3f8` (entry 2); the round's end clears it for everyone (`func_ov000_0215e6e8` at `0x0215e7c8`), and the statuses that wake a combatant clear it too.
+
+`CalculateFinalDamage` reads it at step 6 of the tail, where the action carries **`+0x10` bit 4** and a battle flag at `[battle + 0x8e94]` is 0:
+
+```
+damage × {1.0f, 0.5f, 0.1f, 0.0f}[guardLevel]      ; the table at 0x020e88c0
+```
+
+So **defending is an exact half**. Three things follow, each of which had been guessed at:
+
+- it is applied **before** the 0-or-1 coin at step 6 of the list above, so a defended blow that comes to nothing still deals 0 or 1;
+- the code never asks whose blow it is: a **guarding monster halves the party's blow** as well;
+- **243 of the 681 actions carry `+0x10` bit 4** — the plain Attack, Frizz and Crack among them; Heal, the medicinal herb and Kasap do not, so defending does nothing against them.
+
+Nothing was found that sets levels 2 or 3, whose multipliers are a tenth and nothing.
+
+## Tension — status bits `0x800000` and `0x1000000`
+
+The byte at **`[status + 0x24]`** is the tension level, 0 to 4. `func_02088220` sets `0x800000` and stores levels 1 to 3; `func_02088150` sets `0x1000000` and stores **4**. Every caller of the second is the psyche-up ladder (`func_0208767c`, and `func_ov024_021dc93c`, which emits messages `0x31`, `0x32`, `0x33` for the first three levels and `0x34` for the fourth). Both bits are cleared once their carrier acts (`ResolveAction` at `0x021ed55c`), and the level decays a step at a time (`func_02087704`), swapping `0x1000000` for `0x800000` at 3.
+
+The level indexes ten floats at `0x020e88f8` through `func_02074738(level, isMonster)` — **1.0, 1.5, 2.5, 4.0, 6.0** for the party and **1.0, 1.3, 2.0, 3.0, 4.5** for a monster, held at 1.0 — which multiplies the damage at step 17 of the tail. The symbol immediately after that function in the ARM9 is `CalculateTensionBonus`.
+
+That also explains the bit on the **attacker**: at the head of `CalculateFinalDamage` it writes a message code for tension spent on a blow that did nothing (1 psyched up, 2 at maximum).
+
+## A monster's drops — `func_ov023_021f454c`
+
+In **overlay 23**, called from the victory routine `func_ov023_021edf54` at `0x021ee2ec`, once the experience and gold are settled.
+
+It walks **the kinds of monster beaten** — a list of up to 12 at `[battle + 0x8d66]`, built by `func_ov000_02155184` as each monster leaves the field, which counts how many of the kind were registered and how many got away. An entry whose monsters all fled is skipped. For each kind:
+
+1. the **rare** drop is rolled first — the item at the record's `+0x06`, its chance the step byte at `+0x03`;
+2. the **ordinary** drop only if the rare did not land — the item at `+0x04`, its chance the byte at `+0x02`.
+
+Each roll is `func_02032370(oneIn) == 0`, where `oneIn` is the table of eight words at `0x021fd888`:
+
+| step | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| one in | 1 (always) | 8 | 16 | 32 | 64 | 128 | 256 | 0 (never) |
+
+**The generator is the C library's `rand`** (`0x02003d14`, `seed × 0x41C64E6D + 0x3039`, the draw its bits 16 to 30), not the battle's and not the world's: a drop spends none of the battle's own numbers. `GetBTRandom()` is called in the same function, but only for a grotto or legacy boss's drop. The collected list is capped at 8, and four further passes follow the first — one for each standing party member above half its HP, at a rescaled chance — which are the series' item-finding abilities.
+
+Nothing in the battle seeds `rand`; twelve places elsewhere do, two from a clock and the rest deterministically for generating grottoes, floors and treasure maps.
+
+## The party fleeing — `func_ov000_0215f7a8`
+
+The player's Flee **never becomes an action**: the command short-circuits in the command overlay (`func_ov026_021dd3dc`, where the chosen command id 6 is Flee), which is why the action tables are the wrong place to look for it. That function calls this one once, for the members who chose it. In order:
+
+1. the battle's setup forbids it — `[battle + 0xe18] + 0x0C` not negative — and it never lets go;
+2. a member of the party is one of Cock-a-doodle-doo, Zing or Kazing: no escape;
+3. `[battle + 0xe20] == 0 && [battle + 0xe49] == 1` — **the party surprised the monsters on the first round**: away, with no draw;
+4. every monster is dead or cannot act: away, with no draw;
+5. **three times the monsters' mean of attack-and-defence not above the party's**: away, with no draw. The stats are the unbuffed ones at `[obj + 0x134] + 0x34` and `+0x36`;
+6. otherwise a percentage: `(int)(deftness × 0.05f) + 10`, the greatest over the members fleeing, held up to the floor its attempt gives — the table at `0x02182c04`, **25, 50, 75, 100**, indexed by a counter at `[battle + 0xe1c]` that this call then increments — and `NextRandomMax(100) < it`.
+
+**The draw is the world's generator**, `GetBTRandom()`. The table's fifth entry is 65535, which any draw passes, so a fifth attempt always gets away.
+
+## How a fight opens — `func_ov017_021970a0`
+
+`[battle + 0xe49]` is carried in from the encounter's own record: `func_ov000_0215d414` copies it from the setup's `+0x35`, and a scripted battle holds its value as a byte in its data. For a **wandering monster** it is decided as the two of them meet, in the encounter check `func_ov017_02196430`.
+
+**Who was facing whom decides which way it can go.** The check measures each one's facing against the bearing to the other (`func_ov017_021a4754`) and calls it a turned back past **9007.6 of a turn of `0x10000` — 49.48°**:
+
+| how they met | the party may surprise | the party may be surprised |
+|---|---|---|
+| face to face | `(int)(2 + 0.05 × deftness)` in a hundred | 2 in a hundred |
+| the monster's back was turned | `(int)(12 + 0.05 × deftness)` | never |
+| it reached the party from behind | never | 12 in a hundred |
+
+The deftness is the highest among the party who can act — the same ten bits of the character record (`[obj + 0x150] + 0x04`, bits 0–9) that `RollCritical` hands `CalculateCritRate`. The draws are the **C library generator's**, as a drop's are: the battle has none of its own yet.
+
+`[battle + 0xe20]`, which bypasses the whole of it in `ProcessCombatTurn`, is **the round counter** — so the surprise round is the first round and nothing more.
+
+## Initiative, and the order of a round — `ProcessCombatTurn`
+
+Inlined at `0x0215d800`. Every combatant that is not sitting the round out is scored
+
+```
+(float)agility × NextRandomFloatBetween(0.51f, 1.0f)
+```
+
+on the **buffed** agility (`[status + 0x0c]`, which `UpdateCombatantAgility` has just recomputed and held to 999), and the scores are sorted highest first by a quicksort over floats (`func_020749ac`) — so ties break arbitrarily. `0.51f` appears once in the whole build. One whom the opening leaves out is **not scored at all**, so a surprised round makes fewer draws than an even one.
+
+## A stat after its multiplier — `RoundUp`
+
+`RoundUp` (`0x020744a8`) is `(int)(0.5f + x)` — round half up, despite the name. The game applies it to a stat **after** its buff multiplier and before the blow is worked out, so a defence of 41 under Kasap is 21 and not 20. The multipliers themselves (`BasicAttackCalculation.cpp`): a quarter a level on attack; half again a level up on defence, agility and the magics, and going down a half at −1 and a quarter at −2; charm never falls below whole.
 
 ## What rides on a blow — `func_ov024_021e4b14` [`DispatchRiderEffect`]
 
@@ -154,7 +245,7 @@ A second effect on top of a damaging action — Toxic Dagger's poison, Helm Spli
 
 `GetResistance(target, element)`: the byte at the target's status `+0x3E + element − 1`, plus a modifier, held at 0 or above, over `100.0f`. 1.0 for an element outside 1 to 21.
 
-Everyone's 22 bytes start at 100 (`func_020891cc` [`ResetBattleStatus`]). A monster's are then copied from its record (`func_02082d38` [`CopyResistances`]) — see [Monsters](Monsters). A party member's come from their character record.
+Everyone's 22 bytes start at 100 (`func_020891cc` [`ResetBattleStatus`]). A monster's are then copied from its record (`func_02082d38` [`CopyResistances`]) — see [Monsters](Monsters). **A party member's are summed from what they wear**: overlay 17's `func_ov017_021b3780` looks each worn thing up in `itembtlprm.nat` and copies its record onto the character, and `func_02083e28` sums the twenty signed bytes at each record's `+0x14` onto a hundred, held at nothing below — see [Equipment battle parameters](Equipment-Battle-Parameters). Nothing else writes them: no vocation, no skill, no spell.
 
 The modifier: −50 under a ward, for each of elements 1 to 7 (five wards: 1, 2, 3 and 4, 5 and 6, 7); nothing for 8; for 9 to 21, −25 under bit 3 of the status word at `+0x18`, else +25 under bit 4.
 
@@ -174,18 +265,18 @@ The modifier: −50 under a ward, for each of elements 1 to 7 (five wards: 1, 2,
 
 ## Other things read
 
-- **The surprise round** (`ProcessCombatTurn`): `[battle + 0xe49]` is how the fight opened. At 1 the monsters sit out; at 2 the party does, the first monster always acts, and each after it acts on `NextRandomMax(100) < 67`.
+- **The surprise round** (`ProcessCombatTurn`): at `[battle + 0xe49]` of 1 the monsters sit the first round out; at 2 the party does, the first monster always acts, and each after it acts on `NextRandomMax(100) < 67`. What sets it is above.
 - **A monster fleeing**: action `0xE1` on oneself removes the combatant with no draw (`func_ov024_021da670`). A monster that chooses to flee, flees.
-- **Initiative** draws a float from 0.51 to 1.0. How it meets agility is not read.
-- A table at `0x020e88f8`, **1, 1.5, 2.5, 4, 6** for the party and **1, 1.3, 2, 3, 4.5** for monsters, multiplies the damage of an attacker carrying status bit `0x800000` or `0x1000000`, by a level at status `+0x24`. What it is, is not established.
+- **A heal that goes critical** multiplies by `between(1.5, 2.0)`: it takes the same `CalculateFinalDamage` path a blow does, and `CalculateCriticalDamage`'s flag is set only for actions 1, `0xDB` and `0x1F9`, which take `between(0.95, 1.05)` instead.
+- **Action kind `0x22` is a metamorphosis**: the combatant's battle record is swapped for the monster named at the action's `+0x30` (`func_0204887c`, which carries the old record's name over), and the turn is then drawn again. Its handler slot is null, and the usable-action mask excludes it.
 
 ## Not established
 
-- The party's chance of fleeing. The words 1024, 2560, 2048, 1024 that look like a table of chances are heap sizes.
-- What status bit `0x1000000` is, and so whether defending halves before or after the 0-or-1.
-- What the game does to a heal that goes critical.
-- How a monster weighs its six ways beyond the [weight tables](Battle-Weight-Tables): `func_ov000_0215f57c` is part of it.
-- What armour and accessories do to a party member's resistances.
+- What the four ways of choosing an action that do not draw by weights do in detail — see [Battle weight tables](Battle-Weight-Tables).
+- What trait `0x11d` is, and what `func_ov000_02155a04`'s quarter is a quarter of, which together double a critical rate.
+- What the drop roll's four further passes scale their chance by.
+- What increments the combo counter at `[battle + 0x8e83]`.
+- What `func_ov000_0215f57c` is: it returns 0, 1 or 2 for a party member, by a three-bit field of the monster's record and one coin flip. It is **not** the action picker, which this page once supposed.
 
 ## See also
 

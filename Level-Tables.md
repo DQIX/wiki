@@ -1,6 +1,6 @@
 # Level Tables
 
-Thirteen loose files, `/data/prm/level0.bin` to `level12.bin`, one per vocation, giving experience and base stats for levels 1 to 99. Each is a [tagged data table](Tagged-Data-Table). The record structure is confirmed; that column 0 is experience is INFERRED; which stat each other column holds is INFERRED in two steps, the last of which rests on what the vocations are rather than on the files. Column 10 is not established. Observations are from the European release (game code `YDQP`).
+Thirteen loose files, `/data/prm/level0.bin` to `level12.bin`, one per vocation, giving experience and base stats for levels 1 to 99. Each is a [tagged data table](Tagged-Data-Table). The record structure is confirmed, and so is what every column but the first holds: a published strategy guide's own tables agree with the files, which settled both the stat columns and column 10. That column 0 is experience is INFERRED. Observations are from the European release (game code `YDQP`).
 
 ## Layout
 
@@ -31,7 +31,7 @@ The 99 records are levels 1 to 99.
 | 7 | magical mending, INFERRED |
 | 8 | maximum HP, INFERRED |
 | 9 | maximum MP, INFERRED |
-| 10 | not established — 0 at level 1, 12 at level 10 and 200 at 99 on twelve files; 17 and 350 on `level0` |
+| 10 | **the skill points gained by that level, all told** — 0 at level 1, 12 at level 10 and 200 at 99 on twelve files; 17 and 350 on `level0` |
 
 ## Files and vocations
 
@@ -90,7 +90,8 @@ The [spell table](Spell-Table) agrees: the Warrior, the Martial Artist and the G
 
 - Column 10.
 - The `0x64`, `0x65` and `0x67` records.
-- The weakest step is the column assignment by vocation: it rests on what those vocations are, not on anything in the files. A level-1 status screen for any vocation whose resilience and agility differ would settle columns 2 and 3; so would one for the Mage, whose might is 18 or 0.
+- **Confirmed by a guide, 22 September 2026.** The *Dragon Quest IX* Signature Series guide prints an attribute table for each vocation, at levels 1, 5, 15, 25, 40, 60, 80 and 99. Its Minstrel table agrees with `level6` at **all 72** of those values; no other file agrees at more than 2. That settles columns 1 to 9 — including the two taken against the status screen's order, 2 resilience and 3 agility, and 6 might against 7 mending — and that `level6` is the Minstrel's.
+- **Column 10 is skill points.** The same guide's table of the points gained at each vocation level, summed, is column 10 at every level from 1 to 99 on all twelve vocations' files, 200 at 99. The cartridge bears it out: `str_bres` 13, among the battle's result messages, is "`<val_1>` skill point(s) earned". `level0`, the Guardian's, does not fit — it hands points out a level earlier than the guide's walkthrough sees them, which is one more reason to think it is not a playable vocation's.
 
 ## See also
 
