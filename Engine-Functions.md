@@ -332,9 +332,158 @@ That kind-6 case is confirmed by the dispatchers `0x02164624`, `func_ov001_02164
 
 A consequence worth recording: **a script that polls `0` or `2` and never gets a press will run for ever.** One scene on the cartridge does exactly that, and it is the game working as intended, not a broken script.
 
+## Walking a character over the ground — 207, 231, 232
+
+Three handlers, **one command**. `func_ov001_0215a364` has exactly two callers — `0x0215c124` inside **207** and `0x0215ca38` inside **232** — and both produce the same opcode-2 record on actor channel 0, differing only in a mode word. **231** is the instant form, enqueuing opcode 1.
+
+| fn | takes | mode | what the handler does |
+|---|---|---|---|
+| 207 | character, x, y, z, frames [, name] | 0 | glide to exactly (x, y, z) |
+| 232 | character, **x, z**, frames [, name] | 1 | glide x and z, then **`GetCurrentZone()` and `func_02018fbc(zone, actor+0x74)` each frame, writing the result to `actor+0x78`** |
+| 231 | character, x, z [, name] | — | the same ground query, at once |
+
+**There is no y argument on 231 or 232.** The y the record carries is the constant `0xa000` — fx32 10.0 — and it is only where the probe starts. `func_02018fbc` builds an AABB of `x±0x800`, `z±0x800`, `y+0x1000` down to `y-0xa000`, so a probe at 10.0 spans 0.0 to 11.0.
+
+The optional name is played when the move ends, through `func_ov001_02164578`, which is called **whether or not one was given** — with the record's `""`, which `Object3D::MaybeSetRegularAnimation` early-outs on (`0x02036e60`).
+
+The record allocator's free path re-initialises, including `strcpy(rec+0x1c, "")` from the empty string at `0x02164d10`, which is why the name field is `""` rather than stale.
+
+## 317 and 326 are twins
+
+`func_ov001_0215d8f4` (317) and `func_ov001_0215d984` (326) are **the same instructions** — same three `ToFloat`×4096, same `ToInt`, same `*(0x021658a4)` — differing only in the enqueuer:
+
+| fn | enqueuer | channel | node | what it moves |
+|---|---|---|---|---|
+| 317 | `func_ov001_021591d0` | 2 | `0x10` = `func_ov001_02158494` | **eye and look-at together** — the view slides without turning |
+| 326 | `func_ov001_02159210` | 3 | `0x11` = `func_ov001_02158654` | **look-at alone** — the view turns about a fixed eye |
+
+Both run the identical `t % 4` square wave (`+A` at `t≡0`, baseline at `t≡2`) and the identical `+0x134`/`+0x150` save-and-restore protocol, and both have **the same dead decay**: the amplitude actually applied is `controller+0x138`, written once on the first frame and never again. The three-call decay block writes only `record+0x04`, which nothing that touches the camera reads.
+
+A count below zero shakes for ever.
+
+Note also a **third, unrelated shake**: **803** (`0x02161e00`) is a *continuous sine*, not a queued square wave. It sets `camera+0x1F8` (enable), `+0x200` (speed, a **raw float, no fixed-point conversion**) and `+0x204` (amplitude, fx32). `BuildCameraViewMatrix` at `0x0202e3c4` advances a phase at `camera+0x1FA` by `delta × 182 × speed`, indexes the sine table at **`0x020e9450`**, scales by the amplitude and adds the result to **the eye's and the look-at's Y only**. `803(0)` clears the enable byte. It reads all three arguments unconditionally, so a one-argument call reads past its own argument list.
+
+## The camera follows a character — 324 and 325
+
+**324** (`0x0215dfc4`) writes `controller+0xa20 = EventActor*` and queues node `0x12` (`func_ov001_021587c4`) on camera channel 0. That node copies the actor's position from `actor+0x74` into `controller+0x58` (the look-at), adds the record's offset, and **returns 1 every frame — it never finishes**. The eye at `controller+0x4c` is untouched.
+
+**325** (`0x0215e0c0`) is three instructions of work: `controller[0xa20] = 0`. That makes the node return 0 on its next tick and free its record. It is the only thing that ends 324.
+
+## The 800 block is the ending
+
+`804` co-occurs at 100% with `820`, `821`, `822`, `826`, `811`, `734` and `845`. It is **the staff roll and the credit cards**, and the scripts name the files:
+
+```
+ev29350  821(0) 820("chara_sub/toriyama.pac") 820("chara_sub/sugiyama.pac")
+         820("chara_sub/hino.pac") 820("chara_sub/fujisawa.pac") 822(0) 826(0)
+         811() 804(0) 734(0) 820("chara_sub/horii.pac") 734(1)
+ev29373  838 804(0) 821(0) 838 812() 820("chara_sub/ichimura.pac") 822(0) 826(0)
+ev29306  821(0) 820("chara_sub/tobe_<LG>.pac") 822(0) 826(0) 804(0)
+```
+
+All of those exist on the cartridge — `horii.pac`, `toriyama.pac`, `sugiyama.pac`, `hino.pac`, `fujisawa.pac`, `ichimura.pac`, `company.pac`, and `tobe_de/en/es/fr/it.pac`. `horii.pac`'s members are `horii_san.bncg` (payload magic `CHAR`, 0x40×0x20 tiles, 8bpp), `.bncl` (`PALT`, 256 colours) and `.bnsc` (`SCRN`, 32×24×2) — one full-screen 256-colour picture. The `<LG>` is resolved by `StringReplaceLanguageTag` (`0x020757b4`).
+
+| fn | handler | what it does |
+|---|---|---|
+| 734 | `0x02163a5c` | re-size the two sound heaps. **Non-zero**: destroy heap A and re-create heap B at `0x02200180` size `0xA2000`. **Zero**: heap B at `0x02200180` size `0x57000`, heap A at `0x02257180` size `0x4B000`. The arithmetic is the point — `0x02200180 + 0x57000 = 0x02257180`, and `+ 0xA2000` = `0x02257180 + 0x4B000` |
+| 811 | `0x0216224c` | push overlay group 5, set bit `0x1000` of `GameResources+0x00`, then `func_ov028_021d96bc(eventAllocators[0])` — which takes `0xA000` + `0x5000` from that allocator, records a 64-bit timestamp at `ctx+0xa0`, and registers a per-frame task at priority `0xd7` |
+| 812 | `0x0216227c` | clear that bit, `func_ov028_021d9714()`, pop the overlay group |
+| 838 | `0x02163228` | `(ctx[0xa8..0xac] << 6) / 0x82EA` — ticks × 64 / 33514, i.e. **milliseconds** |
+| 821 | `0x0216297c` | save the display state. **0 = main, 1 = sub, anything else nothing.** `GetMainBGVRAMBanks()` → `eventAllocators+0x494`; BG0–BG3CNT (`0x04000008`–`0x0400000E`) → `0x02165cb8+0x98..0x9e`; `(DISPCNT & 0x1f00) >> 8` → `+0x4a0`. Sub uses `+0x4a4`, `+0xa8..0xae`, `+0x4b0` |
+| 820 | `0x021624cc` | `sprintf("data/%s")`, load, then **BG3 only**: `DISPCNT &= ~0x1f00; \|= 0x800`, BG3CNT set 256-colour, and the chunks dispatched by magic to `LoadToMainBG3CharacterData` (`0x020c6018`), `LoadToMainBG3ScreenData` (`0x020c5d18`), `LoadToMainBGStandardPalette` (`0x020c5820`) |
+| 826 | `0x02162900` | zero `0x20` bytes of BG3 tile 0 and `0x600` bytes of its screen map. **0 = main, non-zero = sub** |
+| 822 | `0x02162a90` | the exact inverse of 821 |
+| 804 | `0x02161e8c` | **fog.** `LightingManager+0x85 = 0 or 1`, then `func_020c54a4(enable, fogInfo_.type, .depthShift, .offset)` — `FOG_OFFSET` at `0x0400035C` and the fog bits of `DISP3DCNT` at `0x04000060` |
+
+**804 is not inferred.** `src/Graphics/LightingManager.cpp:818` in the decomp's own hand-written C++ contains the identical call.
+
+**845 is not part of it.** It is the middle of a different set: **506** opens a preload batch (resetting the count at `eventAllocators+0x88`), **845** tops it up, **507** polls until every queued task is done. It shares 804 for the same reason 124 other scripts share 506.
+
+### 845 has a slip
+
+```
+0215ed84  ldr r4, [r2, #0x88]   ; loop counter starts at the RUNNING COUNT
+0215ed8c  mov r0, r6            ; but the argument cursor starts at args[0]
+0215ed90  bl  #0x21d612c
+0215ed98  add r6, r6, #8
+0215eda4  cmp r4, r5            ; bounded by ARGC
+```
+
+So it queues `argc − count` files, reading the **first** `argc − count` arguments and leaving the last `count` read by nothing; where `count >= argc` it is a complete no-op. `506`, its sibling, stores 0 to `[+0x88]` first and so never trips over this.
+
+## 815 is an anti-tamper check
+
+```
+02162348  bl #0x21d6134         ; *** store 1 into args[0] FIRST ***
+02162354  bl #0x20a1940         ; load overlay 29 (0x1D)
+02162388  bl #0x21d8e94  ; cmp against 0x001BF27F
+021623b0  bl #0x21d8f84  ; cmp against 0x001BEFCB
+021623d8  bl #0x21d9074  ; cmp against 0x001BEB10
+021623fc  cmp r0, #6            ; and the counter must reach 6
+0216240c  bl #0x21d6134         ; *** only then store 0 ***
+```
+
+The three stubs at `0x0215A6FC`, `0x0215A718`, `0x0215A734` each call the callback they are handed and return their own magic constant; the three callbacks bump one counter by **1, 2 and 3** — summing to exactly the threshold. So it verifies both that overlay 29's entry points answer correctly *and* that each genuinely invoked its callback.
+
+**0 is the good answer.** 1 means tampered-with or not checked, and the 1 is written first so a check cut short leaves it. The second argument is the "really check" switch and must be exactly `1`; without it the answer is 0.
+
+Overlay 29 is obfuscated — the decomp marks every symbol in it `kind:data(any)` and it disassembles to nonsense. Its six entry points at `0x021D8E1C` + `n×0x78` are byte-identical apart from two branch offsets.
+
+## Two handlers that write nothing on the common path
+
+Worth calling out together, because a reimplementation that writes 0 instead is wrong:
+
+- **234** (`0x0215ccdc`): where the cast entry's kind is in `{0,1,4,5,6}` but `cast[i].obj == NULL`, it jumps to the return and **writes nothing at all**. The script's variable keeps its previous value. (Kinds 2, 3 and >6 do write, always 1.)
+- **823** (`0x021626a4`): where bit 0 of the byte at `GameState + 0x63DC` is **clear**, it returns without writing. Only where it is set does it store, and what it stores is always 1. **819** (`0x021624a8`) is the other half — same bit, and it acts where 823 asks, queueing a work item carrying `data/scenario/chur_messet.bin`.
+
+## The equipment pair — 828 and 829
+
+Proved three ways, none circumstantial:
+
+1. **The same flag bit.** 828 ends with `func_0203b4b0(GameResources, 0x10)` — **clear** bit `0x10` of `GameResources+0x00`; 829 opens by **testing** it and can **set** it. No other handler touches that bit.
+2. **That bit gates the queue 829 reads.** ov017's frame update at `0x0218cf78` tests it and *skips* the queue update when set. 828 clearing it is "let the queue run".
+3. **The node type matches.** 828's `func_ov017_0218f5a4` obtains its node through `func_ov017_021a4658`, whose initialiser writes `0x13` — the exact constant 829 compares against.
+
+**828(who, slot [, back])** stashes `equip[slot]` into `sceneCtx+0x182` and sets the slot to −1; with a non-zero third argument it puts the stash back, but **only if the slot is still empty and the marker at `sceneCtx+0x180` is not 6**. `func_02052d7c` also sets raw story-flag bit `0x113F` unless the slot is 7 or 8.
+
+**829** answers **1 while the request is still at the head of the queue**, and latches itself off (setting bit `0x10`) once it is not. It is a while-loop condition, not a done flag.
+
+## The time of day is a four-phase enum
+
+`include/GameState/TimeOfDay.h`: **Invalid −1, Night 0, Morning 1, Day 2, Evening 3.**
+
+- **808** (`0x02162148`) → `GameState::SetTimeOfDay` (`0x02010364`), which writes `GameState+0x3DC`. **A value of 4 or more does nothing at all** — and the guard is a signed `bge #4`, so **−1 is not rejected** and would index a table short.
+- **588** and **589** pin `LightingManager::timeOfDayIndex_` (`+0x98`) and its day clock (`+0x94`) to that phase's start. The phase-start table is `{0, 180, 210, 390}` of a 420-second day, built at startup as running sums of `{180, 30, 180, 30}`.
+- **597** answers the same index.
+
+All three speak these numbers.
+
+## The rest
+
+| fn | handler | what it does |
+|---|---|---|
+| 223 | `0x0215c730` | show or hide a map placement — **only when `cast[i].kind == 2`**; any other kind returns success having done nothing |
+| 239, 240 | `0x0215d08c`, `0x0215d0f4` | set and clear `placement+0x10`, an extra `Object3D*` that `func_02040910` draws **before** the placement's own model. 239 reads its first entry for its `.slot` and its second for its `.obj` |
+| 552 | `0x02160768` | the three-bone camera. Two bones drive the eye and look-at as 572's do; **the third drags a second object**, whose index is the fifth argument, setting its position from the bone and its facing from `fix32_Atan2` of the movement |
+| 557 | `0x021609a0` | clear bit 0 of the Hero's flag word, push their action state back, reset the object `GameState+0x397C` names. **INFERRED**: getting off a mount |
+| 583 | `0x021618d0` | one byte at `GameState+0x63D6`, `&0xff`. Fifteen readers treat it as a gate on entering a map; **ov017 `0x0218b6c0` tells 4, 8 and `0x0c` apart** |
+| 591 | `0x02161988` | bit 0 of `zone+0x105`, **set when the argument is 0**. Six write sites in the cartridge and **no reader found** |
+| 599, 805 | `0x02161d2c`, `0x02161f3c` | a **whole word** at `zone+0x274C` and `zone+0x2750`; each is the first thing its render pass tests, and a zero skips the pass entire |
+| 601, 602 | `0x02163334`, `0x02163390` | bits of the **progress record in hand**. The bank at `0x02108844` opens with five `0x1C`-byte records (`0x8c = 5 × 0x1C`), `byte[base+0x332]` selects one, 601 reads its bitfield at `+0x03` and 602 its second at `+0x10` |
+| 735 | `0x02163ab4` | bit `0x04` of the sound manager's `+0xC8`, **set when the argument is 0** — and that bit makes both `PlayBGM` and `FadeOutSequencePlayer` return immediately |
+| 736 | `0x02163aec` | play the zone's own tune: its id through a table of 47 at `0x020E8ED8`, substitutions that follow the time of day, and an override list whose entries each carry **a story flag to test** |
+| 737 | `0x021637a8` | the same teardown as 738, then `func_0209c6d8` starts a track on the manager's **second** player (`+0xC4`, id at `+0xCE`), leaving the first slot empty so a later `PlayBGM` proceeds |
+| 802 | `0x02161db0` | set bit 0 of the byte at `+0x04` of the first cast node whose byte at `+0x01` matches. The cast loader reads it and **rewrites the model's palette colours in place** through `LightingManager::ColorTransformTintBrightnessContrast` |
+| 806 | `0x02161f64` | `Zone3D+0x264D = 1` — a one-shot request in the embedded **`ActiveGrottoClass`**, consumed and cleared by `func_0208fc30`, which enqueues a type-`0x34` work item |
+| 809 | `0x02162174` | show or hide `*(Object3D**)(GameResources+0x4334)` and `+0x4338`, slots 0 and 1 of a four-pointer array. Its **second argument is an optional mask**, and no script passes one — so in practice the first slot alone |
+
+### A house style: a 0 means "on"
+
+Five switches read the argument the other way up — `536`, `581`, `591`, `735` and `833`. In each, **0 sets the bit and anything else clears it**, and in each the bit *suppresses* something. Consistent enough to expect on any switch still unread.
+
 ## What is still only inferred
 
-The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the model and motion packs of 566 and 567, and the second folder's wait through 840. **27** numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them, down from about 150.
+The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the model and motion packs of 566 and 567, and the second folder's wait through 840. **5** numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them, down from about 150: 807, 837, 839, 843 and 844.
 
 ## Not established
 
@@ -370,6 +519,15 @@ The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still 
 - Why `228` scales its copy to `0x10a` and `521` its placement to `0x8f`. The constants and the unit (fx16, 1.0 = `0x1000`) are certain; the reason is not.
 - What engine functions `4`, `5` and `6` compute. One double in and one out, and two in and one out; sine, cosine and arc tangent fit the shape, and nothing confirms it.
 - What the two fields engine function `2` reads are.
+- **What reads bit 0 of `0x020FB4F5`** (`591`'s zone bit). Six write sites across arm9 and all overlays; no immediate-offset reader anywhere.
+- **`583`'s values.** Fifteen readers treat the byte as a yes-or-no gate on entering a map; ov017 `0x0218b6c0` distinguishes 4, 8 and `0x0c`. What those mean is open.
+- **What the models `599` and `805` draw are.** Both passes are walked structurally — a count, a list of `0x24`-byte (599) or `0x368`-byte (805) instances — but no filename was reached.
+- **The id space `func_02064b98` switches on** to pick one of the five `0x1C`-byte progress records. The ranges are exact (`[0xC8,0xDB]`, `[0x6A4,0x6AA]`, `[0x1068,0x106A]`, `[0x1E14,0x1E1D]`, `[0x2328,0x2330]`, …); the namespace is not identified.
+- **What the four `Object3D`s at `GameResources+0x4334..0x4340` are** (`809` reaches the first two). The fill loop is at ov017 `0x021bdef0`–`0x021bdfc8`, four `s16` file ids from a record whose owner was not chased.
+- **Overlay 29's algorithm** (`815`'s probe). Obfuscated; not decrypted. Only that 815 treats a mismatch as tampered.
+- **The contents of the four-word table at `0x020F33B4`** that `SetTimeOfDay` indexes. It lies past the end of `arm9.bin` and is runtime-initialised.
+- **Whether `845`'s count/argc mismatch is intended.** The code is unambiguous and its sibling `506` resets the count first, so the difference is deliberate somewhere — but whether the *argument cursor* starting at `args[0]` is by design cannot be told from the binary.
+- **What `func_02018fbc` does past its AABB setup** (`231`/`232`'s ground probe). The box is read — `x±0x800`, `z±0x800`, `y+0x1000` down to `y-0xa000` — but not the remaining ~0x1f0 bytes; "returns the floor height" is INFERRED from that shape and from both callers writing the result into `actor->pos.y`.
 - **Whether `532`'s field of view is a half-angle or the whole field.** The first reading called it a half-angle because the projection puts `cot` in the slot a perspective matrix holds `cot(fov/2)` in; reading `580` showed that slot takes `cot × aspect`, which weakens it. Against the half-angle: the engine's own default is **60** (`0xF000`, set at `0x02155fe0`), and scenes pass 15 — read whole those are 60° and 15°, read as half-angles 120° and 30°, and 120° vertical is implausible.
 
 ## See also
