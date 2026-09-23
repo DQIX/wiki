@@ -258,9 +258,83 @@ That it is a **roll, a bank, not a turn** is settled by the view-matrix builder 
 - `0x021658b8` — an array of `SafeAllocator*`, count at `+0x88`, a flag at `+0x8c`. Element 0 is the default allocator; `233`'s third argument indexes it.
 - `0x02165884` — points at an array of **32** 16-byte **event placement** entries, `{s32 kind; s32 slot; u32; Object3D* obj}`. Reset writes `kind = -1`, `slot = -1`, `[8] = 1`, `obj = 0`. Kinds 0, 1, 2, 4, 5 and 6 are observed in overlay 1, which assigns none of them. `547`, `573` and their neighbours index it, and **none of them checks the index against 32**.
 
+## Script chaining — 538, 810, 834
+
+**`538`** (`0x0215f9dc`) writes one halfword of the scene context, `+0x11a`, through `func_ov017_021bbbec` (`add r0,r0,#0x100; strh r1,[r0,#0x1a]`). The VM's step, at the point a script runs out, consumes it (`0x021bca68`):
+
+```
+021bca68  add   r0, sl, #0x100
+021bca6c  ldrh  r1, [r0, #0x1a]
+021bca70  cmp   r1, #0
+021bca74  beq   #0x21bca94
+021bca7c  strh  r1, [sl, #8]      ; SceneContext->eventId = nextEventId
+021bca84  strb  r1, [sl, #0xfd]
+021bca88  bl    #0x21bb0c4        ; re-arm the VM for the new script
+021bca8c  mov   r0, #0            ; -> "not finished"
+```
+
+So **a scene runs on into another script, keeping its context** — its cast, its camera, its shot. That is how a long cutscene is cut into pieces, and it is why 538 is called by 95 of the 687 scripts. The halfword is cleared at scene begin (`0x021baf04`) and by the re-arm, so **0 means no chain**; nothing validates the id.
+
+**`+0x11c` is a second script id the trigger carried.** A trigger record holds two (`+8` primary, `+0xa` secondary); `func_ov017_021d1e50` runs the first and parks the second at `+0x11c`. **`834`** (`0x02163164`) answers whether one is parked — **1 or 0, not the id** — and **`810`** (`0x02162210`) moves it into `+0x11a` and clears it.
+
+## Sprite placements — 521 and 522
+
+A create-and-destroy pair over the 32 slots of the sprite manager at **`0x021075f4`** (returned by `func_0203cf4c`).
+
+**`521`** (`0x0215f3fc`) `(name, &slot [, allocIdx [, vramIdx]])`:
+- `func_0203e03c` finds **the first free of 32 slots** and 521 **stores it through its reference** (`0x0215f470`) — before the bounds check and before every failure return, so a failed call still leaves an index behind.
+- The path is `data/ani/%s.spr`, or `data/ani/%s` when the name already ends `.spr` (`strstr`, format strings at `0x021657b2` / `0x021657be`).
+- Four allocations from `allocTable[arg2]` (default 0, **not bounds-checked**): `0x20` the placement record, `0x78`, `0x14` the name record, `0x9c` the sprite instance.
+- The name record keeps the **bare five characters**, or seven when the name holds `_s` — which also sets bit 3 of the sprite's flags at `+0x50`.
+- The texture is staged into `GameResources + 0x2cc + vramIdx*0x70`, **default 27**, which is the same partition handler 503 hardcodes (`+0xbd0 / 0x70 == 27`).
+- Scale `0x8f` on all three axes.
+
+**`522`** (`0x0215f740`) takes that slot back: releases the cached resource by name (`"%s.spr"` rebuilt from the name record) or destroys the `Object3D`, re-runs the record constructor, empties the manager slot, and **clears any event-placement entry of kind 2 or 6 whose `slot` field matches**. It does not free what 521 allocated.
+
+**`573`** does the same teardown but is **indexed through the event placement table** — it reads an entry of kind 2 or 6 and uses that entry's `slot`. So 522 is 521's direct inverse and 573 is the same destructor reached the other way. Both go through `func_0203cf4c`.
+
+That kind-6 case is confirmed by the dispatchers `0x02164624`, `func_ov001_02164578` and `func_ov001_021646b8`: for kind 6, `entry[0xc]` is **not** an `Object3D*` but a `0x20`-byte placement record of 521's shape, with the `Object3D*` at `+0x18`.
+
+## The rest of the event VM
+
+| fn | handler | what it does |
+|---|---|---|
+| 228 | `0x0215ba64` | shallow-copy a game object into another slot, scaled **`0x10a`** — about a fifteenth of size, and why is not established. Its optional third argument (the allocator) is passed by **no script on the cartridge** |
+| 230 | `0x0215bcc0` | unload every animation package with the given id (**3 by default, which is every call**) and set the same animation again by name, **falling back to `"stand"`** when the name no longer resolves. It reads the flags and the name *before* the unload, which clears them |
+| 236 | `0x0215cdf8` | `Object3D::Detach` on a placement's model — clears the two child links and the attach bone, and walks the whole child list when it is itself the anchor |
+| 238 | `0x0215cf98` | **a palette recolour, not a move.** Packs three numbers as `r \| g<<5 \| b<<10` into BGR555 and rebuilds the model's texture palette into a staging buffer bound for VRAM. An optional fifth number is the mode: **0 add** (held at 31), **1 fill**, **2 multiply** over 31. On one of the first four game objects it recolours the whole party member — the model plus twelve slots at `id × 12 + 0x13` |
+| 509 | `0x0215eeb0` | switch a **raw 32-bit mask** on `Object3D+0x6C`, the same word visibility and `SetFlag16` use |
+| 550 | `0x021605d4` | show or hide a character's objects at `12n + 0x1C` and `+0x1D`, skipping either whose model id is negative |
+| 556 | `0x02160938` | re-mount the weapon from **`data/bin/wpnpos.bin`** — `0x150 / 0x1C` = exactly **12 rows**, one a weapon class, each holding **two 14-byte placements** of a bone, a position and a rotation. Which of the two is picked by its second argument; **stowed-versus-drawn is INFERRED**, the halves being structurally identical |
+| 559 | `0x021609e4` | writes one byte at `0x02108844 + 0x490` — **two writers in the whole cartridge and no reader** |
+| 578 | `0x02164004` | `LightingManager::BeginFade`: a multiplier over the scene's two light colours and the horizon's, over a count of frames converted to milliseconds. 0 sets it outright |
+| 579 | `0x02164080` | `GameState::SetDayTimerRunning` — **inverted**: a 0 starts the clock |
+| 580 | `0x021640b4` | the field of view over a count: `cam+0x1F0` target, `cam+0x1F4` remaining, the count multiplied by **33**, which is what the frame length is initialised to. 0 calls `532`'s setter directly |
+| 588, 589 | `0x021603d8`, `0x02160504` | pin the lighting to a phase and re-tint the zone. The phase-start table is `{0, 180, 210, 390}` of a 420-second day, built at startup as running sums of `{180, 30, 180, 30}`. **`589` runs once a zone** — a byte at `Zone3D+0x834` makes a second call do nothing at all |
+| 548, 549 | `0x02160338`, `0x021603b0` | set and clear `LightingManager::lightingIndexOverride_`. **`549` reads its one argument and immediately overwrites it** |
+| 598 | `0x02161d08` | the first entry of the byte array of party object indices at `GameState+0x397C`, whose count sits at `+0x3980` |
+| 600 | `0x021632e4` | read a story flag **by its raw bit**, calling `GetBitInBitfield` directly and **bypassing** `GetStoryFlag`'s `+1786` displacement. So 600 and 603 agree below `0x400` and part above it, and **raw bits 1024–2809 are reachable only through 600** — which the game uses: other code reads raw `0xC02`–`0xC11` as a mask and sets raw `0x1142` and `0x113A` |
+| 226, 227 | `0x0215c858`, `0x0215c8a4` | set and interpolate `Object3D::radius_` via actor commands `0x15` and `0x16` — the exact fx32 analogue of 219/220 on alpha. **A duration of 0 writes nothing at all** |
+| 738 | `0x021637d4` | `func_0209c20c`: stop the track, fade over no frames, free the player's heap, set both sequence numbers to −1, master volume back to 127 |
+| 838 | `0x02163228` | overlay 28's stopwatch as **milliseconds** — `(ticks << 6) / 33514`, the DS's own tick conversion. Overlay 28's only string is `data/evspt_lv5/staffroll.bin` |
+
+## The lowest ten numbers are the player's input
+
+| fn | what it does |
+|---|---|
+| 0 | **how many of four buttons are held**, 0 to 4 — it tests `0x0001`, `0x0002`, `0x0400` and `0x0800` separately and adds the answers |
+| 1 | whether the buttons in a mask were **newly pressed**: `(held & mask) && !(prev & mask)` |
+| 2 | a flag of the input object ANDed with a count of its below ten |
+| 3 | switches something of the loader's, by two calls differing only in which |
+| 4, 5, 6 | one and two numbers of maths, answered through the **float** store accessor. **INFERRED** sine, cosine and arc tangent, from the shape alone |
+| 7 | **a random number from low to high, both ends included** — `NextRandomBetween(Random*, lo, hi)`, whose body is `lo + below(hi − lo + 1)` |
+| 8, 9 | set and clear the zone-mask flag |
+
+A consequence worth recording: **a script that polls `0` or `2` and never gets a press will run for ever.** One scene on the cartridge does exactly that, and it is the game working as intended, not a broken script.
+
 ## What is still only inferred
 
-The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the model and motion packs of 566 and 567, and the second folder's wait through 840. **51** numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them, down from about 150; the most wanted of the rest are 538, 238, 230, 589, 226, 236 and 228.
+The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the model and motion packs of 566 and 567, and the second folder's wait through 840. **27** numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them, down from about 150.
 
 ## Not established
 
@@ -286,7 +360,17 @@ The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still 
 - What condition makes **714** silence instead of restarting (`func_02086b98`'s per-entry bit `*(u32*)(entity->0x130) & 1`).
 - Which index scripts pass to **587**. Slot 0 would rewind the actor and placement arrays.
 - What `Object3D` flag bits `1` and `0x20` are, which **572** enables.
-- What distinguishes event-placement kind 2 from kind 6, and what kinds 0, 4, 5 are.
+- What distinguishes event-placement kind 2 from kind 6, and what kinds 0, 4, 5 are — though kind 6's `+0x0c` is now known to be a `0x20`-byte sprite placement record rather than an `Object3D*`.
+- **Who assigns `kind` and `slot`** in the 32-entry event placement table. The array is allocated and zeroed in `func_ov001_0215a850` (`Allocate(0x200)` = 32 × 16), and every use in ov001 and ov017 only reads or clears it. No writer was found in either overlay.
+- **What reads `0x02108844 + 0x490`**, the byte `559` writes. Two writers in the whole cartridge, no reader; every byte and halfword load that could reach the offset was searched for.
+- **The writer of `GameState + 0x397C` / `+0x3980`**, the party index array `598` reads and its count. Three readers, no writer found.
+- Whether `556`'s two `wpnpos.bin` placements are stowed and drawn. The halves are structurally identical and nothing names them.
+- Which weapon category is `wpnpos` row 6 — the one that toggles `Object3D+0x18c` bit `0x20`. The table is filled at runtime from the file, so its contents are not in the binaries.
+- What `12n + 0x1D` is. `12n + 0x1C` is the weapon, from `556`.
+- Why `228` scales its copy to `0x10a` and `521` its placement to `0x8f`. The constants and the unit (fx16, 1.0 = `0x1000`) are certain; the reason is not.
+- What engine functions `4`, `5` and `6` compute. One double in and one out, and two in and one out; sine, cosine and arc tangent fit the shape, and nothing confirms it.
+- What the two fields engine function `2` reads are.
+- **Whether `532`'s field of view is a half-angle or the whole field.** The first reading called it a half-angle because the projection puts `cot` in the slot a perspective matrix holds `cot(fov/2)` in; reading `580` showed that slot takes `cot × aspect`, which weakens it. Against the half-angle: the engine's own default is **60** (`0xF000`, set at `0x02155fe0`), and scenes pass 15 — read whole those are 60° and 15°, read as half-angles 120° and 30°, and 120° vertical is implausible.
 
 ## See also
 
