@@ -37,6 +37,7 @@
 **Text and scripts**
 - [Event text](Event-Text)
 - [Event scripts (.stb)](Event-Scripts)
+- [Engine functions](Engine-Functions)
 - [Character dialogue](Character-Dialogue)
 - [Item descriptions](Item-Descriptions)
 - [Item kinds](Item-Kinds)

@@ -134,14 +134,16 @@ These look like the two coordinates of a point on a circle: one a cosine and the
 
 **Engine functions are numbered in hundreds, and scripts write the number as a sum.** For example, `200 9 add` is function 209. With `add` read as a real add, **every invoke finds its `n` values**.
 
-The hundreds group what the functions work on. The readings below come from the arguments each function is handed, and are **INFERRED**:
+**What the numbers reach has since been read from the code** — the table they index, and about twenty of the functions themselves. That is [Engine functions](Engine-Functions); the readings below are the older ones, taken from the arguments each function is handed, and are **INFERRED** where that page does not say otherwise.
+
+The hundreds group what the functions work on:
 
 | group | area | readings |
 |---|---|---|
-| 200s | the cast | 206 places a character; 207 walks one somewhere over a number of frames; 209 turns one; 210 plays a motion by name |
+| 200s | the cast | 206 places a character; 207 walks one somewhere over a number of frames; 209 turns one; 210 plays a motion by name. 203, 205, 212, 214–218 and 543/544 are read — see [Engine functions](Engine-Functions) |
 | 300s | the camera | 303 sets where the camera looks; 310 takes a yaw, a rise and a straight-line distance to look from |
 | 400s | messages | 400 shows a message; 405 answers through its argument whether a message is still up |
-| 500s | the event and the screen | 566 and 567 set a character's model pack and motion pack |
+| 500s | the event and the screen | 566 and 567 set a character's model pack and motion pack. 502, 503, 506, 507, 508, 532, 540, 563 and 597 are read — see [Engine functions](Engine-Functions) |
 | 700s | sound | |
 
 **The camera, read further (INFERRED).** These readings come from how the calls agree with each other across every script run.
@@ -192,12 +194,13 @@ The scripts were run in that order against a stand-in engine that answers every 
 - The meaning of `0x1D` and `0x1E`, including which is the cosine and which the sine.
 - What integer division does.
 - The ordered comparisons 42–45, beyond the **INFERRED** C order.
-- Most engine functions. All readings above are **INFERRED**.
+- Most engine functions: about 126 numbers the scripts call are still unread. Twenty or so are read from the code — see [Engine functions](Engine-Functions) — and the rest of the readings above are **INFERRED**.
 - Which section runs when.
 - The `.stb` files in `/data/scenario`, `/data/menu` and `/data/event_lv5`.
 
 ## See also
 
+- [Engine functions](Engine-Functions): what the numbers a script invokes actually do
 - [Event-Text](Event-Text): the messages a script names
 - [Triggers](Triggers): which event runs when
 - [Character-Dialogue](Character-Dialogue)
