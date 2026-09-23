@@ -27,7 +27,9 @@ A character in a scene is an **actor**: `GetEventActor` (`0x0215ab20`) bounds an
 
 **The 200-group does not act at once.** Each handler queues a record on one of the actor's **eight command channels** (head and tail pairs at `+0x08` through `+0x44`); a per-actor tick (`0x0215a134`) walks the channels and dispatches each record's type through a table at `0x02164ca4`, and a handler that returns nonzero holds its channel for the frame. After the commands run, the tick copies the actor's position (`+0x74`) into `Object3D::position_` and its rotation (`+0x80`) into `Object3D::rotation_`.
 
-**The engine's angles are fixed-point degrees** — `fx32 / 4096 = degrees` — which `532` shows plainly.
+**The engine's angles are fixed-point radians.** `fix32ReduceAngle0To2Pi` (`0x02030f30`) wraps one modulo **`0x6488`**, which is 25,736 — 2π × 4096 — and the camera's own yaw is wrapped by the same constant inline (`0x02158120`). `532`, the field of view, is the exception: it takes **degrees** and converts them, multiplying by `0x47 / 4096` before any sine is taken (`Camera_SetFov`, `0x0202e9a4`). That constant is 0.0173340, against π/180 = 0.0174533 — the game's degree is 0.68% short of a real one.
+
+*(An earlier revision of this page said the engine's angles were degrees, on the strength of `532` alone. `532` is the one function that isn't.)*
 
 ## The waypoint path — 214, 215, 216, 217
 
@@ -86,9 +88,50 @@ The order is `502` → `506` → spin on `507` → `200` builds an `Object3D` fr
 
 That a placement 540 opens is a **door** is INFERRED — from the swing, the material-indexed sound, and the mask of doors applied beside the mask of opened chests when a zone is entered.
 
+## The brightness family — 100 to 122
+
+Eighteen numbers, one block. The handlers from `109` up are all the same three-instruction stub — `mov r0,#<type>` into one dispatcher at `0x0215b074` — and the type picks one of nine setters: three screens times three locking kinds.
+
+| | both screens | top | bottom |
+|---|---|---|---|
+| set | `100` (to normal), `101` (to black) | | `105` (to black) |
+| set and lock | | | |
+| unlock and set | | `121` (to normal) | `120` (to black) |
+
+Every one is `fn(frames [, level])`. The level defaults to **−16, black** (`mvn r5, #0xf` in all nine), and the frame count is turned into **milliseconds** inside the setter — `frames × 16.6667f`, the literal `0x41855604` = 1000/60. With `frames == 0` the setter writes the level and a flag that applies it this frame.
+
+The pairs alternate: the **even** type of each pair passes a level of 0 whatever the script gave it, the **odd** type passes the argument. So `120` honours a second argument and `121` cannot.
+
+So `120` is the **bottom** screen — the pair of `121`, not its opposite.
+
+## The worklist head, and the towns' shared set
+
+| fn | handed | what it does |
+|---|---|---|
+| 211 | character, x, y, z [, frames] | **moves a character to a point without turning it**, which is what tells it from `207`. It queues opcode `0x10` (set the position outright) with no count or one not above zero, and opcode `0x11` (work out `(there − here) ÷ frames` on the first tick, add it each frame after) with one above zero (`0x0215c330`) |
+| 233 | name, slot [, allocator] | loads a monster model out of `data/pack_lv5/enemy.gp2` — the first `.cchr` of the archive it finds — and installs it as a **GameState game object**. A negative slot maps by `-x + 0x9f` onto `0xa0`–`0xbf`, which is the range every scene uses. Scale `0x10a` on all three axes, animation 0; **whatever was in the slot is overwritten, not freed** (`0x0215ca4c`) |
+| 322 | x, y, z, yaw, height, distance, frames [, direction] | **moves the look-at point and the orbit together**, on two of the camera's queues. Not two points: the eye it hands the first command is a zero vector, and the command sets the flag that makes the camera recompute the eye from point and orbit at the end of the frame. `direction` is **−1, the short way round**, by default; 0 forces negative, anything else positive (`0x0215dd58`) |
+| 328 | frames | moves the camera back to the eye and look-at point its **idle placement** would have, computed by `0x020a2b38` without disturbing the camera, over a count. The default orbit triple it computes alongside is **discarded** (`0x0215e14c`) |
+| 547 | placement [, battle] | **begins the scripted battle.** The placement's entry must be of kind 1 and hold an `Object3D`, or the call does nothing at all; that model is made visible, flagged `0x40000000` and becomes the transition's foreground. `battle` is a record index into `data/event/eventbattle.bin`, which picks the battle and, from `+0x0e` of its record, the music — **−1** when the scene gives one argument, which skips the lookup and plays sequence `0x17`. The transition blacks both screens and snaps the volume to `0x7f` (`0x02163ccc`, task type `0x16` at `0x021b6290`) |
+| 558 | reference | **which of a message's choices is highlighted**, 0-based. The field is walked by the d-pad handler (`0x02045740`), wrapping against the option count beside it, and set to a default when a two-option prompt is built. No bounds check (`0x021609c0`) |
+| 573 | placement [, ignored] | **takes a placed `.spr` away** — the exact inverse of `521`, which loads `data/ani/<name>.spr` and registers it. Releases the cached resource if one is held, else destroys the `Object3D`, then empties the manager slot. **Its second argument is read by nothing**: there is exactly one `ToInt` in the function (`0x02161754`) |
+| 574 | group, object, visible | **shows or hides a thing the map placed.** The group is a key on a linked list of placements, the object a `u16` id within the group's array of `0x70`-byte records. A nonzero third argument **clears** bit 2 of the record's flags and a zero sets it — bit 2 being what the draw path tests to skip a record (`0x02163dec` → `0x02013380`). Its neighbours settle the record: `575` writes a position at `+0x08`, `577` a vector at `+0x14`, `576` a halfword at `+0x06` |
+| 603 | flag, reference | **reads one of the game's story flags** into a reference, 1 or 0. The bank is the bitfield at `0x02108844 + 0x8c`; ids from `0x400` up are displaced by **1,786 bits** (`id + 0x6fa`). Nothing is bounds-checked (`0x021633ec` → `0x0206eb98`) |
+| 715 | volume [, ticks] | the sound's **master volume, clamped to 0..127**, ramped linearly over a tick count (0 is immediate). The manager keeps it as the script's own level and scales it by the player's 1-to-5 sound setting — table `{0.0, 0.37795, 0.66929, 0.85039, 1.0}` at `0x020e8ec4` — before it reaches the mixer, halving it again if a flag is set (`0x021636d0` → `0x0209c2e0`) |
+| 721 | [frames] | **fades the live sequence player to silence** over a count, **30 by default**, and marks it stopping; 0 stops it outright. A no-op while bit 2 of the manager's `+0xc8` is set (`0x0216393c` → `0x0209c678`) |
+
+**703 to 709 are empty.** All seven are the same two instructions — `mov r0,#1; bx lr` — in a run at `0x021634e0` through `0x02163510`: no arguments, no reads, no writes, the success code every other handler returns. Whatever they were for was taken out before this build, and there is nothing in this one to find.
+
+**The store through a reference**, which `558` and `603` both use: `func_ov017_021d6134` writes **only the four-byte value** of the thing referred to, and only when its tag is 3. It leaves the tag alone.
+
+## Two globals of overlay 1 worth naming
+
+- `0x021658b8` — an array of `SafeAllocator*`, count at `+0x88`, a flag at `+0x8c`. Element 0 is the default allocator; `233`'s third argument indexes it.
+- `0x02165884` — points at an array of **32** 16-byte **event placement** entries, `{s32 kind; s32 slot; u32; Object3D* obj}`. Reset writes `kind = -1`, `slot = -1`, `[8] = 1`, `obj = 0`. Kinds 0, 1, 2, 4, 5 and 6 are observed in overlay 1, which assigns none of them. `547`, `573` and their neighbours index it, and **none of them checks the index against 32**.
+
 ## What is still only inferred
 
-The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the messages' 400 and 405, the model and motion packs of 566 and 567, and the second folder's wait through 840. About 126 numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them.
+The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the messages' 400 and 405, the model and motion packs of 566 and 567, and the second folder's wait through 840. **90** numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them, down from about 150; the most wanted of the rest are 568, 107, 117, 714, 713, 327 and 512.
 
 ## Not established
 
@@ -97,6 +140,12 @@ The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still 
 - The display table's type codes, 0 to 6.
 - `503`'s optional second argument: the code it enables computes two sums and discards both.
 - Which of the 33 VRAM partitions means what, and why a negative index picks 27.
+- What holds the brightness lock that `120` and `121` clear, and the byte at `+0x102` poked through `func_ov017_0218b5b0` by the odd fade types.
+- What bit 6 of a map placement's flags is for: `574` always sets it, and nothing was found that reads it. Bit 2 is confirmed hidden, by the draw path.
+- What tells event-placement kind 2 from kind 6, or what kinds 0, 4 and 5 are — nothing in overlay 1 assigns the tag.
+- The size of `603`'s flag bank, and what its two id ranges mean.
+- Which mixer channels `715`'s indices 5, 6 and 7 are.
+- The fixed-point base of `233`'s `0x10a` scale. It is **not** the `0x1000` the neighbouring code uses for 1.0.
 
 ## See also
 
