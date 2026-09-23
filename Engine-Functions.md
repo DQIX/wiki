@@ -27,7 +27,7 @@ A character in a scene is an **actor**: `GetEventActor` (`0x0215ab20`) bounds an
 
 **The 200-group does not act at once.** Each handler queues a record on one of the actor's **eight command channels** (head and tail pairs at `+0x08` through `+0x44`); a per-actor tick (`0x0215a134`) walks the channels and dispatches each record's type through a table at `0x02164ca4`, and a handler that returns nonzero holds its channel for the frame. After the commands run, the tick copies the actor's position (`+0x74`) into `Object3D::position_` and its rotation (`+0x80`) into `Object3D::rotation_`.
 
-**The engine's angles are fixed-point radians.** `fix32ReduceAngle0To2Pi` (`0x02030f30`) wraps one modulo **`0x6488`**, which is 25,736 — 2π × 4096 — and the camera's own yaw is wrapped by the same constant inline (`0x02158120`). `532`, the field of view, is the exception: it takes **degrees** and converts them, multiplying by `0x47 / 4096` before any sine is taken (`Camera_SetFov`, `0x0202e9a4`). That constant is 0.0173340, against π/180 = 0.0174533 — the game's degree is 0.68% short of a real one.
+**The engine's angles are fixed-point radians.** `fix32ReduceAngle0To2Pi` (`0x02030f30`) wraps one modulo **`0x6488`**, which is 25,736 — 2π × 4096 — and the camera's own yaw is wrapped by the same constant inline (`0x02158120`). **Two** functions take degrees and convert: `532`, the field of view (`Camera_SetFov`, `0x0202e9a4`), and `327`, the camera's roll (`0x0215e108`). Both multiply by `0x47 / 4096` — 0.0173340, against π/180 = 0.0174533, so **the game's degree is 0.68% short of a real one**.
 
 *(An earlier revision of this page said the engine's angles were degrees, on the strength of `532` alone. `532` is the one function that isn't.)*
 
@@ -124,6 +124,135 @@ So `120` is the **bottom** screen — the pair of `121`, not its opposite.
 
 **The store through a reference**, which `558` and `603` both use: `func_ov017_021d6134` writes **only the four-byte value** of the thing referred to, and only when its tag is 3. It leaves the tag alone.
 
+## What every scene declares — 568
+
+**568 is called 309 times across 476 of the 687 event scripts**, more than any number but the talking blip 554 — and at the moment it is called it does nothing observable.
+
+```
+02161380  bl   #0x218b5b0        ; GameResources*
+02161388  ldr  r4, [r0, #0x3734] ; the scene context
+02161398  bl   #0x21d60f4        ; ScriptValueToInt(args[i])
+0216139c  ldr  r2, [r4, #0xf8]
+021613a4  lsl  r1, r2, #5
+021613a8  orr  r0, r0, r1, lsr #5
+021613ac  and  r1, r2, #0xf8000000
+021613b0  bic  r0, r0, #0xf8000000
+021613b4  orr  r0, r1, r0
+021613b8  str  r0, [r4, #0xf8]
+```
+
+i.e. `flags27 |= (arg & 0x07FFFFFF)`, top five bits preserved. It is **variadic** — one `ScriptValueToInt` per argument, in order, no arity check, `argc == 0` legal — it never clears a bit, and it never fails.
+
+The top five bits are **a count of the characters `566` has spawned** (`566` increments them at `0x02161138` and reads them back as GameState object slot `0xA0 + n`), so 568 preserving them is load-bearing, not incidental.
+
+The effect is all later. The scene's **setup** (tail of `func_ov001_02154974`) reads the field and turns each bit's subsystem *off*; the scene's **teardown** (`func_ov001_021539d8`) reads it again and turns them back *on*:
+
+| bit | setup | teardown |
+|---|---|---|
+| `0x01` | `GameResources+0x04 &= ~0x008` | `\|= 0x008` — the same bit **536** kind 0 switches |
+| `0x02` | `&= ~0x010` | `\|= 0x010` |
+| `0x04` | for objects 0–3, `Object3D::DisableFlag(obj, 1)` | re-enables it on the ones the scene's cast does not hold |
+| `0x08` | `&= ~0x400` | `\|= 0x400` — **536** kind 1 |
+| `0x20` | placement manager `+0x98 &= ~2` | `\|= 2` — **581** |
+
+**Bits 6 to 26 have no reader anywhere in the cartridge.** So what nearly every scene is doing when it calls 568 is declaring which subsystems to suppress while it plays.
+
+### The three flag words are not "brightness flags"
+
+`GameResources + 0x00`, `+0x04` and `+0x08` each have a full get/set/clear/test accessor quartet (`0x0203b498`–`0x0203b52c`). `test_f4` has ~36 call sites, almost all of the shape `bl test_f4; cmp r0,#0; bne <skip>` — **a set bit suppresses a subsystem update**. The decomp's provisional name `brightnessFlags_4` is misleading; the only `src/` use is `InitializeBrightnessState` zeroing all three together.
+
+Script access to that word: **512** pokes a raw 32-bit mask, **536** bits `0x8` and `0x400`, **833** bit `0x800`. In 536, 833 and 581 alike, **a 0 sets the bit and anything else clears it** — a 0 means "hold this still".
+
+## The caption — 409 to 414
+
+Six numbers that always travel together, and the code says why: each writes a field of **the one message window** (`*(u32*)(0x02107800 + 0x1c)`, returned by `func_020421a0`), and every field they write is one `400`'s show routine `func_0204500c` has just reset. They are a scene's word about the message `400` started, and the next `400` undoes them.
+
+| fn | handler | writes | effect |
+|---|---|---|---|
+| 409 | `0x0215e4b4` | `+0x9a8 = n`, flags `\|= 0x04` | **time it**: a second of hardware alpha in, `n` frames of hold, a second out, message tick frozen throughout |
+| 410 | `0x0215e4f0` | `+0x19b1 = 0` | **no window box** — and the per-frame reset of the box's geometry stops with it |
+| 411 | `0x0215e514` | flags `\|= 0x40` | **centre the text**: counts the lines each frame and puts the block at `(192 − (lines−1)×20 − 8) ÷ 2 − 16` instead of the box's own 116 |
+| 412 | `0x0215e53c` | flags `\|= 0x02` | **shadow the glyphs** — 414's alternative, not its companion |
+| 413 | `0x0215e564` | `+0x19b2 = 0` | **silent**: no sound as the text types |
+| 414 | `0x0215e588` | flags `\|= 0x80` | **outline the glyphs** |
+
+Together: *show this message as a caption over the scene rather than in a box.*
+
+**Two couplings are mechanically forced**, which is why the co-occurrence is total. `func_020439b0` rewrites the geometry to the bottom box `(2, 0x74, 0xfc, 0x4a)` every frame while `+0x19b1 != 0`, so without 410 411's centring never survives; and the outline of 414 exists so text reads over scenery, which is only wanted once the box is gone.
+
+414's outline is five passes from the tables at `0x020e7a8c` (colour), `0x020e7aa6` (x) and `0x020e7ab0` (y): `(1,2)`, `(2,1)`, `(2,3)`, `(3,2)` in palette index 1, then `(2,2)` in index 15 — the four von-Neumann neighbours plus the glyph.
+
+409's "second" is a second because the engine steps a level of `0x1f0000` by `0x8444` a frame (literal at `0x020658a8`), and `0x1f0000 / 0x8444 = 60.0`.
+
+The game has the same preset written out by hand in C++ in four places, each straight after `func_0204500c`: ov026 `0x021ddd18` and `0x021db2e8`, ov025 `0x021ee338`, ov017 `0x021b8378`.
+
+### 400 and 405, refined
+
+**400** (`0x0215e2a4`): the number is a **key looked up linearly** in the list at `0x021658d8` (`func_02153884`), not an offset, and an **unknown key shows nothing and returns 0**. A **tag-2 raw string** is taken in its place and used as the text directly. There is an **optional second int whose bit 0 alone is read**, inverted, as the show routine's third argument.
+
+**405** (`0x0215e374`) reads the byte `+0x19bd`, which is 1 from the moment `func_0204500c` starts building a message until the teardown `func_020430b0` runs. It is not a test of whether pixels are lit. Unlike 402/403/404 it does **not** null-check the window.
+
+**401** (`0x0215e398`) zeroes `+0x9a0` and `+0x998` and tears the window down.
+
+### The window's other knobs
+
+| fn | what it does |
+|---|---|
+| 402 | reads the byte `+0x19b4` into a reference |
+| 403 | reads the word `+0x9a0`, the message's own state |
+| 404 | reads the byte at the window's current text pointer, `*(u8*)win[0x58]` |
+| 417 | `+0x19c0 = 1`, `+0x195d = 0x1e` |
+| 418 | writes its number to `+0x19ae` |
+| 419 | `+0x19ca = 0` |
+| 420 | `+0x19cb` = boolean of its number |
+| 421 | `+0x19c1 = 1` |
+
+**What those bytes mean is not established.**
+
+## Sound: arm and go, and twelve dead numbers
+
+**713** (`0x02163640`) hands its number to the sound manager's play routine (`func_0209c3b4`), which **loads** the sequence and bank into the sound heap (`func_0203aaf8`), starts it and registers it as the current tune — and then 713 **stops the player dead** with `FadeOutSequencePlayer(mgr, 0)`. The tune is resident and silent.
+
+**714** (`0x021636a8`) takes **no arguments at all** and restarts whatever is registered (`func_0209c5e8`), then slams the master volume to `0x7f` with a zero ramp. `func_0209c5e8` contains **no load path** — no `func_0203aaf8`, no heap call — which is the mechanical proof it depends on 713 having run.
+
+713 takes its number either as its only argument, or as the **second of two, the first read by `ScriptValueToInt` and thrown away**. A negative number, or any other argument count, makes it return 0.
+
+**725** (`0x0216376c`) answers 1 while `720`'s jingle is either still latched pending (`mgr->0xc9`) or still sounding (at least one live allocation playing `mgr->0xce`).
+
+**Twelve numbers in the sound range are empty stubs** — `mov r0,#1; bx lr` and nothing else: **703–709** (`0x021634e0`–`0x02163510`), **716–719** (`0x02163724`–`0x0216373c`) and **724** (`0x02163764`).
+
+## The bone-driven camera — 572, 531, and 213
+
+**572** (`0x02161650`) takes a placement index and **two bone names**. It allocates a `0x268`-byte camera subclass, stashes the current camera in the event state at `GameState + 0x5ca8`, attaches the placement's `Object3D`, `strcpy`s the two names into `+0x224` and `+0x234`, and installs itself as `GameState::unknown_3b0_`. Each frame `func_0204a170` reads the two tracked bone matrices, scales and offsets their translations by the object's own, and sets **the camera's eye from bone A and its look-at from bone B**, then calls `UpdateCameraOrbitFromEye`.
+
+The placement must be of **kind 1** and hold a non-null object, or the call returns 0 having done nothing. The index is **not bounds-checked** against the 32-entry table. The name copies are plain `strcpy` into `0x10`-byte fields.
+
+**531** (`0x0215f930`) takes **no arguments** — zero accessor calls — and is the **only reader** of `GameState + 0x5ca8`: it restores the stashed camera and zeroes the slot. If the slot is 0 it silently does nothing. It does not free the replaced camera.
+
+**530** (`0x0215f854`) and **552** (`0x02160768`) are the same mechanism over a monster slot and over three bones; all three write the same stash word.
+
+**213** (`0x0215c3e8`) is the synchronisation. It queues a type-`0x0c` record on the actor's **third** command channel (`+0x18`/`+0x1c`, via `func_ov001_02159f94`); the dispatched handler `0x02159b04` asks `func_ov001_02164624` whether the actor's placed object reports its animation stopped, and **holds the channel while it has not**. Kinds 0/1/4/5 read the object directly, kind 6 reads `obj->+0x18`, kinds 2/3 and >6 return 0.
+
+A hazard in the game worth recording: the decomp documents `HasAnimationStopped` as a one-frame edge — set on the frame an animation goes from playing to stopped, cleared after — so a wait begun *after* the animation ended never ends.
+
+## The camera's roll — 327
+
+**327** (`0x0215e0dc`) takes one number in **degrees**, multiplies by `0x47/4096` (the identical sequence to `SetCameraFovDegrees`), wraps it with `fix32ReduceAngle0To2Pi`, and writes it to the camera's `+0x7c` — also zeroing `+0x1ec` and `+0x1ee`, the per-frame roll increment and its remaining-frames counter, so a roll under way is stopped dead.
+
+That it is a **roll, a bank, not a turn** is settled by the view-matrix builder `func_0202e0a4`: at `0x0202e13c` it reads `+0x7c`, and when it is zero takes the world up `(0, 0x1000, 0)` literally, and when it is not, rotates that vector by `RotationMatrixZ(roll)` before applying the heading rotation about Y.
+
+**Camera field map**, pinned while reading this: `+0x04` eye, `+0x10` look-at, `+0x58` fov, `+0x5c` sin fov, `+0x60` cos fov, `+0x70/74/78` yaw/height/distance, `+0x7c` roll, `+0x144` rotation matrix, `+0x1ec/+0x1ee` roll animation, `+0x1f0/+0x1f4` fov tween, `+0x20e…+0x216` shake.
+
+## Map placements — 574 to 577, 581, 582, 587
+
+**574**–**577** all find a record the same way, by group key and `u16` id, through `GetCurrentZone` and `FindMapPlacement`: 574 clears bit 2 of the record's `+0x02` flags when its third number is nonzero and sets it when zero (bit 2 being what the draw path skips on), 575 writes a fixed-point position at `+0x08`, 576 a halfword at `+0x06`, 577 a second vector at `+0x14`. Only the position's meaning is settled.
+
+**581** sets bit 2 of the placement manager's `+0x98` when its number is 0 and clears it otherwise; **582** clears that bit and additionally clears `0x10000` on every one of the manager's `0x20`-byte sub-objects.
+
+**587** (`0x02161900`) indexes the 8-entry allocator array `0x021658b8` and calls `HMRFAllocator::Free(1)` = `FreeFront`, which rewinds the block's bump pointer to `allocBegin` and drops the saved-state chain. **Neither the index nor the allocator's signature is checked**, and heap 0 is the one holding the event system's own actor array (24 × `0x588`) and placement array (32 × 16).
+
+**569** (`0x021613d0`) is one line: `sprintf(context + 0xD8, "data/%s", <string>)`.
+
 ## Two globals of overlay 1 worth naming
 
 - `0x021658b8` — an array of `SafeAllocator*`, count at `+0x88`, a flag at `+0x8c`. Element 0 is the default allocator; `233`'s third argument indexes it.
@@ -131,7 +260,7 @@ So `120` is the **bottom** screen — the pair of `121`, not its opposite.
 
 ## What is still only inferred
 
-The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the messages' 400 and 405, the model and motion packs of 566 and 567, and the second folder's wait through 840. **90** numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them, down from about 150; the most wanted of the rest are 568, 107, 117, 714, 713, 327 and 512.
+The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the model and motion packs of 566 and 567, and the second folder's wait through 840. **51** numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them, down from about 150; the most wanted of the rest are 538, 238, 230, 589, 226, 236 and 228.
 
 ## Not established
 
@@ -146,6 +275,18 @@ The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still 
 - The size of `603`'s flag bank, and what its two id ranges mean.
 - Which mixer channels `715`'s indices 5, 6 and 7 are.
 - The fixed-point base of `233`'s `0x10a` scale. It is **not** the `0x1000` the neighbouring code uses for 1.0.
+- What the individual bits of `568`'s mask mean *in gameplay terms*. The mechanical effect of `0x01`, `0x02`, `0x04`, `0x08` and `0x20` is exact, but the subsystems gated by `GameResources+0x04` bits `0x008`/`0x010`/`0x400`, and by the placement manager's `+0x98` bit 2, are unnamed in the decomp. Bits `0x01` and `0x08` are literally what engine fn **536** kinds 0 and 1 switch, and bit `0x20` is **581**, so naming those two names three of the five for free.
+- **Bit `0x10` of 568's mask.** Read at five sites (`0x02153a38`, `0x02153b90`, `0x0215584c`, `0x02155b6c`, `0x02155cbc`), each *gating* a block rather than performing a symmetric set/clear, so it does not fit the setup/teardown pattern.
+- **Where 568's 27-bit field is reset to zero.** No code clears bits 0–26; presumably a bulk wipe of the enclosing `0x36c0` block, not located.
+- Whether **bits 6 to 26** are ever meaningful — no reader was found for any of them.
+- Which layers `409`'s alpha ramp cross-fades. The register write is exact (`*(u32*)0x04000050 = 0x0148 | ((v | ((15 − v/2) << 8)) << 16)`), but which physical BG the caption sits on at that moment was not established.
+- What ends `409`'s caption after the ramp-out: once the phase bits clear, `func_020657c8` still returns 1, so the message tick stays suspended. Presumably the script issues `401`.
+- What the message window's bytes `+0x19b4`, `+0x195d`, `+0x19ae`, `+0x19c0`, `+0x19c1`, `+0x19ca` and `+0x19cb` mean.
+- What `801`'s subsystem is. Four circumstantial routes point at the wireless manager (a six-byte address compare, a 21-byte name defaulting to `"unknown"`, a state word whose 1/2/8/9/10 match `WMState`, a screen fade on shutdown), but no symbol, string or source file names it.
+- What condition makes **714** silence instead of restarting (`func_02086b98`'s per-entry bit `*(u32*)(entity->0x130) & 1`).
+- Which index scripts pass to **587**. Slot 0 would rewind the actor and placement arrays.
+- What `Object3D` flag bits `1` and `0x20` are, which **572** enables.
+- What distinguishes event-placement kind 2 from kind 6, and what kinds 0, 4, 5 are.
 
 ## See also
 
