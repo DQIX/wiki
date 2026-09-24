@@ -98,8 +98,96 @@ whose `+0x150` points at a live struct that mirrors this one.
 | `+0xF4` | halfword | **the skill-point pool — one per character** |
 | `+0xF6` … `+0x110` | 27 × 1 | **points spent per [skill tree](Skill-Panels)**, each 0–100 |
 | `+0x111` … `+0x119` | 9 | a 72-bit set; spells or abilities learned, INFERRED |
+| `+0x11A` … `+0x13D` | 0x24 | the **skill panels learned**, a bit each — the live mirror's `+0x8EC`, which [`HasLearnedSkillPanel`](Skill-Panels) tests |
 | `+0x140` | 0xC | the name |
-| `+0x14C` … `+0x15C` | 5 words | packed 10-bit fields; appearance, INFERRED |
+| `+0x14C` … `+0x15F` | 5 words | **the stats**, fourteen 10-bit fields, three to a word — see below |
+| `+0x160` … `+0x17B` | 0x1C | **equipment and appearance**, the live struct's `+0x488` copied whole — see below |
+| `+0x17C` … `+0x23B` | 0xC0 | the live struct's `+0x4A4`, the twelve per-vocation equipment blocks. Init fills it with `0xFF` |
+
+### `+0x14C` is the stats, not the appearance
+
+**Corrected 25 September 2026.** This page read those five words as the
+appearance. They are the character's **stats**: fourteen 10-bit fields packed
+three to a word, `(bits 0-9, 10-19, 20-29)`, bits 30-31 unused.
+`func_020830cc` packs them from the live struct's `+0x00`, `+0x04`, `+0x08`,
+`+0x0C`, `+0x1C`, `+0x1E`, `+0x6C`, `+0x6E`, `+0x70` and `+0x72`; the one field
+at `+0x15C` bits 20-29 is never written.
+
+What settles it is `func_02083e28`, which computes those live words by summing
+each worn piece's own modifier and **clamping to 999** — the game's stat cap:
+
+```
+02084504  ldr  r2, [r3]             ; an equipped part
+02084518  ldrne r2, [r2, #8]
+0208451c  lslne r3, r2, #0x16
+02084524  addne r4, r4, r3, asr #22 ; a signed 10-bit modifier
+02084558  ldr  r2, [pc, #0x4f4]     ; literal @0x02084a54 = 999
+02084560  cmp  r4, r2
+02084564  movgt r4, r2
+```
+
+The initialiser `func_02086404` zeroes all fourteen and sets exactly two to 1
+(`+0x154` bits 10-19 and `+0x158` bits 0-9). **Which stat each field is has not
+been chased.**
+
+### The appearance is `+0x160`, and it is the live struct's `+0x488`
+
+`func_020830cc` copies 0x1C bytes straight across —
+`0208340c add r0, r4, #0x160 / mov r2, #0x1c / bl memcpy` with `r1 = live+0x488`
+— so the record's `+0x160` block and the live `+0x488` block are the same
+thing, and `GetEquipmentArray` (`0x02052e2c`) proves that base with
+`addne r0, r0, #0x88 / addne r0, r0, #0x400`.
+
+| record | live | what |
+|---|---|---|
+| `+0x160` … `+0x173` | `+0x488` | ten `s16` equipment slots |
+| `+0x174` bit 0 | `+0x49C` bit 0 | **the sex** — see [items](Items#sex) |
+| `+0x174` bits 1-3 | | a colour applied to **every** body part; INFERRED skin |
+| `+0x174` bits 4-7 | | a second colour, used only on the head |
+| `+0x175` bits 0-3 | | added to the hair part's model number; also a head palette index |
+| `+0x176` | `+0x49E` | `s16`, **not established**; set from a preset's `+0x0A` |
+| `+0x178`, `+0x17A` | `+0x4A0` | **the build**: two `fx16`, 4096 = 1.0 |
+
+**So sex does live in the record** — at `+0x174` bit 0, as a byte of the copied
+block rather than a field of its own.
+
+The build comes from a table of **ten pairs** at `0x020E6D98`, indexed
+`sex * 5 + rand(5)`:
+
+```
+02010c58  bl   #0x20742fc          ; rand(5)
+02010c5c  ldrb r2, [r4, #0x14]     ; record+0x174
+02010c68  lsr  r2, r2, #0x1f       ; the sex bit
+02010c6c  add  r2, r2, r2, lsl #2  ; sex * 5
+02010c78  ldrsh r0, [r1, r2]
+02010c7c  strh r0, [r4, #0x18]     ; record+0x178
+```
+
+Read out, in 4096ths: sex 0 gets (3768, 4255) (3637, 4136) (3850, 4014)
+(4132, 3891) (3870, 3764); sex 1 gets (3768, 4177) (3641, 4091) (3809, 3973)
+(4132, 3891) (3768, 3764) — five builds each, 0.888 to 1.039.
+
+**The face is `+0x01` bits 0-3**, not part of that block. The filename builder
+proves it: when a visible part's model id is 1000 the face index is added to it
+(`02073078 cmp r0, #0x3e8 / ldrbeq r0, [fp, #0x56a] / addeq r5, r5, r0`), and
+`live+0x56A` is what lands in `+0x01` bits 0-3.
+
+The knob set is confirmed from the other side by overlay 15's debug viewer,
+whose own labels are **`[Gender] [Face] [Eye Colour] [Skin Colour]
+[Hairstyle] [Hair Colour]`**, then seven equipment slots, then `[Build]`.
+**Which of the three colour fields is skin, hair and eye is not established.**
+
+The visible-slot map at `0x020E6D74` pairs equipment slot to model part slot:
+(0,0) (1,1) (4,5) (5,6) (6,7) (7,8) (8,9) — seven visible; slots 2 and 3 are
+not drawn.
+
+### The name at `+0x140`
+
+**One byte per character, at most twelve, zero-terminated, `0xFF` a space.**
+The bytes are a game-internal code indexing a glyph table, not ASCII or
+Shift-JIS. `func_020426bc` packs (`0204274c strb r7, [sb], #1` — one byte out
+per source character, `02042738 moveq r7, #0xff` for a space) and
+`func_02042764` unpacks.
 
 **The decisive instruction** is the initialiser's thirteen-iteration loop,
 which writes all three per-vocation arrays together:

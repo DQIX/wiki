@@ -52,6 +52,7 @@
 - [Equipment battle parameters](Equipment-Battle-Parameters)
 - [Vocation skill trees](Vocation-Skill-Trees)
 - [Skill panels](Skill-Panels)
+- [Alchemy](Alchemy)
 - [Battle weight tables](Battle-Weight-Tables)
 - [Level tables](Level-Tables)
 - [Spell table](Spell-Table)
