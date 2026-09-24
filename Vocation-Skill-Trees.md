@@ -57,6 +57,11 @@ The tree numbers' meaning is INFERRED, on three legs:
 
 The search that found it asked for that minstrel row and for the warrior's sword and shield, and nothing else. Found 16 September 2026. Row 0 and the table's start were seen 17 September 2026 in a European dump and in the USA build.
 
+## What is in a tree
+
+The eleven panels of each tree — their costs, what they give and the words
+they say — are `/data/prm/skilltable.bin`. See [Skill panels](Skill-Panels).
+
 ## Not established
 
 - Whether the Omnivocational passives, which let one character wield a kind "regardless of vocation", show on the equipment screen's grid.
