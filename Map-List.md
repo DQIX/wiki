@@ -88,6 +88,156 @@ Slot 0 joins exactly to the map word of every cast placement block on the cartri
 
 An earlier reading took the record header as four bytes. That put every slot number two higher than the ones above.
 
+## The places, by code
+
+**An index, not a dump.** The file has 1,010 map entries and 1,006 of them
+name a region, most being one floor of somewhere — "Stornway Castle - Lv 2".
+What follows is one row per *place*: the area map's own code where there is
+one, and otherwise the first interior that stands for it. Eighty-one rows out
+of 213 distinct region names.
+
+It is here because the code is what everything else refers to: a map archive
+is `<code>.amdj`, a doorway names its destination by code, and a
+reimplementation loading a map asks for one. The region is what to call it.
+
+A place's interiors are its code with a suffix — `M01M07` is a house in
+`M01` — so this table is also the way in to the rest of the file.
+
+Two of these are worth a word. **`O00` and `O01` carry no collision mesh**,
+so a reimplementation has nowhere to stand a character and the map never comes
+up; whether they are backdrops rather than places is open. And **`M07` has a
+doorway to `M07M07`**, which is the one destination on the cartridge that
+names no archive.
+
+Generated from the European release (`YDQP`); a different release may number
+differently.
+
+### Towns and villages
+
+| code | region |
+|---|---|
+| `M01` | Angel Falls |
+| `M02` | Zere |
+| `M03` | Coffinwell |
+| `M05` | Porth Llaffan |
+| `M07` | Zere Rocks |
+| `M08` | Dourbridge |
+| `M10` | Batsureg |
+| `M11` | Swinedimples Academy |
+| `M12` | Wormwood Creek |
+| `M13` | Upover |
+
+### Cities and castles
+
+| code | region |
+|---|---|
+| `C01` | Stornway |
+| `C02` | Gleeba |
+| `C04` | Gittingham Palace |
+
+### The overworld
+
+| code | region |
+|---|---|
+| `F01` | Angel Falls Region |
+| `F02` | Western Stornway Region |
+| `F04` | Doomingale Forest |
+| `F05` | Eastern Coffinwell Region |
+| `F06` | Western Coffinwell Region |
+| `F07` | Newid Isle |
+| `F09` | Slurry Coast |
+| `F10` | Bloomingdale |
+| `F11` | Dourbridge Region |
+| `F12` | Lonely Plains |
+| `F15` | Djust Desert |
+| `F16` | Hermany |
+| `F17` | Pluvi Isle |
+| `F18` | Snowberia |
+| `F19` | Cringle Coast |
+| `F20` | Urdus Marshland |
+| `F21` | Iluugazar Plains |
+| `F22` | Mt Ulzuun |
+| `F23` | Mt Ulbaruun |
+| `F24` | Khaalag Coast |
+| `F25` | Ondor Cliffs |
+| `F26` | Eastern Wormwood Region |
+| `F27` | Western Wormwood Region |
+| `F28` | Wormwood Canyon |
+| `F29` | Wyrmtail Region |
+| `F30` | Wyrmwing Region |
+| `F32` | Wyrmsmaw Region |
+| `F33` | Wyrmneck Region |
+| `F34` | The Gittish Empire |
+| `F38` | Eastern Stornway Region |
+| `F39` | Snowberian Coast |
+| `F40` | Lonely Coast |
+| `F63` | Zere Region |
+| `F99` | For Encounter Testing |
+
+### Dungeons and caves
+
+| code | region |
+|---|---|
+| `D01` | The Hexagon |
+| `D03M01` | Brigadoom |
+| `D04` | Quarantomb |
+| `D06M01` | Tywll Cave |
+| `D07` | Heights of Loneliness |
+| `D08M02` | Plumbed Depths - B1 |
+| `D09` | The Bad Cave |
+| `D12M01` | Gerzuun |
+| `D13M01` | Swinedimples - The Old School, B1 |
+| `D14` | The Bowhole |
+| `D16M02` | The Magmaroo - Lv 1 |
+| `D17M01` | Oubliette - B1 |
+
+### Story places
+
+| code | region |
+|---|---|
+| `S01M01` | Mountain Pass |
+| `S02` | Loch Storn |
+| `S05` | Cuddiedig Cliff |
+| `S06` | Hunters' Yurts |
+| `S07` | Gortress |
+| `S08` | Slurry Quay |
+| `S09` | Ship - Deck |
+| `S12` | Bloomingdale Region |
+| `S14M01` | Starflight Express - Carriage 1 |
+| `S15` | Wyrmward |
+
+### Towers
+
+| code | region |
+|---|---|
+| `T01` | Tower of Trades |
+| `T02` | Tower of Nod |
+
+### The story’s own realms
+
+| code | region |
+|---|---|
+| `X01` | Observatory |
+| `X02` | Alltrades Abbey |
+| `X03` | Realm of the Almighty |
+| `X04` | Realm of the Mighty |
+| `X05M01` | Observatory - Lv 1-Lv 2 |
+
+### Huts and small interiors
+
+| code | region |
+|---|---|
+| `H17` | Eastern Wormwood |
+| `H19` | Western Wormwood |
+| `H20` | Wyrmtail |
+
+### Backdrops
+
+| code | region |
+|---|---|
+| `O00` | Ocean |
+| `O01` | None — the index's own word, not a blank |
+
 ## See also
 
 - [Tagged-Data-Table](Tagged-Data-Table)
