@@ -35,6 +35,7 @@
 - [Motion tables (.bcfg)](Motion-Tables)
 
 **Text and scripts**
+- [Text markup](Text-Markup)
 - [Event text](Event-Text)
 - [Event scripts (.stb)](Event-Scripts)
 - [Engine functions](Engine-Functions)

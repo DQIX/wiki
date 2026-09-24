@@ -55,7 +55,15 @@ A message splits into text, line breaks and tags. A tag is either `<name>` or `<
 
 ## What the tags mean
 
-49 tag names occur in the English text. Only a few have a known meaning, and those were read from the text itself:
+**The vocabulary has its own page now: [Text markup](Text-Markup).** The tags
+are a source form that the game compiles into 16-bit control codes, and most
+of them have been read out of the compiler and the interpreter rather than
+guessed at from the text. That page has the tag table, the code for each tag,
+and what each code does.
+
+The few below were read from the text itself, before any of that, and are the
+ones that page does not cover because they are substitutions rather than
+control codes:
 
 | tag | uses in English | what it is |
 |---|---|---|
@@ -118,7 +126,7 @@ Prompts are a small branching language inside the text. It is the same in all fi
 
 ## Not established
 
-- What most tags mean: `<ADD>` (1,303), `<6>`, `<9>`, `<-->`, `<PAD_WAIT_NOCUR>`, `<CLOSE>`, `<LEADER>`, `<CEN>`, `<QUEST…>`, `<YESNO>`, `<TIME=…>`, `<ME_…>`, `<END>`, `<PAGE>`, and a dozen rarer ones.
+- `<.|>` and `<.|.|>`, used twelve times in English, which the tag table has no entry for at all. See [Text markup](Text-Markup); most of what used to be listed here has moved there and been read.
 - What each `<IF_x>` condition tests.
 - What the game does with a line that opens with `*:`.
 - The plain `ev#####.bin` in `ev21593` and `ev23190`.
@@ -131,3 +139,4 @@ Prompts are a small branching language inside the text. It is the same in all fi
 - [GPC2](GPC2)
 - [System-Strings](System-Strings)
 - [Item-Descriptions](Item-Descriptions): these carry the same markup
+- [Text-Markup](Text-Markup): the markup vocabulary, its compiler and its control codes

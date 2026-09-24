@@ -40,7 +40,14 @@ Tags 4 and 5 appear at inn and shop counters.
 
 Chapter B's own ranges run from 1 to 7. This matches the village cast's stages 2.1 to 2.7 (see [Area-Cast](Area-Cast)). Chapter B's sub-stage-1 lines speak of the Hero's fall as recent.
 
-The text uses the same markup and prompts as event text. The English talk files hold 6,651 prompts. See [Event-Text](Event-Text).
+The text uses the same markup and prompts as event text. The English talk files hold 6,651 prompts. See [Text-Markup](Text-Markup) for the vocabulary and [Event-Text](Event-Text) for the files.
+
+Two tags are far commoner in dialogue than in event text, and both are about
+where a character is looking rather than what they say: **`<N_TURN>`** (208
+uses) and **`<END_R_TURN>`** (133). Every message turns the speaker to face
+the player by default, and these override that — `<N_TURN>` suppresses it
+entirely. A reader of the talk files that ignores them will have characters
+swivelling when the game leaves them still.
 
 ## Not established
 
@@ -48,7 +55,8 @@ The text uses the same markup and prompts as event text. The English talk files 
 
 ## See also
 
-- [Event-Text](Event-Text): markup and the `<YESNO>` / `<UKEYAME>` prompts
+- [Text-Markup](Text-Markup): the markup vocabulary, its compiler and its control codes
+- [Event-Text](Event-Text): the `<YESNO>` / `<UKEYAME>` prompts in their own files
 - [Area-Cast](Area-Cast): the cast ids and stages
 - [Triggers](Triggers)
 - [Tagged-Data-Table](Tagged-Data-Table)
