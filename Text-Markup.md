@@ -295,6 +295,27 @@ list at `0x020e7e04+0x24`. **That list has exactly one entry, `14`** — and
 `<SE_014>` is the only effect the cartridge's English text uses. The compiler
 and the content agree.
 
+**The number in the tag is not the sound id.** The interpreter's arms:
+
+```
+02066860  ldr  r1, [sp, #0x64]    ; 0xFF34 — the <ME_ range
+02066884  ldr  r1, =0xffff00fd    ; −0xFF03
+0206688c  add  r1, r2, r1         ; id = code − 0xFF03
+02066890  bl   #0x209c830         ; a jingle request: id -> win+0xce, pending +0xc9
+...
+020668bc  ldr  r1, =0x0000ff4b
+020668d8  mov  r1, #0xe           ; …answered with a flat 14
+020668e0  bl   #0x205eaa0         ; a different call — the one <EXC>/<QES> use
+```
+
+So **`<ME_n>` asks for `n + 49`** — `<ME_008>` means 57 — and `<SE_n>`'s
+number never reaches the runtime: the code is always `0xFF4B` and the answer
+is always 14. The two go to different calls, and `0x205eaa0` is the one
+`<EXC>` and `<QES>` use with ids 6 and 28.
+
+**What that id space indexes is not established.** It is not the effect
+archive's own record order.
+
 ### The window tags in the leading pass
 
 | tag | what it writes |
