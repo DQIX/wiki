@@ -165,6 +165,122 @@ The exceptions: two pieces any vocation may wear (`0xfff`, the thug's mug and th
 
 **Weapons and shields carry no bits.** Their use goes by the vocations' weapon skills — `str_gskl` 5, `"becomes able to equip <str_2> regardless of vocation"`, is the Omnivocational passives' line — and which vocation has which of the fourteen weapon and shield skill trees is in the ARM9 binary, not in a file: see [Vocation-Skill-Trees](Vocation-Skill-Trees). An item's kind (word 3, above) is the tree's number, so who wields it is whoever has that tree.
 
+## Who may wear it
+
+Read 24 September 2026. **`0x020dd4c4`** is the game's own "may this character
+equip this?", and it is the one place the two rules above meet. It takes a
+character id and a 0x20-byte in-RAM item entry and hands back a **bitmask of
+refusal reasons — zero meaning yes**.
+
+The in-RAM entry is `+0x00` a pointer to the item's record, `+0x08` a word
+whose **low nibble is the category, 0 to 7**, and `+0x18` the item id as a
+signed halfword. The record it points at lines up with the file entry's word 3,
+so the record's `+0x04` is the file's **word 4** — the used-by word above.
+
+| bit | refused because |
+|---|---|
+| `0x200` | no entry, or its id is not positive |
+| `0x020` | no such character |
+| `0x008` | the category is above 7, or the record is missing |
+| `0x100` | the record's word 0 bit 29 is set and this is not the protagonist |
+| `0x001` | **a weapon or shield whose tree the character has not got** |
+| `0x002` | **armour whose vocation bit is clear** |
+| `0x010` | `word0 >> 30` — two bits — exceeds `live[0x186 + vocation]`. Observed; **what it means is not established** |
+| `0x080` | **sex** |
+
+A vocation of 0 returns 0: **the Guardian may wear anything.**
+
+### Armour: the twelve bits, categories 2 to 7 only
+
+```
+020dd5f0  lsl  r0, r0, #0x1c
+020dd5f4  lsrs r0, r0, #0x1c      ; the category
+020dd5f8  moveq r0, #0 / beq      ; 0, weapons: skip
+020dd600  cmp  r0, #1
+020dd604  moveq r0, #0 / beq      ; 1, shields: skip
+020dd61c  ldr  r0, [r0, #0x950]   ; the vocation
+020dd630  sub  r0, r0, #1
+020dd634  ldr  r2, [r1, #4]       ; the used-by word
+020dd63c  lsl  r0, r1, r0         ; 1 << (v - 1)
+020dd640  lsl  r1, r2, #0x14
+020dd644  tst  r0, r1, lsr #20    ; against bits 0 to 11
+```
+
+So **bit `v − 1` for vocation `v`, in bits 0 to 11**, exactly as the vocation
+presets had it inferred — and applied **only to categories 2 to 7**. Weapons
+and shields skip it entirely, which is why their word is zero.
+
+### Weapons and shields: the trees, or the panel
+
+The item's tree is **word 0 bits 7 to 10** of the record. Two things are asked,
+and **the earned panel is asked first**:
+
+```
+020dd5a4  lsl  r1, r1, #0x15
+020dd5a8  lsr  r1, r1, #0x1c      ; the tree
+020dd5b0  bl   #0x20dd200         ; has the tree's Omnivocational panel?
+020dd5b8  movne r1, #0 / bne      ; yes: allowed
+020dd5d8  bl   #0x20dd154         ; else: does the vocation hold the tree?
+020dd5e4  moveq r1, #1            ; neither: refused
+```
+
+- `0x020dd154` → `0x020dd19c`, which walks the vocation's row of
+  [vocationSkillTrees](Vocation-Skill-Trees) at `0x020ee748`. Its loop is
+  `i < 4`, **not** five, and that is right rather than a bug: the fifth entry
+  of a row is the vocation's *own* tree, 15 to 26, which is never a weapon's.
+- `0x020dd200` walks a thirteen-entry `(flag, tree)` table at `0x020ee710` —
+  `(9,1) (20,2) (31,3) (64,4) (97,5) (75,6) (119,7) (130,8) (185,9) (196,10)
+  (251,11) (218,12) (42,13)` — and asks `0x02083b00` for that flag out of a
+  per-character bit array at **`live+0x8EC`**. That array is written by the
+  skill-award walker at `0x0209a700`, which reads the twelve-byte
+  [skill panel](Skill-Panels) records and grants a panel's flag once the
+  tree's points reach its cost.
+
+  **INFERRED, on strong numbers:** all thirteen flag ids are ≡ 9 (mod 11), so
+  each is the **tenth panel of a tree** in the 26 × 11 layout — which is the
+  hundred-point Omnivocational panel of each weapon and shield tree, the one
+  the panel table marks `grants = 4`. Thirteen values landing on that residue
+  by chance is about 11⁻¹³.
+
+### Sex
+
+The character's sex is **bit 0 of the byte at `live+0x49C`**, immediately after
+the ten-halfword equipment array at `live+0x488`. The item's record carries two
+bits, and they are used as a **two-entry lookup indexed by that bit**, never
+compared:
+
+```
+020dd6e0  lsl  r2, r1, #4         ; bit 27 -> sp[0]
+020dd6e4  lsl  r1, r1, #3         ; bit 28 -> sp[1]
+020dd6f8  ldr  r0, [r0, r6, lsl #2]   ; sp[sex]
+020dd700  movne r0, #0            ; set: may wear
+020dd704  moveq r0, #0x80         ; clear: refused
+```
+
+- **bit 27** — sex 0 may wear it; **bit 28** — sex 1 may wear it.
+- **bit 29** is not a plain restriction. It matters only when the character has
+  **accessory 18048 (`0x4680`) in equipment slot 9**: with that worn,
+  `bit29 == 0` skips the sex test altogether. Read it as "**this item's sex
+  lock cannot be lifted by 18048**".
+
+```
+020dd6a4  ldrb r2, [r2, #0x49c]
+020dd6b4  bl   #0x2052df8         ; what is in slot 9
+020dd6bc  cmp  r0, r1             ; r1 = 18048
+020dd6c0  bne  #0x20dd6d8         ; not it: do the sex test
+020dd6cc  lsrs r0, r0, #0x1f      ; bit 29
+020dd6d0  moveq r0, #0            ; clear: allowed outright
+```
+
+Which of sex 0 and sex 1 is male is **not established** from code, and neither
+is where sex lives in the 0x23C persistent record — every read goes through
+`live+0x49C`, which is past that record's end.
+
+Two other places do the same triple and then push the piece into the bag —
+`0x02175ba8` and `0x02178448` in overlay 3 — so there *is* a "strip what you
+may no longer wear" routine. It is **not** the one
+[Alltrades](Party#changing-vocation-alltrades-abbey) calls.
+
 ### Not found as numbers
 
 Charm, max HP and max MP — the spirit bracer "boosts max. MP by thirty", and there is no 30 anywhere in its entry — and the vocation medals' own effects. They may be worked by each item's own code.

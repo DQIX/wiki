@@ -47,6 +47,18 @@ The tree numbers are `str_sklc`'s (see [System-Strings](System-Strings)): 1 to 1
 
 Weapons and shields carry no "Used by" bits in their stats (see [Items](Items)). An item's kind is the tree's number, so the vocations that may wield it are those whose row holds that tree. Expressed as bits in the same layout as armour's "Used by" word (bit v − 1 for vocation v), a weapon's users come out as the armour's do.
 
+**Confirmed in the game, 24 September 2026**, and it is this table that is consulted. `func_020dd4c4` — ["may this character equip this?"](Items#who-may-wear-it) — reaches it through `0x020dd154` → `0x020dd19c` → `0x020dd11c`, whose literal at `0x020dd150` is `0x020ee748`, the table's own address:
+
+```
+020dd11c  ; if (voc != 0 && voc < 13 && i < 5) return ((u8*)0x020ee748)[voc*5 + i]
+020dd1ec  cmp  r6, #4           ; only the first FOUR of the row
+020dd1f0  blo  #0x20dd1a8
+```
+
+**Only the first four of each row are searched**, and that is right rather than an oversight: the fifth is the vocation's own tree, 15 to 26, which is never a weapon's. Each is compared through the identity byte table at `0x020ee700` (`00 01 02 … 0e`).
+
+The other way past the rule is the tree's hundred-point Omnivocational [panel](Skill-Panels), which is asked **first** — see [Items](Items#weapons-and-shields-the-trees-or-the-panel).
+
 ## Evidence
 
 The tree numbers' meaning is INFERRED, on three legs:

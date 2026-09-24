@@ -180,9 +180,60 @@ There is **no level requirement, nothing consults the "has held" mask at
 `+0x54`, and the vocation already held is not excluded** from the list.
 
 **Equipment is kept per vocation.** The apply stows the outgoing vocation's
-eight equipment slot ids into `live+0x4A4 + (v-1)*16`, sets the new vocation,
-then walks the incoming vocation's block and **unequips to the bag anything
-the new vocation or that character's sex may not wear**, re-equipping the rest.
+eight equipment slot ids into `live+0x4A4 + (v-1)*16` — the indexer
+`0x02155e14` is `if (1 <= v && v < 13) return base + (v-1)*16`, so **zero is
+not a vocation here either** — sets the new vocation, then re-equips the
+incoming vocation's block.
+
+### It does **not** check who may wear what
+
+Corrected 24 September 2026; the earlier reading here said it dropped what the
+new vocation or that character's sex may not wear, and that is wrong.
+`0x0215582c` **never calls [`0x020dd4c4`](Items#who-may-wear-it)**, the
+game's own "may this character equip this?" — the whole ARM9 has no caller of
+it at all, and every overlay caller is an equip menu.
+
+What it really does is two plain loops:
+
+- `0x02155958`–`0x021559ac`: **everything worn goes into the bag,
+  unconditionally.** It walks the `0xff`-terminated slot list at `0x0217f2c4`
+  (`00 01 05 06 07 08 09 0a ff`) over the 0x20-byte equipment entries at
+  `live+0x194 + i*0x20`, takes the item id at `+0x18` where the entry's
+  category (`+0x08` low nibble) is 7 or less, and calls `0x0207c378` — bag,
+  id, one.
+
+```
+02155968  ldr  r0, [r1, #8]
+0215596c  lsl  r0, r0, #0x1c
+02155970  lsr  r3, r0, #0x1c      ; the category
+02155974  cmp  r3, #7
+02155988  ldrsh r1, [r1, #0x18]   ; the item id
+02155994  bl   #0x207c378         ; into the bag
+021559a4  ldrb r1, [sb, r8]
+021559a8  cmp  r1, #0xff          ; the slot list ends at 0xff
+```
+
+- `0x02155bcc`–`0x02155d70`: for each of the eight stored ids, **put it back
+  on if the bag still holds one** (`0x0207c7a0` counting it), otherwise set the
+  slot to −1. No vocation test, no sex test — the block was recorded while
+  that vocation was worn, so what is in it was already legal.
+
+There is **one** conditional removal, and it is narrow. At `0x02155b04` the
+routine looks at stored index 7 — the accessory — and does nothing at all
+unless it is **item 18048 (`0x4680`)** *and* the bag no longer holds one:
+
+```
+02155b04  ldrsh r0, [r6, #0xe]    ; stored[7], the accessory
+02155b0c  cmp   r0, r1            ; r1 = 18048
+02155b10  bne   #0x2155bc0        ; not it: no sweep at all
+02155b1c  bl    #0x207c7a0        ; is one still in the bag?
+02155b24  bne   #0x2155bc0        ; yes: no sweep
+```
+
+Only then does it clear the pieces whose **sex** lock that accessory had been
+lifting — see [items](Items). So the rule is "18048 lets you wear the other
+sex's things, and losing it takes them off", not "a new vocation undresses
+you".
 
 ### Revocation
 
