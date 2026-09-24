@@ -133,6 +133,87 @@ The live struct mirrors it: experience at `+0x138 + v*4`, level at
 the pool at `+0x564`, the vocation at `+0x950` and its mask at `+0x954`. The
 two are serialised back and forth by `func_02082d6c` and `func_020830cc`.
 
+## Changing vocation: Alltrades Abbey
+
+Read 24 September 2026. **It is a menu, dispatched exactly as the shop, the
+inn and the church are** — not an event-script call.
+
+`0x021a3544` in overlay 17 is the service dispatcher: it reads the first byte
+of a service record and branches through a 79-entry table at `0x021a3564`.
+**Service 46 (`0x2E`)** leads to `0x021c1404`, which calls overlay 3's step
+dispatcher `0x02154af4`, whose seven-entry table at `0x0217f340` holds the
+flow: slot 0 the change itself, slot 3 the confirmation, **slot 4
+revocation**.
+
+### What may be chosen
+
+The list is built by `0x02156054`. **Six with no gate at all** — it writes 1
+to 6 straight in (`mov r2, #1` … `cmp r2, #7 / blo`) — then six more from the
+table at `0x0217f304`, **in the Abbey's own order, which is not numeric**:
+
+```
+7, 9, 8, 12, 10, 11
+```
+
+each appended only if the event flag **`0x113F + its number`** is set, read by
+the plain bit test `0x0206dfb0`. So vocation 7 waits on flag `0x1146`.
+
+In the [level tables'](Level-Tables) numbering the ungated six are Warrior,
+Priest, Mage, Martial Artist, Thief and Minstrel — the six a game begins with
+— and the gated six are the advanced ones. That the two lists fall out that
+way is a good independent check on the numbering.
+
+**Valid ids are 1 to 12.** The bounds check at `0x02155e14` is
+`cmp r1,#0 / ble fail; cmp r1,#0xd / blt ok`, so **zero is rejected** — though
+zero is what character creation writes, and zero is the Guardian, which is
+what the Hero is before the game rather than a trade to take up.
+
+### What changing costs
+
+**Nothing is reset.** Level and experience are per vocation already, and the
+apply routine `0x0215582c` touches neither. **Skill points survive** — neither
+the pool at `+0xF4` nor the 27 tree bytes at `+0xF6` is touched by the apply
+or by revocation; a whole-image scan found writers of the live tree bytes only
+in the skill menu and the network apply.
+
+There is **no level requirement, nothing consults the "has held" mask at
+`+0x54`, and the vocation already held is not excluded** from the list.
+
+**Equipment is kept per vocation.** The apply stows the outgoing vocation's
+eight equipment slot ids into `live+0x4A4 + (v-1)*16`, sets the new vocation,
+then walks the incoming vocation's block and **unequips to the bag anything
+the new vocation or that character's sex may not wear**, re-equipping the rest.
+
+### Revocation
+
+`0x02155e38`, reached from step slot 4. It touches **only the vocation
+currently held**:
+
+```
+02155e5c  ldr  r5, [r1, #0x950]     ; the current vocation, and only it
+02155e74  strh r2, [r0, #0x6c]      ; live+0x16C+v*2 -> level 1
+02155e84  str  r2, [r0, #0x138]     ; live+0x138+v*4 -> experience 0
+02155e8c  ldrb r0, [r2, r5] ; add r1, r0, #1 ; strb r1, [r2, r5]
+02155e9c  cmp  r0, #0xa ; movhi r0, #0xa     ; the counter, capped at ten
+```
+
+So it resets that one vocation to level 1 and no experience, and increments
+its counter at `+0x186+v` (the live mirror of `+0x0F+v`), **hard-capped at
+ten**. Other vocations, skill points and equipment are untouched. A first-time
+flag per vocation, `0x118B + v`, drives a message the first time.
+
+Reaching ten matters: `0x02157c50` loops the twelve counters and, for each at
+ten, collects an id and calls `0x021ed6cc`. **What that grants is not
+established.**
+
+### The record is not edited in place
+
+Worth knowing for anyone tracing this: the flow changes the **live** mirror,
+and `0x020830cc` copies it back to the record afterwards — vocation, mask,
+then thirteen levels, thirteen revocation counts, thirteen experiences and
+thirteen twelve-byte blocks. Looking for a writer of `rec+0x50` finds only
+creation, a zero-init, a field copy and that sync.
+
 ## Not established
 
 - **What writes the slots or the count.** Three reads of `+0x397c` exist in
@@ -143,10 +224,15 @@ two are serialised back and forth by `func_02082d6c` and `func_020830cc`.
   held pointer, or as part of a bulk copy when a save is loaded.
 - What bit `0x800` means, beyond fitting "in the party".
 - That four is a limit rather than what the layout leaves room for.
-- **The Alltrades vocation-change routine.** The setter at `0x02086598`
-  writes the vocation and ORs the "has been held" bit, and its only caller in
-  the ARM9 and all thirty-five overlays is character creation. Whatever the
-  Abbey calls was not found.
+- **Where the service record carrying byte `0x2E` lives** in map data, so
+  nothing here ties the Abbey's flow to a map code by evidence.
+- The vocation id → name mapping. No string fetch for vocation names appears
+  in the list builder or the apply; whether `str_tm` 2100 on is the source is
+  not established.
+- What vocation id **0** means, beyond being what creation writes and what the
+  Abbey refuses.
+- What `0x021ed6cc` grants for a vocation at ten revocations.
+- The contents of the thirteen twelve-byte blocks at `+0x58 + v*12`.
 - What the thirteen `0x0C`-byte sub-records at `+0x58` hold.
 - Whether thirteen character records is the whole roster or one page of it.
 - How a battle's experience is split among the party. Only the award being
