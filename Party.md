@@ -152,7 +152,10 @@ thing, and `GetEquipmentArray` (`0x02052e2c`) proves that base with
 block rather than a field of its own.
 
 The build comes from a table of **ten pairs** at `0x020E6D98`, indexed
-`sex * 5 + rand(5)`:
+`sex * 5 + rand(5)`. **A European dump has the same twenty numbers**, found by
+shape rather than by address — a band around 4096 whose second of each pair
+falls across each row of five, which occurs exactly once in that binary. Two
+builds agreeing, two different ways:
 
 ```
 02010c58  bl   #0x20742fc          ; rand(5)
@@ -163,9 +166,16 @@ The build comes from a table of **ten pairs** at `0x020E6D98`, indexed
 02010c7c  strh r0, [r4, #0x18]     ; record+0x178
 ```
 
-Read out, in 4096ths: sex 0 gets (3768, 4255) (3637, 4136) (3850, 4014)
-(4132, 3891) (3870, 3764); sex 1 gets (3768, 4177) (3641, 4091) (3809, 3973)
-(4132, 3891) (3768, 3764) — five builds each, 0.888 to 1.039.
+| sex | the five, as (height, width) in 4096ths |
+|---|---|
+| 0 | (3768, 4255) (3637, 4136) (3850, 4014) (4132, 3891) (3870, 3764) |
+| 1 | (3768, 4177) (3641, 4091) (3809, 3973) (4132, 3891) (3768, 3764) |
+
+0.888 to 1.039 of the figure's own size. **Which of a pair is which is
+INFERRED** — the second falls steadily across each row and the first does not,
+which is what a "slim to broad" row looks like; nothing in the code names
+them. The two sexes **share the middle build** and differ elsewhere, which is
+what makes it a table of ten rather than five used twice.
 
 **The face is `+0x01` bits 0-3**, not part of that block. The filename builder
 proves it: when a visible part's model id is 1000 the face index is added to it
