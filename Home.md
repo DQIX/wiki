@@ -27,7 +27,7 @@ File paths are paths inside the cartridge's filesystem ([NitroFS](NitroFS)).
 
 **Text and scripts:** [Text markup](Text-Markup) · [Event text](Event-Text) · [Event scripts](Event-Scripts) · [Character dialogue](Character-Dialogue) · [Item descriptions](Item-Descriptions) · [Item kinds](Item-Kinds) · [Articles](Articles) · [Battle text](Battle-Text) · [System strings](System-Strings)
 
-**Game data:** [Party](Party) · [Items](Items) · [Vocation skill trees](Vocation-Skill-Trees) · [Skill panels](Skill-Panels) · [Alchemy](Alchemy) · [Battle weight tables](Battle-Weight-Tables) · [Level tables](Level-Tables) · [Spell table](Spell-Table) · [Attending characters](Attending-Characters) · [Monsters](Monsters) · [Event battles](Event-Battles) · [Encounters](Encounters) · [Actions](Actions) · [Battle resolution](Battle-Resolution)
+**Game data:** [Party](Party) · [Items](Items) · [Vocation skill trees](Vocation-Skill-Trees) · [Skill panels](Skill-Panels) · [Alchemy](Alchemy) · [Recipes](Alchemy-Recipes) · [Battle weight tables](Battle-Weight-Tables) · [Level tables](Level-Tables) · [Spell table](Spell-Table) · [Attending characters](Attending-Characters) · [Monsters](Monsters) · [Event battles](Event-Battles) · [Encounters](Encounters) · [Actions](Actions) · [Battle resolution](Battle-Resolution)
 
 ## Contributing
 

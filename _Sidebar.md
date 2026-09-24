@@ -53,6 +53,7 @@
 - [Vocation skill trees](Vocation-Skill-Trees)
 - [Skill panels](Skill-Panels)
 - [Alchemy](Alchemy)
+  - [The 470 recipes](Alchemy-Recipes)
 - [Battle weight tables](Battle-Weight-Tables)
 - [Level tables](Level-Tables)
 - [Spell table](Spell-Table)

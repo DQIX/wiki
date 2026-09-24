@@ -2,6 +2,10 @@
 
 What the Krak Pot makes. Read 25 September 2026.
 
+**→ [The whole list of 470 recipes](Alchemy-Recipes)**, grouped by what they
+make. This page is the format: what a record's twenty values are and how the
+reading was checked.
+
 A plain [tagged data table](Tagged-Data-Table): one `0x66` record holding the
 count and **470 `0x67` records of twenty integers**. There is no string table —
 a recipe has no name of its own and is shown by the name of the item it makes.
@@ -129,6 +133,7 @@ nothing in the data counts them; quests award them too.
 
 ## See also
 
+- [The recipes themselves](Alchemy-Recipes) — all 470, with their ingredients
 - [Items](Items) — the item tables the ingredients and results are in
 - [Tagged data table](Tagged-Data-Table)
 - [System strings](System-Strings) — `str_ren`, the pot's words; `str_mdl`, the medal man's
