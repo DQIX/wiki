@@ -31,6 +31,8 @@ A character in a scene is an **actor**: `GetEventActor` (`0x0215ab20`) bounds an
 
 *(An earlier revision of this page said the engine's angles were degrees, on the strength of `532` alone. `532` is the one function that isn't.)*
 
+*(A later one still had `544` handing back degrees, which contradicted the paragraph above it. Its handler, ov001 `0x0215ffc0`, reads the three components of the rotation, converts each with `_fflt` and divides by `0x45800000` — `4096.0f` — and does nothing else. That is the plain fixed-point-to-float conversion; no `0x47` appears in it. **`544` hands back radians.** The pairing is the giveaway: `208` sets a facing in radians, so a script that read one back with `544` and set it again would have turned the character through 57 times the angle it asked for.)*
+
 ## The waypoint path — 214, 215, 216, 217
 
 One feature: a spline walk, the many-point counterpart of `207`. They share a channel with `206` and `207` and work on an object at the actor's `+0x11C` holding sixteen points, a speed and a curve.
@@ -80,7 +82,7 @@ The order is `502` → `506` → spin on `507` → `200` builds an `Object3D` fr
 | 8, 9 | — | **set and clear one global flag** at `GameState+0x5CAC` (`0x0215b040`, `0x0215b058`). Clearing it lets entering a zone apply its masks of already-opened chests and doors. Every event's section 200 clears it; what the flag is *for* is **not established** |
 | 218 | character, ticks | **waits**, on the same channel the character's motions run on, counting in the actor's `+0x50` (`0x0215c544`) |
 | 543 | character, 3 references | **where the character is** — the vector that goes to `Object3D::position_` (`0x0215ff10`) |
-| 544 | character, 3 references | **which way it faces** — the vector that goes to `Object3D::rotation_`, in degrees (`0x0215ffc0`) |
+| 544 | character, 3 references | **which way it faces** — the vector that goes to `Object3D::rotation_`, in **radians** (`0x0215ffc0`) |
 | 540 | group, object | **opens a door placement** in the zone's list: swings it ±35° or ±28°, or slides it along its facing where a flag says so, and plays a sound the door's material picks (`0x0215fa40`). 584, 585 and 586 are the same function with another swing |
 | 563 | group, object | **closes it again** (`0x02160b08`). Its third argument is read and discarded |
 | 597 | reference | the **lighting's time of day**, `LightingManager::timeOfDayIndex_` — a slot of 0 to 6 (`0x02161ce8`) |

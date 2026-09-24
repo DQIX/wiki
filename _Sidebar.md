@@ -47,6 +47,7 @@
 - [System strings](System-Strings)
 
 **Game data**
+- [Party](Party)
 - [Items](Items)
 - [Equipment battle parameters](Equipment-Battle-Parameters)
 - [Vocation skill trees](Vocation-Skill-Trees)

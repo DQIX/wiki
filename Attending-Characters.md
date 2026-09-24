@@ -58,8 +58,11 @@ Ivor joins as his call ends (`ev02210`, whose last message is "Ivor joins the pa
 
 - Values 3, 4, 6 and 16.
 - The order of the numbers in values 7–15 (Aquila's agility reads 0, which fits nothing).
+- **No column is a vocation.** Worth saying rather than leaving to be discovered: the record carries a level, nine stat numbers, a weapon and a shield, and nothing that selects one of the thirteen [level tables](Level-Tables). Of the four unknown values, 4 reads 3, 0, −1, −1, 3 and 16 reads 26, −1, 0, 0, −1, neither of which is a vocation number in the usual 0–12 range for all five. So where a party member's vocation comes from is open — see [Party](Party).
 
 ## See also
+
+- [Party](Party): how the game holds which characters are with you, and in what order
 
 - [Character-Presets](Character-Presets)
 - [Level-Tables](Level-Tables)
