@@ -81,7 +81,38 @@ One to a language in `/data/bin/presetdt.gp2` (see [GPC2](GPC2)): a tagged data 
 - `presetdt` values 4–8 and 19–34.
 - The first of the two 90xx values (`charapreset` value 77, `presetdt` value 11).
 - Where a preset's hair style, variant and colour are kept, if in it at all. (The Hero's own are the player's, chosen at character creation.)
-- The legwear 16190 on the minstrel woman and 8001 on the sage man, which name no item.
+- Why six legwear numbers name no part on the cartridge. See below — the reading that those bodies cover the legs is INFERRED from two of thirteen.
+
+## Thirteen of the twenty-nine name legwear that is not on the cartridge
+
+Found 24 September 2026, by dressing all twenty-nine from the parts in
+`chara_pc.gp2` (see [Character parts](Character-Parts)).
+
+Sixteen dress from their own values. The other thirteen name legwear that is
+**not in `chara_pc.gp2` and not in `chara_pd.gp2` either**:
+
+| legwear | presets that want it |
+|---|---|
+| `16190` → `p_p190` | 11, 16, 24, 26, 28 |
+| `16201` → `p_p201` | 3, 5, 10 |
+| `16101` → `p_p101` | 18 |
+| `16102` → `p_p102` | 20 |
+| `16110` → `p_p110` | 25 |
+| `16112` → `p_p112` | 27 |
+| `8001` — in no part band at all | 23 |
+
+Their neighbours are all present — `p_p191`, `p_p200`, `p_p202`, `p_p100`,
+`p_p103` — so these are gaps in the numbering rather than a whole range being
+missing, and the armour each of the thirteen names **is** on the cartridge.
+Only the legwear is absent.
+
+**INFERRED: those bodies cover the legs.** Preset 11 is a woman in a
+full-length dress and preset 23 a sage in a hooded robe to the ankles, and
+neither shows any leg to dress. That would make a legwear value with no part
+behind it the file's way of saying "nothing goes here", and the
+[underclothes](Character-Parts) `p_p090` — a body, legs and feet made as a set
+for no item — the thing to put underneath. **Only two of the thirteen were
+looked at**, so the other eleven are a guess by family resemblance.
 
 ## See also
 
