@@ -381,6 +381,37 @@ Her top menu is four or five items, from `bm_lui_wnd` window `0x1E` — or
 | Part With a Friend | the list | 5 |
 | Cancel | — | ends |
 
+### The same screens make the Hero, off the title screen
+
+The scene table is at `0x020e8f20` — 35 records of `{group, name pointer}`,
+the count `LoadScene` (`0x020a1940`) bounds its argument against. Scene 21 is
+`charamake`, scene 9 `charamake2`, scene 17 `gamemain`.
+
+`main`'s game-mode dispatch is at `0x0200111c` — `cmp r0, #9; addls pc, pc,
+r0, lsl #2`, table at `0x02001124`. Each arm loads one scene:
+
+| mode | loads | scene |
+|---|---|---|
+| 0, 4, 5, 9 | 17 | `gamemain` |
+| 1 | 15 | `charaview` |
+| **2** | **21** | **`charamake`** |
+| 3 | 16 | `movieview` |
+| 6, 7 | — | falls to the loop bottom |
+| 8 | 27 | `sub_staffroll` |
+
+**Mode 2 is set in exactly one place**: `ov004 0x0216d19c`. Found by scanning
+the ARM9 and all 35 overlays for a `BL` to the mode setter `0x0200fb94` —
+`ov004` also sets modes 5, 6, 7, 8 and 9, which makes it the boot menu. So the
+protagonist is made **straight off the title screen, before any map is
+entered**, and a recruit is made from [Patty's step 4](#recruiting-asks-the-vocation-first),
+which drives overlay 9 directly. Both run the same knob screens.
+
+> **Not the prologue.** The byte at `GameState+0x6000+0x3D6` does set game mode
+> 3 — `main 0x0200114c` reads it through `0x020115a8` and, when it is non-zero,
+> calls the setter with 3 — but mode 3 loads scene 16 `movieview`. It queues a
+> movie, not character creation. `0x020115b4` sets that byte and `0x020115c0`
+> clears it; see also [Engine Functions](Engine-Functions) 583.
+
 ### Recruiting asks the vocation first
 
 Step 4 opens window 8 — `bm_lui` "Vocation" then **Warrior, Priest, Mage,
