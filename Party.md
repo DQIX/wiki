@@ -463,11 +463,34 @@ out that time at the ruins" — and sets that panel. It is the one place a
 ## Not established
 
 - **What writes the slots or the count.** Three reads of `+0x397c` exist in
-  the ARM9 (`0x0200fde4`, `0x020100b4`, `0x0201064c`) and no write, in the
-  ARM9 or in any of the 32 overlays; `+0x3980` has the one read above and
-  nothing else. Searched as both `[base + 0x3000, #0x97c]` and
-  `[base, #0x397c]` forms. Recruitment must reach them another way — through a
-  held pointer, or as part of a bulk copy when a save is loaded.
+  the ARM9 (`0x0200fde4`, `0x020100b4`, `0x0201064c`) and no write; `+0x3980`
+  has the one read above and nothing else.
+
+  **The search is now exhaustive over the addressing form, 25 September
+  2026.** Every ARM single-data-transfer with an immediate offset was decoded
+  across the ARM9 and all 35 overlays — any width, **any base register** — and
+  every one landing in `0x97c`–`0x980` or `0x397c`–`0x3980` collected. Nine
+  turned up: the four known reads, four pc-relative literal loads, and one
+  apparent `strb` at `0x020002dc` which is Thumb code decoded as ARM, sitting
+  among the SDK stubs beside `LZ77UnCompReadByCallbackWrite16bit`
+  (`0x020002cc`). No store. `0x397c`, `0x097c` and `0x3980` are not literal-pool
+  words anywhere either.
+
+  That rules out the shape the reader uses, which is the point: the walk folds
+  the index into the base and keeps the offset (`add r0, sl, r6`;
+  `add r0, r0, #0x3000`; `ldrb r7, [r0, #0x97c]`), so a writer built the same
+  way would have shown up. **The array is not addressed by that offset at
+  all** — whatever writes it holds a pointer that is neither the state nor
+  `state + 0x3000`, or writes the block in bulk.
+
+  Three near-misses, so nobody spends the time twice: the register-offset
+  store at `0x020c6d64` is `+0x3f7c`; the read-modify-write at `0x020106ec`,
+  right after the slot walk, halves a bitfield at `+0x3970`; and the
+  `ORR`/`BIC #0x800` pairs at `0x02087914` and `0x02089188` act on words at
+  `+0x14` and `+0x18` of their struct, not on a record's first halfword.
+
+  The next move is the behaviour, not the address: Patty's call-up and
+  drop-off are what reorder the party.
 - What bit `0x800` means, beyond fitting "in the party".
 - That four is a limit rather than what the layout leaves room for.
 - **Where the service record carrying byte `0x2E` lives** in map data, so
