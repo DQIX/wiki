@@ -363,6 +363,72 @@ then thirteen levels, thirteen revocation counts, thirteen experiences and
 thirteen twelve-byte blocks. Looking for a writer of `rec+0x50` finds only
 creation, a zero-init, a field copy and that sync.
 
+## Recruitment — Patty's Party Planning Place
+
+Read 25 September 2026. **Service 23**, a sixteen-step flow in overlay 3 at
+`0x0217ff68`, reached by a talk line ending `<LUIDA>` — facility code 5; see
+[items](Items#how-a-tag-opens-a-facility). ルイーダ is the tavern's Japanese
+name, which is why the tag is not "PATTY".
+
+Her top menu is four or five items, from `bm_lui_wnd` window `0x1E` — or
+`0x1D`, dropping one, **when the party is only the Hero** (`0x02162084`):
+
+| item | goes to | step |
+|---|---|---|
+| Call Up a Friend | the list | 2 |
+| Recruit a Friend | the vocations | 4 |
+| Drop Off a Friend *(absent when alone)* | the party | 3 |
+| Part With a Friend | the list | 5 |
+| Cancel | — | ends |
+
+### Recruiting asks the vocation first
+
+Step 4 opens window 8 — `bm_lui` "Vocation" then **Warrior, Priest, Mage,
+Martial Artist, Thief, Minstrel**, the six a game begins with, which are the
+same six [Alltrades](Party#what-may-be-chosen) writes in with no gate. The
+choice is handed to **service 24**, which is `LoadScene(9)` — overlay 9,
+`charamake2`.
+
+**Overlay 9 asks in this order**, from its own thirteen-step table at
+`0x0218ab9c`, one screen a knob: **sex → figure → hair → hair colour → face →
+skin colour → eye colour → name**. Five options for the figure, ten each for
+hair, hair colour and face, eight each for the two colours. The knob *names*
+are INFERRED from the file basenames (`sx`, `fig`, `ht`, `hc`, `fac`, `sc`,
+`ec`, `nm`); the order and the counts are the step chain and the jump table.
+
+`str_cm` holds **201 given names** — 20000–20100 male, 21000–21100 female —
+for the random-name button.
+
+### The list is the character record array
+
+**A new character goes onto Patty's list, not into the party.** Overlay 9
+files them with `func_02086778`, which appends to the thirteen `0x23C` records
+at `GameState+0x3984` and bumps the count byte at `+0x5690`. Dropping somebody
+off appends to the same array; calling them up removes them with
+`func_02086a04`. So a character is **in the party or on the list, never
+both** — the party being the four slots at `+0x397c` naming ids within it.
+
+Two limits, both checked:
+
+- **The party is four.** `cmp r0, #4` at `0x021621a4`, `0x021628a4`,
+  `0x0216322c` and `0x021632f0`, always against the number of occupied
+  character slots 0–3.
+- **The list holds `min(n + 8, 12)`** (`func_ov003_02160c58`), where `n` is a
+  word at `GameState+0x3974` that is **not established** — so it grows from 8
+  to 12 as something happens.
+
+### No cost in gold
+
+**A negative result, not a citation.** No function in steps 1–8 reads or
+writes a purse, and `str_lui` carries no price or refusal-for-money message.
+
+### Cancel teaches you Egg On
+
+`0x021623f8`: with story bit `0x784` set and skill panel `0x11E` not yet
+learned, she says message 89 — "I never did thank you properly for helping me
+out that time at the ruins" — and sets that panel. It is the one place a
+[skill panel](Skill-Panels) is granted outside the points walk.
+
 ## Not established
 
 - **What writes the slots or the count.** Three reads of `+0x397c` exist in
@@ -389,6 +455,13 @@ creation, a zero-init, a field copy and that sync.
   is computed.
 - A story companion's vocation is still not in [attnpc](Attending-Characters),
   which has no such column.
+- `str_lui` ids **15 and 16 are absent** from the English file, though the code
+  shows message 16 (`0x021622a8`, the "party is only you" refusal).
+- Where overlay 9's two confirm sentences — `str_cm` 18000 "Create an
+  adventure log with this character?" and 18001 "Save this character in your
+  character list?" — are looked up. Neither constant appears anywhere in that
+  overlay.
+- What `GameState+0x3974` counts, which is what grows Patty's list from 8 to 12.
 
 ## See also
 

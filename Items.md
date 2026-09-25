@@ -305,6 +305,44 @@ A talk line that hands over to a service ends `<ADD>` and a service tag (see [Ch
 
 The innkeeper's lines leave the price and the party's size to be filled in — "That'll be `<val_2>` gold coins" — and `str_inn.bin` beside the scenario is empty; no table of inn prices has been found. `str_church.bin` is a tagged table of the church's words, in Japanese only.
 
+### How a tag opens a facility
+
+Read 25 September 2026, and it is the same mechanism for all of them. The text
+compiler turns each of these tags into a **facility code** carried in the
+message; `func_0206f6cc` — the one function the talk service (5) calls for this
+— switches on that byte:
+
+```
+0206f6fc  ldrb  r1, [r5, r4]           ; the facility code out of the message
+0206f700  cmp   r1, #0xc
+0206f704  addls pc, pc, r1, lsl #2     ; so code n is at 0x0206f70c + 4n
+```
+
+| code | begins | what | its tag |
+|---|---|---|---|
+| 1 | `0x21bac24` | the inn | `<INN=n>` |
+| 2 | `0x21ba8e0` | the church | `<CHURCH=n>` |
+| 3 | `0x217e300` | the bank | `<BANK>` |
+| 4 | `0x21b2c24` | the shop | `<SHOP=n>` |
+| 5, 8 | `0x21b65e0` | [Patty's Party Planning Place](Party#recruitment) | `<LUIDA>` |
+| 6, 12 | `0x218d77c` | the Quester's Rest counter | — |
+| **7** | `0x21b146c` | **the [Krak Pot](Alchemy)** | `<RENKIN>` |
+| 9, 10 | `0x21c12fc` | [Alltrades](Party#changing-vocation-alltrades-abbey), the second being revocation | — |
+| 11 | `0x21a8614` | the Starflight Express | — |
+
+**So a facility is never a menu command.** `<RENKIN>` and `<LUIDA>` are bare —
+there is one pot and one Patty, so they select nothing — and both appear as a
+line of their own *and* as a suffix after `<END>`. The pot's own line is "A pot
+I may be, but I am in no way potty!"; Patty's is "Here's hoping you find plenty
+of folks you can go adventuring with!"
+
+Counts across the English talk files: **88 `<RENKIN>`** and **48 `<LUIDA>`**,
+all in the `R01`–`R0n` archives, which are the Quester's Rests. The pot and
+Patty share a room: `R01M01` is "Stornway, Lobby Interior 1".
+
+Codes 6, 9, 10, 11 and 12 have **no text tag** in the compiler's list, so
+whatever produces their code is elsewhere and is **not established**.
+
 ## Evidence
 
 - Record stride: where the names' ids fall in each `itemdt` file — stride 32 on 1,007 of the combined table's gaps and on every per-category table.
