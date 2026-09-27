@@ -263,6 +263,32 @@ The modifier: −50 under a ward, for each of elements 1 to 7 (five wards: 1, 2,
 
 5, 7, 11, 12, 14, 15, 17 and 21 are not established.
 
+## Sharing the experience — `func_ov023_021f4098`
+
+In **overlay 23**. The victory routine `func_ov023_021edf54` calls it for each of the four party places that `func_020a35e0` says are filled (`0x021ee140`) and keeps each result at `[battle + 0x5758 + 4i]`; the total it shares is `[battle + 0x58c0]`, set earlier in the same routine from `[state + 0x8e28]` × the float at `[state + 0x8e3c]`. A member takes nothing if they are absent, down (`func_02061bd8`), or have no record (`func_02053c6c`, which returns `+0x150`). For the rest, in 32-bit floats:
+
+    share = ⌈ total × (k + level) × rounds ÷ Σ (k + level) × rounds ⌉
+
+- **`level`** is `func_0202053c`: the halfword at `+0x16c + 2 × vocation` of the record — the level in the vocation they are.
+- **`rounds`** is `func_02053dfc`: the word at `[+0x19c] + 8`. `func_02053da0` zeroes it and `func_02053dd0` adds one — unless bit 0 of `[+0x138] + 0x14` is set — for each member present, at one point of overlay 26's battle loop (`0x021dacb0`). That it counts **rounds**, and that the flag is being down, is INFERRED from where it is called.
+- **The sum** is over the members present and standing, each product `(k + level) × rounds` a float, added as `p3 + (p2 + (p0 + p1))` (`0x021f42e8` on). A sum of 0 is taken as 1.
+- **`k`** is `func_ov023_021f5578(table, total, 4)` — see below.
+- **The number of players**: the total is first multiplied by `1 + (n − 1) ÷ 10`, where `n` counts those connected (`func_0202b7d8`, `func_0202c1c0`); alone, 1.
+- **× 1.05** (`0x3f866666`) before rounding if `func_0208538c` says so of the member's record: something they have equipped carries bit 16 of its entry's `+0x2f4` word. Which items do is not established.
+- **Rounded up**: the fraction left after `_ffix` is compared with 0 and 1.0 added if it is above, then `_ffix`. The shares can come to more than the total.
+
+A member down at the end takes nothing and weighs nothing in the others' shares.
+
+### `expadj.nat`
+
+`k` comes from `data/bin/expadj.nat`, loaded by the victory state into the object at `[0x021ffefc] + 0xf4` (`func_ov023_021f52f8` starts it, `021f5340` polls the load, `021f5448` copies it in, `021f5410` releases it). The file is a header word — bits 0–11 the number of bands (`021f5524` sizes them), bits 12–30 the size of a second block copied in after them, not established — then a word a band: **bits 0–25 the most experience it holds, 0 for no bound; bits 26–31 its `k`**. `func_ov023_021f5534` takes the first band whose bound the (scaled, truncated) total does not pass, signed, or that has none; `021f5578` returns its `k`, or its third argument, 4, when there is none.
+
+On both releases checked, sixteen bytes: **up to 10,000 → 4, up to 20,000 → 3, beyond → 2** — a big haul leans harder on level.
+
+### The line that says it
+
+`func_ov023_021f03a0` counts the nonzero shares and says `str_bres` **26**, `Each party member receives some experience!`, for more than one, and **25**, `<DEF_ART_TARGET> receives some experience!`, for one (`0x021f07fc`). The numbers themselves go to overlay 17 with the award array (`func_ov017_021cd590`), taken to be the results window — INFERRED. `str_bres` 6–9, `<str_n> earns <val_n> experience!` for one to four, are not found said in overlay 23.
+
 ## Other things read
 
 - **The surprise round** (`ProcessCombatTurn`): at `[battle + 0xe49]` of 1 the monsters sit the first round out; at 2 the party does, the first monster always acts, and each after it acts on `NextRandomMax(100) < 67`. What sets it is above.
@@ -276,6 +302,7 @@ The modifier: −50 under a ward, for each of elements 1 to 7 (five wards: 1, 2,
 - What trait `0x11d` is, and what `func_ov000_02155a04`'s quarter is a quarter of, which together double a critical rate.
 - What the drop roll's four further passes scale their chance by.
 - What increments the combo counter at `[battle + 0x8e83]`.
+- What the flag at `[+0x138] + 0x14` bit 0, which stops the rounds counter, is; and which equipment sets the experience bonus.
 - What `func_ov000_0215f57c` is: it returns 0, 1 or 2 for a party member, by a three-bit field of the monster's record and one coin flip. It is **not** the action picker, which this page once supposed.
 
 ## See also

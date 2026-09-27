@@ -32,6 +32,7 @@
 - [Item icons](Item-Icons)
 - [Character parts](Character-Parts)
 - [Character presets](Character-Presets)
+- [Character colours](Character-Colours)
 - [Motion tables (.bcfg)](Motion-Tables)
 
 **Text and scripts**
@@ -52,6 +53,8 @@
 - [Equipment battle parameters](Equipment-Battle-Parameters)
 - [Vocation skill trees](Vocation-Skill-Trees)
 - [Skill panels](Skill-Panels)
+- [Given names](Given-Names)
+- [Mini medals](Mini-Medals)
 - [Alchemy](Alchemy)
   - [The 470 recipes](Alchemy-Recipes)
 - [Battle weight tables](Battle-Weight-Tables)
