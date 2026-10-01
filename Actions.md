@@ -43,7 +43,8 @@ In the rows added since, **EU only** marks a reading whose counts or names were 
 | `+0x10`, bit 4 | **EU only:** **defending halves it**: the defender's guard level is applied only to an action that carries this bit | 243, the plain Attack, Frizz and Crack among them; not Heal, the medicinal herb or Kasap |
 | `+0x10`, bit 5 | **can be dodged** | 156; the plain Attack and the breaths, not the spells or the herb |
 | `+0x10`, bit 6 | **can be blocked** | 162, 130 of them dodgeable too |
-| `+0x10`, bit 13 | **USA only:** tension's multiplier applies to it, where a battle flag at `[battle + 0x76]` is set | |
+| `+0x10`, bit 11 (`0x800`) | **EU only:** a blow that lands draws `NextRandomMax(100)` after it (`func_ov000_02157288`, `0x02157340`), INFERRED the chance of waking its target | 154, the plain Attack among them; not the spells |
+| `+0x10`, bit 13 (`0x2000`) | **EU only:** **tension works on it, and is spent by it**: the dealer's tension multiplies its damage (unless the blow was redirected, `[ctx + 0x76]`), and an action carrying it spends the tension whatever it comes to — see [Battle resolution](Battle-Resolution), "Tension" | 223: the plain Attack, the attack spells, the weapon skills, and six heals, Heal among them; not Defend nor Psyche Up |
 | `+0x10`, bits 14 and 15 | the number it scales by: **magical might**, **magical mending** | 14 on the attacking spells, 15 on the heals |
 | `+0x10`, bit 16 | **USA only:** for a party member with a certain trait, the accuracy roll throws a die of four that misses on 0. The trait is not established | |
 | `+0x10`, bit 17 | strikes several, weakening as it goes: 1.0, 0.8, 0.6, 0.4, 0.2 | |
@@ -60,8 +61,8 @@ In the rows added since, **EU only** marks a reading whose counts or names were 
 | `+0x18`, bits 27–31 | **the element its landing is resisted by** | Kasap 19, Deceleratle 20, Snooze and Sweet Breath 10, Poison Breath 16; a blow with a rider has the rider's — Toxic Dagger 16 |
 | `+0x1C`, bits 0–13 | the most it can deal; 0 is no limit | 211: Frizz 999, Frizzle 1999, Kafrizz 2999, and Heal's three the same |
 | `+0x1C`, bits 14–18 | **USA only:** where these are 0 and the reach is 3 or 4, the critical is rolled once for the whole action | |
-| `+0x2C`, bit 27 | **USA only:** a combo: damage of at least 1 is multiplied by 1.0, 1.2, 1.5 or 2.0 by a counter of the battle's, and any action without the bit resets that counter | |
-| `+0x30`, `+0x32` | `s16` ×2: the levels it moves a stat, and its rider's; held to two either way. **USA only:** on a metamorphosis, `+0x30` is the monster it becomes | Buff 1, Sap −1, Oomph 2, Blunt −2 |
+| `+0x2C`, bit 27 | **EU only:** **its blows chain into a combo**: damage of at least 1 is multiplied by 1.0, 1.2, 1.5 or 2.0 by the battle's chain counter, which counts only such an action's blows (`func_ov024_021ea584`); any action without the bit resets it — see [Battle resolution](Battle-Resolution), "The combo" | 112: the plain Attack, Frizz, Crack, Zam, Double-Edged Slash; not Heal |
+| `+0x30`, `+0x32` | `s16` ×2: the levels it moves a stat, and its rider's; held to two either way. **USA only:** on a metamorphosis, `+0x30` is the monster it becomes. On a kind-15 action, `+0x30` is how many steps of tension it gives (`func_ov024_021dc93c`) | Buff 1, Sap −1, Oomph 2, Blunt −2. **EU only:** Psyche Up and Egg On 1, 330 2, `0x151` 3 and `0x152` 4 |
 
 Actions the code singles out by number: `0x1B` Kamikazee, `0x40` Metal Slash, `0x48` Thunder Thrust, `0x70` Hatchet Man, `0x7E` Metalicker, `0xAF` Double-Edged Slash.
 

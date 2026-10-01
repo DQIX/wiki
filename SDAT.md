@@ -204,6 +204,14 @@ In both, every sequence names the bank at its archive's own index, and every one
 - **The map list names a map's music** by its index in `bgm.sdat`'s sequence list — INFERRED from the values alone. The 25 grotto boss floors hold 80, which is `BG_100`, the one sequence past the `ME_` jingles; that pins the numbering to the list's own. See [Map-List](Map-List).
 - **The event scripts' sound functions** (700 to 738) are the SDAT player's. The field mounts `se_norm.sdat`'s sequence archive 100 as its **base** archive, and function 712 plays out of it; 726 and 730 load a scene's own archive, 728 and 732 play a sound out of the archive loaded by its number within it, and 727 and 731 give the archives back. See [Event-Scripts](Event-Scripts).
 
+### The battle's sounds
+
+Read 1 October 2026 from the USA release's code.
+
+- **A battle mounts `se_btl.sdat`'s sequence archive 101 as its base** (overlay 0 `0x02164028`), and leaving gives the field `se_norm.sdat` back. The reaction presenter's sounds come from 101: the hit (30 unless the reaction's `55` sets it, 31 on a party member), the dodge (54 for the party, 55 for a monster), the guard 57, a monster's death 50 and a target's fall 66, the combo display's 26, 23 and 24, a flight 9. A casting motion plays 100 or 102.
+- **An action script's `70 n` plays sequence n of the archive its `69` names**, or a monster actor's own, set as its action starts; `71` does so for a reaction. The Hero's bare-handed blow is `70 40` on the swing and `70 85` on the hit. See [Battle action scripts](Battle-Action-Scripts).
+- **The battle's track** is `bgm.sdat` sequence 23 (`0x17`), or a set battle's record's `+0x24` (`func_0209c480`). The victory's fanfare is `ME_005` (sequence 54), a level's `ME_004` (53), a wipe-out's `ME_009` (58), played by `func_0209c6d8`. See [Battle stages](Battle-Stages).
+
 ## Evidence
 
 | check | result |

@@ -25,7 +25,7 @@ File paths are paths inside the cartridge's filesystem ([NitroFS](NitroFS)).
 
 **Maps:** [Map list](Map-List) · [Map archive](Map-Archive) · [Collision](Map-Collision) · [Objects](Map-Objects) · [Textures](Map-Textures) · [Doors](Doors) · [Area cast](Area-Cast) · [Triggers](Triggers) · [Story threads](Story-Threads) · [Treasure](Treasure) · [Mini-map](Mini-Map) · [Poison marsh](Poison-Marsh)
 
-**Graphics:** [Bitmap font](Bitmap-Font) · [Sprites](Sprites) · [Menu backgrounds](Menu-Backgrounds) · [Item icons](Item-Icons) · [Character parts](Character-Parts) · [Character presets](Character-Presets) · [Motion tables](Motion-Tables) · [NSBTA and NSBMA](NSBTA-and-NSBMA)
+**Graphics:** [Bitmap font](Bitmap-Font) · [Sprites](Sprites) · [Menu backgrounds](Menu-Backgrounds) · [Item icons](Item-Icons) · [Character parts](Character-Parts) · [Character presets](Character-Presets) · [Motion tables](Motion-Tables) · [NSBTA and NSBMA](NSBTA-and-NSBMA) · [NSBTP](NSBTP)
 
 **Text and scripts:** [Text markup](Text-Markup) · [Event text](Event-Text) · [Event scripts](Event-Scripts) · [Event lists](Event-Lists) · [Character dialogue](Character-Dialogue) · [Item descriptions](Item-Descriptions) · [Item kinds](Item-Kinds) · [Articles](Articles) · [Battle text](Battle-Text) · [System strings](System-Strings)
 

@@ -116,7 +116,8 @@ A `mon_data_<lang>.nat` record:
 | `+0x0A` | 2 bytes | not established |
 | `+0x0C` | `s16` | **EU only:** its body's collision **radius**, in 1024ths — below |
 | `+0x0E` | `s16` | **EU only:** its body's collision **height**, `fx32` — below |
-| `+0x10` | 4 bytes | not established |
+| `+0x10` | 2 bytes | not established |
+| `+0x12` | `s16` | **EU only:** its **size in battle**, in 4096ths — below |
 | `+0x14` | `u32` | the plural's offset from the strings |
 | `+0x18` | `u32` | the name's grammar: its articles and gender — see [Articles](Articles) |
 
@@ -140,6 +141,20 @@ ldrsh r1, [r5, #0xe] ;                 bl Object3D::SetHeight
 **The witness is that the numbers sort the bestiary.** The slime is 0.80 wide and 0.80 tall, a ball; the metal slime as wide and 0.60 tall; the bag o' laughs 0.78 and 0.84. The largest are Lleviathan, Barbarus and Greygnarl at 7.80 and 5.25, and the alphyn and the Nemean at 6.40 and 3.50 — ten times the slime for the great dragons, and none of the 438 negative. A wrong offset does not order a bestiary by size.
 
 The battle uses the radius too: overlay 0 lines the monsters up in a row by their widths, each its radius × 4. See [Battle stages](Battle-Stages).
+
+
+### The size in battle — `+0x12`
+
+Read 1 October 2026 from the USA release's code. Overlay 0 loads this file into the battle request at `+0x678` (`func_ov000_02165490`, `0x02165bd0`), finds each monster's record by its number (`func_ov000_02166070`, `0x0216629c`) and keeps it with the monster's model (`func_020484f8`). `func_02048588` copies `+0x12` onto the battle object's `+0x18e` (`ldrsh [rec, #0x12]` at `0x02048608`, `strh` at `0x0204860c`), for each monster made (`func_ov000_02166540`) and on the ways a monster is swapped or called in. The only other write sets 1.0 on every battle object (`func_02048614`), so a party member's stays 1.0.
+
+What reads it, all for monsters only (objects `0xc0`–`0xc7`):
+
+- the actor close-up's distance (`func_ov000_0216df00`), through `func_ov000_0216352c(i, 1.5, 0.5)` — see [Battle stages](Battle-Stages);
+- the effects that tags `115` and `117` scale to a fighter — see [Battle action scripts](Battle-Action-Scripts);
+- the death effect, at (1 + (size − 1)/2) × `0x10a` (`func_02048690`);
+- the battle shadow, drawn at the size (`func_ov000_02161020` → `func_0208f87c`, `0x02161134`).
+
+It is not the model's scale: every monster model is drawn at `0x10a`. **EU only:** 1.0 for the slime, she-slime and dracky, 1.40 for the bodkin fletcher, 1.44 for the brownie and 3.12 for the hexagoon; 1.0 to 6.8 over all 438 records.
 
 ## Monster models — `/data/pack_lv5/enemy.gp2`
 
@@ -172,14 +187,14 @@ INFERRED: the models are in the characters' own space, as the cast's are — the
 - In English the monster list's head word happens to read `YQT` (`0x01545159`: 345, and 5,445 × 4,096). It was first taken for a magic number; the other languages' do not read so. It is the count and the string size.
 - The two weight tables were first searched for in the packed ARM9 bytes and missed; they are in the unpacked binary.
 - **EU only:** experience at `+0x08` and gold at `+0x0C` were INFERRED from their values until a published guide confirmed them, 22 September 2026.
-- **EU only:** the names record's `+0x0A` to `+0x13` were all carried as not established; `+0x0C` and `+0x0E` are now read from the code.
+- **EU only:** the names record's `+0x0A` to `+0x13` were all carried as not established; `+0x0C` and `+0x0E` are now read from the code, and `+0x12` (1 October 2026).
 
 ## Not established
 
 - Monster list `+0x0E` and `+0x10`–`+0x1F`.
 - What the code letters `z` and `b` divide.
 - Battle data `+0x14`, and every field not in the table above.
-- Names record `+0x0A`, `+0x10` and `+0x12`.
+- Names record `+0x0A` and `+0x10`.
 - **EU only:** the drop step 7 on the ten legacy and grotto bosses whose drop beside it is not item 0.
 
 ## See also

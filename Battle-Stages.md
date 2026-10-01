@@ -1,8 +1,8 @@
 # Battle Stages
 
-A battle is not fought where it starts. It is fought on a map of its own, a *stage*, chosen by the ground under the encounter. This page covers the stages, who stands where on one, and the battle camera. All of it was read from the game's code on 29 September 2026. The stage itself is a map like any other; where the fighters stand and where the camera goes are the code's, not a file's.
+A battle is not fought where it starts. It is fought on a map of its own, a *stage*, chosen by the ground under the encounter. This page covers the stages, who stands where on one, and the battle camera. All of it was read from the game's code on 29 September 2026, and corrected and extended on 1 October 2026: the camera while commands are chosen, the chase shot, the battle's states, and the way into a battle and out. The stage itself is a map like any other; where the fighters stand and where the camera goes are the code's, not a file's.
 
-> **EU only.** Code addresses are the USA release's, from the decomp (ARM9 and overlays 0, 17, 23 and 25); the files were read on the European release (`YDQP`) and are not yet checked on the US one (`YDQE`).
+> **EU only.** Code addresses are the USA release's, from the decomp (ARM9 and overlays 0, 17, 23, 25 and 26); the files were read on the European release (`YDQP`) and are not yet checked on the US one (`YDQE`).
 
 ## The stages
 
@@ -26,9 +26,9 @@ The field's encounter code in overlay 17 (its calls at `0x021b76ac`, `0x021b7750
 
 Overlay 0, switching to the stage (`func_ov000_02166880`, from `0x021668e4` on), looks the id up in the [map list](Map-List) (`func_02099950`). It puts 30116 in its place when the id is not there, or is 30000, the record of nothing. So Western Stornway's 30103, which the list has no entry for, is fought on Angel Falls' field.
 
-### A set battle names its own — INFERRED
+### A set battle names its own
 
-Overlay 0 takes the request's `+0x20` over `+0x02` when `+0x20` is not 0 and the request's `+0x0c` is not negative (`0x021668c8`–`0x021668dc`). The stage is INFERRED to be [`eventbattle.bin`](Event-Battles)'s `+0x28`. That the set battle's stage is what fills `+0x20` is not read.
+Overlay 0 takes the request's `+0x20` over `+0x02` when `+0x20` is not 0 and the request's `+0x0c` is not negative (`0x021668c8`–`0x021668dc`). **The set battle's stage fills it**: an [`eventbattle.bin`](Event-Battles) record is parsed into the request from `+0x10` on — its index, three monsters, three counts, its track and its stage — so the record's `+0x28` lands at the request's `+0x20`. What an ordinary encounter's `+0x20` holds was not read.
 
 ### A stage's kind of ground
 
@@ -51,6 +51,15 @@ The kinds are INFERRED from the stages' labels. The game keeps the value in its 
 ### A stage's pieces
 
 `B01M1600` is the ground and its backdrop. Beside it are `B01M1601`, and `L1`–`L4` and `N1`–`N4`, the day's and the night's: the sky, two layers of fog and a backdrop. They are told apart by their names' last letter and digit, as a field's lighting sets are. The fog's polygons are see-through, alpha 11 and 14 of 31 (see [NSBMD](NSBMD)). The stage is lit by its own `.bats` and sky gradient (the decomp's `LightingInfo::LoadFromScript` and `DrawBackgroundGradient`).
+
+### The time of day a battle is lit by
+
+A `.bats` holds a lighting slot for each time of day. **A battle takes its slot once, as it is asked for, and keeps it.** The battle request's `+5` holds it, and the battle's load sets flag `1 << 9` at battle `+0x55f4` (`0x02164fa0`; cleared after the end's fade, `0x02168790`), under which the lighting reads the request's slot rather than the clock's.
+
+- **What fills `+5`** is byte `+0x12` of the block handed to `func_ov017_021b7104`. Touching a roamer (`func_ov017_02196430`) stores the field clock's slot there, `LightingManager +0x98` (`0x02196bbc`); so does a set battle's trigger `120` (`func_0206f81c`, `0x0206fc5c`), and the other ways a battle is asked for (`0219e384`, `02196e58`, `02196c4c`).
+- The request's own initialiser (`func_020a3578`) and the block's default (`func_ov017_02196c08`) make it 2. One set battle, started by `func_ov000_021bc77c`'s task, stores a fixed 2 (`0x021b8bf0`); which battle that is was not read.
+- **Both the backdrop and the models take it**, with no blend between slots: `DrawBackgroundGradient` and `GetCurrentAdvancedLightingValues` (`0x02050c20`) — ambient, background, the sprites' and models' diffuse, the edge colour, both lights' colour and direction. `lightingIndexOverride_` (`+0x90`) wins over it when not 0. The fog (`ComputeFogInfo`) keeps to the clock. All of this is in zone lighting mode 2.
+- `eventbattle.bin`'s record has no slot.
 
 ## Who stands where on the stage
 
@@ -142,7 +151,7 @@ A cut: a frame on the fighter along its own facing, so the eye is in front of it
 - The orbit's height is max(L − 1.5, 0), its yaw 0.
 - It pulls in 20/4096 a tick, never nearer than 3 (`0x0216d464`).
 
-A monster adds a value from its object's `+0x18e`, not read. `a` and `b` are the camera command's floats; `default.bact`'s sections give 0.21 and 1.1. Each one struck in turn gets a close-up with 0 and 1.8 (overlay 25 `0x021dcf14`, from a list the action player fills, `0x021dcc70`).
+**A monster adds its size** to the distance: its object's `+0x18e`, as it is up to 1.5 and past that 1.5 plus half the rest (`func_ov000_0216352c(i, 1.5, 0.5)`). The size is its [monster data](Monsters)'s `+0x12`: 1.0 for a slime, 3.12 for the hexagoon. `a` and `b` are the camera command's floats; `default.bact`'s sections give 0.21 and 1.1. Each one struck in turn gets a close-up with 0 and 1.8 (overlay 25 `0x021dcf14`, from a list the action player fills, `0x021dcc70`).
 
 ### An action chooses its shots
 
@@ -159,34 +168,47 @@ The action script's camera command (kind 12, overlay 25 `func_ov025_021e3c80`; s
 | 6, 14 | the same on the target |
 | 7 | `0x0216e250`, on up to `+9` targets |
 | 8, 9 | the side shot on the actor's side, or the target's |
-| 10 | the reset: no frame, 15 |
-| 12 | the target made visible, then its actor close-up |
+| 10 | **a freeze**: the frame dropped with the camera left where it is on screen, its spin, drift and chase stopped (`0x0216d370(cam, 0, 0, 0)`). Not a reset to 15: the field of view, the roll and `127`'s turn stay. (This page once called it the reset) |
+| 12 | everyone hidden, the target made visible, then its actor close-up with `a` 0 and `b` 1.8 |
 | 15 | the opening's: side 1, wide |
 
 ### After every command and every frame
 
 `func_ov000_0216f2b8` keeps the eye no further than 17 out and no higher than 5.
 
-### While a command is chosen
+### The victory's shot
 
-`func_ov000_0216e3c4` is called once as overlay 23, the battle menu's overlay, opens its menu (`0x021f04b8`; the menu phase begins at overlay 23 `0x021f03a0`, with the grid, this camera and the menu). It is a cut:
+**Corrected 1 October 2026.** This page took `func_ov000_0216e3c4` for the camera while a command is chosen, and overlay 23 for the battle menu's. Overlay 23 is the results, the victory and the wipe-out (states 9 and 10), and this is the **victory's** shot: it is called only from the victory's experience step (`0x021f04b8`). The camera while commands are chosen is overlay 26's, below. It is a cut:
 
 - The party's places are averaged, height and all.
 - The distance is 12 less how far that is from the stage's middle. When that is under 8, the middle is drawn in by it over 8 and the distance is 12.
 - The look-at is that middle 0.5 up, the orbit 1 up.
-- It turns `0xe`/4096 a frame for as long as the menu is up. Nothing moves it while a target is chosen.
+- It turns `0xe`/4096 a frame for as long as it is up.
 
 **Its yaw is −0x999, −0.6 rad, always.** The code takes the angle to the monsters' middle (`FX_Atan2Idx`, ±0x8000), divides it by 0xffff as a whole number, which leaves 0, shifts that up 12 and adds −0x999. It seems meant to face them, and is fixed as it runs.
 
+### While commands are chosen
+
+Overlay 26, state 7. Each round, its sub-state 3 (`0x021d8fd0`) cuts to **the opening's wide shot** (`func_ov000_0216118c(battle, 1)` → `0216d600(cam, 1, wide, …)`, half-angle 22), eased in on round 0 only. Nothing moves the camera after that: no shot on the one choosing, none on a target, no orbit.
+
+- **The party is hidden and the monsters shown** (who 38 and 39, `0x021d9018`–`0x021d9034`).
+- Each monster is turned at once to face (0, 0, the eye's z) (`func_ov026_021daec8`), their idles staggered from round 1.
+- For 47 kinds of monster a table in overlay 26 (`0x021de87c`, `func_ov026_021d8aac`) replaces the eye and look-at with fixed ones. Not read further.
+
 ### The chase shot
 
-An action begins (overlay 25 `func_021db8d8`) by putting everyone on the grid and **perhaps** cutting to the chase shot (`0x0216e678`, re-aimed each frame by `0x0216ea38`). It is never used on the first action. After that it is used on a draw of one in 5 less the actions passed without it, and always on the fifth.
+**Corrected 1 October 2026.** This page said an action *perhaps* cuts to the chase shot, and never on a round's first action. Neither is so.
 
-- Its look-at is the one acting, carried toward the one acted on by half the distance (2 when half is past 3), at three quarters of the actor's height, following at 5% a frame.
-- Its orbit is one of four at `0x021832c4`: 162° or 198° round at 5, 18° or 342° at 10, all 0.5 up.
-- A target taller than 2.5 puts the eye 1.2 to 2 below, at least 8 away.
+An action begins (overlay 25 `func_021db8d8`). Unless its script opens on a camera of its own — a `12` other than mode 10 before any `61` or `7`, or a `34` — everyone is made visible and put on the grid, and **the chase shot is always taken** (`0x0216e678`): cut to at once and followed each frame (`0x0216ea38`). The draw decides only its start pose. The pose is forced on a round's first action (`0x021dbb2c`), and otherwise comes on the fifth action without one, or on a draw of one in 5 less those passed.
 
-What the yaw is measured from is not read. **An action ends** with the camera left where it is (`0x021dcbf4`).
+- **The look-at** is on the actor's side or the target's: the one at least 2.0 tall against one that is not, else the draw's parity. It is carried toward the other by half the gap, at most 2, at three quarters of that one's height, **capped at 1.0**.
+- **The yaw** is along the line between them, ±162° (+180° on the target's side), whichever is nearer the yaw the camera had.
+- **Height and distance**: on a draw under 30, height 1 and distance the larger of 1.6 times the gap and 7; else by the pair's indices mod 3, distance 10, 12 or 14 and height 1, 1.75 or 2.25 (`0x02183268`, `0x02183298`).
+- A target taller than 2.5 is looked at at half its height, at least 2.5, from at least 8 away, the orbit's height the start pose's less 1.2 to 2.0.
+- **The roll** is by the indices mod 5 (`0x0218325c`).
+- **It follows** each update: the look-at 5% of the way, the yaw 5%, height and distance 2%, the roll 10%, each within a cap that grows a tick. The half-angle goes back to 15.
+
+**An action ends** with the camera left where it is (`0x021dcbf4`).
 
 ## The battle's states
 
@@ -198,21 +220,42 @@ The jump table at `ov000 0x021607d4` counts from 0:
 | 1 | set-up |
 | 4 | leave |
 | 6 | the field back |
-| 7, 11 | overlay 26's |
-| 8 | overlay 25's action loop |
-| 9, 10 | overlay 23's |
-| 16 | the end |
+| 7 | the command phase, overlay 26's |
+| 8 | the action loop, overlay 25's |
+| 9 | the victory, overlay 23's |
+| 10 | the wipe-out, overlay 23's |
+| 11 | a flight, overlay 26's |
+| 17–19 | the round's working-out |
+| 16 | the table's default, which runs nothing |
+
+(Corrected 1 October 2026: this page had 16 as the end.)
 
 Overlays 22 to 30 share one address, so one of 23, 25 and 26 is in at a time.
 
-## The end of a battle — INFERRED
+## The way into a battle, and out
 
-These were read and not yet tied to what they do:
+Read 1 October 2026. Times are in the game's ticks and frames, taken at 60 a second; the tick source is not read.
 
-- Overlay 25's sub-phase 5 holds the group orbit for 60 frames, INFERRED to be the victory's.
-- A fallen monster fades (`TransitionInheritedAlpha` to 0 over 300 ms, overlay 25 `0x021ddbc0`), INFERRED to be the death's.
-- The collapse effect, `eb0100`, plays at its shadow (ARM9 `0x02048808`), INFERRED.
-- State 4 fades to black and back to the field (`SetBrightness(−16, 15)`).
+### In
+
+- **A roamer touched** makes the encounter's task (overlay 17 `func_ov017_02196430` → `021b6f18`), which makes the battle request and puts the transition's task ahead of itself. The field runs only its first task, so the encounter waits for it.
+- **The battle's track cuts in at once**: `func_0209c480`, track 23 (`0x17`), or a set battle's record's `+0x24`. The field's music is cut for a roamer and faded over 10 for a set battle.
+- **The swirl** (`func_0204700c`, once a frame): the field camera's roll −8° a tick, its field of view set to a 15° half-angle as it begins and narrowed by 0.4333° a tick. The model `data/effect/ev999991500.chr` is played in front of it (polygon ID `0x3d`, at (0, −10, 1); how that is placed is not read). Past the 15th tick both screens go to black over 20 frames (`SetMainBrightness`/`SetSubBrightness(−16, 20)`); it is done past the 35th.
+- A set battle from a trigger record's `120` waits 15 frames first. Event function 547 brings its own model.
+- **The load** is black: state 0 sets `SetBrightness(−16, 0)` each frame.
+- **Up**: the opening's camera starts (`func_ov000_0216118c`), and the next frame both screens come up over 15 frames (`SetBrightness(0, 15)`, overlay 26 `0x021d9d18`) while the opening's line goes up (`func_ov026_021dd8a8`, `strbtl` 6, 7, 8 or 9 by the monsters' kinds). **The line closes itself**: it ends `<TIME=45><CLOSE>` (`<TIME=30>` after a surprise's second sentence), and no key is read.
+- When the monsters play `appear` is not read: no code in overlay 0 or 26 names it.
+
+### Out
+
+As the last action ends (overlay 25, `0x021db3c4`–`0x021db430`), the battle's `+0x8e14` says which: 2, no one of the party standing, is **state 10, the wipe-out**; 1 is **state 9, the victory**; else the next round's commands. There is no hold.
+
+- **The victory** (overlay 23, 17 steps from `data_ov023_021fe148`): the camera frozen where the last action left it (`0216d370(cam, 0, 0, 1)`), the battle's tune stopped at once, the field monster hidden. The first line ("… defeated", `str_bres` 1 or 50) comes with the fanfare **`ME_005`** (sequence 54, `func_0209c6d8` at `0x021ef464`). Then the experience step: the victory's shot (above), everyone back on the grid, the living idle — **no victory pose** — and "receives some experience!" (25, or 26 for several). Each level gained has its line, **`ME_004`** (53), "attributes improve!", spells and skill points. Then gold and treasure. **Every line waits for a key** — A, B, X, L, R, the pad or a touch — and nothing times out; the last step waits for the jingle to end.
+- **A wipe-out** (state 10): the tune fading (`func_0209c678(snd, 30)`), the last frame held 1000 ms, the camera frozen; "… wiped out!" (20) with **`ME_009`** (58); a key, the jingle cut, and out.
+- **A flight** is no action: overlay 26 settles it as the commands are taken (`func_ov000_0215f7a8`), and state 11 puts up a `strbtl` line with sound 9, closing itself 30 frames after. The field monster is hidden. There is no `escape` motion and no change of music.
+- **Leaving** (state 4): both screens to black over 15 frames (`SetBrightness(−16, 15)`, `0x02168768`), the battle freed. State 6 puts the party back where it stood, the light to 1 at once, and the sounds back to `se_norm.sdat`.
+- **The field brings its own screen up** over 30 frames (`SetMainBrightness(0, 30)`, overlay 17 `0x021b7f3c`), starts its tune again (`func_0209c530`), and sets the party's `+0xc3` to 150 (`0x021b7bd4`; INFERRED a count before another encounter).
+- **A fallen monster** fades to alpha 0 over 500 ms as its `death` motion ends, with effect 2 (`eb0100`) at its shadow and sound 50 (`func_02048690`); see [Battle action scripts](Battle-Action-Scripts). The 300 ms fade at overlay 25 `0x021ddbc0`, which this page took for the death's, is a different sequence, for fighters gathered by slot codes 6–8.
 
 ## Functions read
 
@@ -245,25 +288,33 @@ USA addresses, from the decomp. None is named upstream.
 | `ov000 0x0216d600` | frame a side |
 | `ov000 0x0216d90c`, `0x0216da34`, `0x0216dbf0`, `0x0216de00`, `0x0216df00` | close-up, two-shot, group orbit, over the shoulder, actor |
 | `ov000 0x0216118c` | the opening |
-| `ov000 0x0216e3c4` | the camera while a command is chosen |
+| `ov000 0x0216e3c4` | the victory's shot |
 | `ov000 0x0216e678`, `0x0216ea38` | the chase shot; its per-frame aim |
 | `ov000 0x0216f2b8` | the eye kept within 17 and under 5 |
 | `ov000 0x021607d4` | the battle's states |
-| `ov023 0x021f03a0` | the menu phase begins |
-| `ov025 0x021db8d8` | an action begins: grid, chase shot |
+| `ov023 0x021f03a0`, `0x021f04b8` | the victory's steps; its experience step, which takes the victory's shot |
+| `ov023 data_021fe148` | the victory's 17 steps |
+| `ov025 0x021db3c4` | the outcome as the last action ends |
+| `ov026 0x021d8fd0`, `0x021daec8` | the command phase's cut to the wide shot; the monsters turned to the eye |
+| `ov026 0x021d9d18`, `0x021dd8a8` | the fade up into a battle; the opening's line |
+| `ov017 0x02196430`, `0x021b6f18` | a roamer touched; the encounter's task |
+| `0x0204700c` | the swirl, once a frame |
+| `0x0209c480`, `0x0209c6d8`, `0x0209c678`, `0x0209c530` | the battle's track; a jingle; a stop with a fade; the field's tune back |
+| `ov000 0x02168768` | leaving: to black over 15 |
+| `ov017 0x021b790c`, `0x021b7f3c` | the field's return; its fade up over 30 |
+| `ov000 0x0216352c` | a monster's size as a scale |
+| `0x02050c20` | `GetCurrentAdvancedLightingValues`: the battle's slot for the models |
+| `ov025 0x021db8d8`, `0x021dbb2c` | an action begins: grid, chase shot; its start pose forced on a round's first |
 | `ov025 0x021dcf14`, `0x021dcc70` | a close-up on each one struck in turn; the list of them |
 
 ## Not established
 
-- What fills the battle request's `+0x20`. The data suggests `eventbattle.bin`'s `+0x28`; the code that writes it is not read.
-- The battle request's `+5`, a lighting slot, 2 unless set.
+- What an ordinary encounter's battle request holds at `+0x20`.
+- Which set battle `func_ov000_021bc77c`'s task starts, which is lit by day whatever the clock.
 - What the kind of ground under a field object is asked for.
 - Which side is side 1 in the opening, and what reads its 0.95 ease.
-- What the chase shot's yaw is measured from.
-- The value a monster's close-up takes from its object's `+0x18e`.
 - The tables at `ov000 0x02183280` and `0x0218328c`.
 - Shot `0x0216e250`, mode 7's, beyond its taking up to `+9` targets.
-- The fade up into a battle from the load's black.
 - **The battle loop's frame rate.** The opening's ease, the close-ups' pull, the command camera's turn and the step in are each so much a frame. At 60 frames a second the command camera would turn about 12° a second; a recording of play would settle it.
 - **The party of three.** Slots 48, 58 and 50 read as lopsided (above). A fight with three in the party would show whether the left one stands nearer the middle than the right.
 - **Whether the opening shows every monster.** The opening's shot is fitted to the monsters' row, but an ordinary battle keeps everyone on the grid, where it frames only the middle of three. Either the grid is right for the opening, or something not yet read moves them. A recording at a battle's start, as "draw near" is said, would settle it.

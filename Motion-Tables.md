@@ -36,7 +36,9 @@ A motion table belongs to the model that shares its file stem.
 | `opend` (sic) | 25 | 25 | 1 |
 | `close` | 0 | 25 | 1 |
 
-The model beside it has three nodes — the cabinet and its two doors, `a` and `b` — and a 25-frame animation that turns `a` to +135° and `b` to −135° about the vertical, from shut at frame 0 to open at frame 24. So `closed` and `opend` hold the two ends, and `open` plays between them. `close`, with the same frames, presumably plays them backwards (INFERRED).
+The model beside it has three nodes — the cabinet and its two doors, `a` and `b` — and a 25-frame animation that turns `a` to +135° and `b` to −135° about the vertical, from shut at frame 0 to open at frame 24. So `closed` and `opend` hold the two ends, and `open` plays between them.
+
+**Searched, it opens and shuts again** (`func_02015554`, set going by the placement's flag `0x100`, `func_0201ba1c`; read 1 October 2026, USA): at playback speed **1.5**, `open` forward and once, with sound `0x12` (`open2` and `0x62` on a gate); held **500 ms**; then **`close` played in reverse**, with sound `0x13` (`close2` on a gate), and held at its end. `closed` and `opend` are named by no code.
 
 **A piece with a motion table plays a motion when asked, not its animation on a loop.** A waterfall's or a sky's animation should loop; a cabinet's, played round and round, swings it open and shut for ever.
 
@@ -89,9 +91,8 @@ The names are **`open`, `closed`, `close`, `opend`, `open2`** on the door pieces
 ## Not established
 
 - The `0x65` and `0x70` records. On the map pieces `0x65` carries no values and `0x70` one, `0xFFFFFFFF`; what either means is not established.
-- That `close` plays its frames backwards (INFERRED only).
 - The 10 `.bcfg` files that carry no motion table.
-- **EU only:** what sets an object's own playback speed to anything but 1.
+- **EU only:** what sets an object's own playback speed to anything but 1, beyond a searched cabinet's 1.5.
 - **EU only:** which pack the game takes a motion from when several of a set's packs hold the same name, such as `stand`.
 
 ## See also

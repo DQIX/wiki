@@ -5,6 +5,7 @@
 - [DS compression](DS-Compression)
 - [NSBMD](NSBMD)
   - [NSBTA and NSBMA](NSBTA-and-NSBMA)
+  - [NSBTP](NSBTP)
 - [2D graphics](2D-Graphics)
 - [SDAT](SDAT)
 

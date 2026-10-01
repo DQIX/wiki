@@ -140,7 +140,8 @@ Six skills scale by a number made from the user's and what they hold, by a table
 
 A float to the end. In order:
 
-1. **A critical**: the greatest of `1.2 × damage`, `func_02074838` [`CalculateCriticalDamage`], and a floor. For the plain Attack (and actions `0xDB`, `0x1F9`) that is the *attacker's attack power* × `between(0.95, 1.05)` with the damage itself as the floor; for anything else it is the damage × `between(1.5, 2.0)` with no floor.
+0. **Tension**, at the head (`0x021e6b9c`–`0x021e6d18`): the dealer's level multiplies the damage and adds its bonus — see "Tension" below.
+1. **A critical**: the greatest of `1.2 × damage`, `func_02074838` [`CalculateCriticalDamage`], and a floor. For the plain Attack (and actions `0xDB`, `0x1F9`) that is the *attacker's attack power* × `between(0.95, 1.05)` with the damage as it came, before tension, as the floor; for anything else it is the damage × `between(1.5, 2.0)` with no floor. Only the `1.2 ×` carries tension.
 2. **× the target's resistance** to the action's element (`+0x08` bits 22–26) — `0x021e6e8c`. **USA only:** it stays a float, so a blow of 1 against a resistance of a half is 0.5 — above 0, so it gets no coin at step 6, and is truncated to 0.
 3. For a party attacker with an elemental weapon, on an action with `+0x10` bit 18, a second product by the weapon's element. Not followed.
 4. **Blocked, then dodged, each zero it** (`0x021e777c`, `0x021e77a0`).
@@ -148,7 +149,7 @@ A float to the end. In order:
 6. **The coin**: if the damage is not above 0, and it was not blocked or dodged, the action is not `0x70`, `0x48` or `0x1B` (Kamikazee), the target's resistance to both of the action's elements is above 0, and the target is not a metal body under an action that does not work on one — `(float)NextRandomMax(2)`. **Whoever struck it**: no test of the attacker's side.
 7. Metal Slash (`0x40`) and Metalicker (`0x7E`) on a metal body, not critical: `1.0f + NextRandomMax(2)`.
 8. `× 0.5f` for an action of kind 1 whose target carries status bit `0x1000000` (`0x021e7a58`). This page once read that as defending; **it is maximum tension** — see below. Defending is a guard level, and is applied earlier, at step 6 of the tail.
-9. **The combo table** at `0x021fe778` — `1.0, 1.2, 1.5, 2.0` — for an action with `+0x2C` bit 27 and damage of at least 1, indexed by a counter byte at `[battle + 0x8e83]` held to 3. Anything else resets that counter (`func_ov000_0215cd80`). What increments it was not followed.
+9. **The combo table** at `0x021fe778` — `1.0, 1.2, 1.5, 2.0` — for an action with `+0x2C` bit 27 and damage of at least 1, indexed by a counter byte at `[battle + 0x8e83]` held to 3 (`0x021e7a8c`–`0x021e7b28`). Anything else resets that counter (`func_ov000_0215cd80`). What steps it is below, "The combo".
 10. Truncated, and held to the action's cap (`+0x1C` low 14 bits, where not 0).
 11. Action `0xAF` (Double-Edged Slash) has a quarter of the number kept — INFERRED: its recoil. **USA only:** it is kept at `[battle + 0x8e38]`.
 
@@ -176,19 +177,60 @@ Nothing was found that sets levels 2 or 3, whose multipliers are a tenth and not
 
 ## Tension — status bits `0x800000` and `0x1000000`
 
-The byte at **`[status + 0x24]`** is the tension level, 0 to 4. `func_02088220` sets `0x800000` and stores levels 1 to 3; `func_02088150` sets `0x1000000` and stores **4**. Every caller of the second is the psyche-up ladder (`func_0208767c`, and `func_ov024_021dc93c`, which emits messages `0x31`, `0x32`, `0x33` for the first three levels and `0x34` for the fourth). Both bits are cleared once their carrier acts (`ResolveAction` at `0x021ed55c`), and the level decays a step at a time (`func_02087704`), swapping `0x1000000` for `0x800000` at 3.
+The byte at **`[status + 0x24]`** is the tension level, 0 to 4. `func_02088220` sets `0x800000` and stores levels 1 to 3; `func_02088150` sets `0x1000000` and stores **4**. The bits live in the status object's flag word, `[combatant + 0x138] + 0x14`, which overlay 24 tests through the one-line predicate `func_ov024_021dd260`. No Defend command sets `0x1000000`: a search of every module's writes to the status word, and of every call into the flag class, found none.
 
-The level indexes ten floats at `0x020e88f8` through `func_02074738(level, isMonster)` — **1.0, 1.5, 2.5, 4.0, 6.0** for the party and **1.0, 1.3, 2.0, 3.0, 4.5** for a monster, held at 1.0 — which multiplies the damage at step 17 of the tail. The symbol immediately after that function in the ARM9 is `CalculateTensionBonus`.
+**Corrected 1 October 2026**, with the rest read: this page said the level decays a step at a time and that the multiplier sits at step 17 of the tail. **It does not decay with the rounds**, and **it multiplies at the head**.
 
-**USA only:** read from the USA release's code, through the decomp.
+### Psyche Up
 
-- The multiplier is applied only where the byte at `[battle + 0x76]` is set and the action carries `+0x10` bit 13.
-- `CalculateTensionBonus` is `tension × (1 + level / 10)`, the division a whole number's — so levels 10 to 19 all double the bonus.
-- The bits live in the status object's flag word, `[combatant + 0x138] + 0x14`, which overlay 24 tests through the one-line predicate `func_ov024_021dd260`. `0x1000000` has four writers, all in the ARM9: `func_02088150` sets it (`0x0208819c`), `func_020881ac` clears it, `func_02087704` clears it as the level decays, and `func_02088474` clears it conditionally.
-- `func_0208767c` steps the level byte 1, 2, 3 and sets `0x1000000` only as it reaches 4.
-- No Defend command sets `0x1000000`: a search of every module's writes to the status word, and of every call into the flag class, found none. Every other bit of that word carries a duration byte of several turns.
+Action 161, kind 15, handler `func_ov024_021dc93c`. It costs nothing, and goes through the resolver as anything does first: the target's die, the critical roll and the accuracy draw. It cannot be dodged or blocked.
 
-That also explains the bit on the **attacker**: at the head of `CalculateFinalDamage` it writes a message code for tension spent on a blow that did nothing (1 psyched up, 2 at maximum).
+- **Its steps** are the record's `+0x30` — 1 for Psyche Up — held so that the level never passes 4 (`0x021dcc84`–`0x021dcc94`).
+- **Each step** (`func_02088208` → `func_0208767c`): from 0, 1 or 2, one level up, **with no draw**. **From 3, a coin of the battle's own generator** (`NextRandomMax(battle, 2)`, `0x020876b4`): 0 reaches the maximum — `func_02088150`, which also clears poison and its grade — and 1 fails. This is the only rise with a coin.
+- **What it says** (`func_ov024_021e8c48`): `actmsg` `0x31`–`0x34` for the level reached, "…'s tension increases to 5 / 20 / 50 / 100"; `0x36` for the coin lost; `0x1f` "But nothing happens." for one at the maximum already, or dead, asleep, losing its turn, or under status `0x8` (the gate `func_020881c4`).
+- **What it shows**: one result a step, flag 35 with the new level as its amount, and flag 7 too at the maximum — the tension number, 5, 20, 50 or 100 (see [Battle action scripts](Battle-Action-Scripts)). At the maximum `func_ov000_0215af54` queues an extra entry, not read.
+- **The others of its kind**: Egg On (168, one step, on another), 330 (two steps), 567 (one step, on all); and **337 and 338** (`0x151`, `0x152`), which go straight to their level — 3 and 4 — with no draw, after "…'s tension gets a huge boost all of a sudden!" (`0x152`), each level on the way told.
+
+**EU only:** 53 monster records carry a kind-15 action among their six ways, Psyche Up on most — the bodkin fletcher and the brownie among them. Psyche Up is also a skill panel (tree 18, 16 points).
+
+### What it does to damage
+
+At the head of `CalculateFinalDamage` (`0x021e6b9c`–`0x021e6d18`), in single precision:
+
+```
+d1 = d0 × m[level][dealer is a monster]          ; func_02074738, the table at 0x020e88f8
+d2 = d1 + (1 + (float)(dealerLevel / 10)) × (float)level   ; CalculateTensionBonus
+```
+
+- **m** is **1.0, 1.5, 2.5, 4.0, 6.0** for the party and **1.0, 1.3, 2.0, 3.0, 4.5** for a monster, held at 1.0. The side is the **dealer's**.
+- **`CalculateTensionBonus` is handed the level byte, 1 to 4**, not a number of 0 to 100. The division is a whole number's, so dealer levels 10 to 19 all give 2. The dealer's level is a party member's at their current vocation, or a monster's own (INFERRED: its [monster data](Monsters) `+0x0A` low seven bits).
+- **The gate**: the action carries **`+0x10` bit `0x2000`** (bit 13), the blow is not a redirected one (`[ctx + 0x76]`, cleared by a bounce, a counter and the like), and the dealer holds tension. **EU only:** 223 of 681 actions carry the bit — the plain Attack, the attack spells, the weapon skills, and **six heals**: Heal, Midheal, Moreheal, Multiheal, Caduceus and Hustle Dance, which tension multiplies too. Defend, Psyche Up and the herbs do not.
+- Thunder Thrust and Hatchet Man at 0 damage skip it. A party dealer against a metal body takes the multiplier and no bonus, and the multiply comes again after the metal body's 1-or-2 (`0x021e79d0`). A critical against a metal body under `+0x10` bit 24 undoes it (`0x021e6d1c`).
+- Every target of an action is multiplied, and **a target at the maximum takes half** a blow of kind 1, at step 8 above.
+
+### Spending it
+
+Once, after the action's targets (`ResolveAction`, `0x021ed48c`–`0x021ed564`): for an action that carries the bit, **whatever it came to** — a hit, a miss (`0x021ec868`), a dodge, a block, Knight Watch, 0 damage — "…'s tension returns to normal." (`0x1f1`, flag 8 if from the maximum) for one still standing, and both bits and the level cleared (`func_020881ac`, `func_02088234`), even for one that fell. Not by Defend, Psyche Up, the herbs or the items, nor by an action every target of which redirected it.
+
+**`func_02087704`**, one step down, has three callers in the whole binary and no pointer to it: Soothe Sayer (rider 9), Morale Masher (rider 14), and the party attacker's equipment on a blow (`func_ov024_021e4c04`). **There is no decay with the rounds.** Sleep (`func_02088338`), status `0x8` (`func_0208826c`) and losing the turn (`func_02088474`) zero the level and clear `0x800000`; Disruptive Wave (rider 12) clears both. The battle's build zeroes it (`ResetBattleStatus`, `0x020891cc`).
+
+### A rise when hit
+
+`func_ov000_0215b5a0`: a target under status `0x10000000` (set only by Feel the Burn, kind 47) that takes damage from a kind 1 or 35 action is marked (`+0x22` bit `0x4000`, `0x021eca94`), and later draws `NextRandomMax(100)` (`0x0215b764`) against **100, 50, 25, 25, 25** by level (`0x02182bf4`), a level up under it, with no coin. At the maximum a second line follows, "…achieves a state of super-high tension!" (`0x35`).
+
+## The combo
+
+Read 1 October 2026. The battle keeps **the side of the last blow, its action, its target, its turn and a count**: `[battle + 0x8e82]`, `+0x8e52`, `+0x8e50`, `+0x8e58` and `+0x8e83`. `func_ov024_021ea584` steps them **for each target an action reaches, before its accuracy is rolled**:
+
+- an action without `+0x2C` bit 27 resets them (`func_ov000_0215cd80`: no side, no count, no action, no turn; the last target kept);
+- another side starts the count again; **the same side from another turn record adds one**; the same turn leaves it, so a spell reaching two of one group counts once;
+- another action, or another target, starts it again.
+
+A miss (`0x021ec8d4`), a dodge or a block (`0x021ec828`), or a blow that comes to less than one (`0x021e7b20`) resets it too. Nothing read resets it at a round's end.
+
+So **two of the party striking one monster in a row make a combo of 1**, the second blow × 1.2; a third makes 2, × 1.5, and a fourth 3, × 2. The count, held to 3, goes to the turn record's `+0x0B` bits 5–7, which the combo display reads (see [Battle action scripts](Battle-Action-Scripts)); bit 3 says the turn had no blow that chains.
+
+**EU only:** 112 of the 681 actions carry `+0x2C` bit 27, among them the plain Attack (1, 2, 223, 224), Frizz, Crack, Zam and Double-Edged Slash; not Heal.
 
 ## A monster's drops — `func_ov023_021f454c`
 
@@ -325,6 +367,7 @@ On both releases checked, sixteen bytes: **up to 10,000 → 4, up to 20,000 → 
 - **The surprise round** (`ProcessCombatTurn`): at `[battle + 0xe49]` of 1 the monsters sit the first round out; at 2 the party does, the first monster always acts, and each after it acts on `NextRandomMax(100) < 67`. What sets it is above.
 - **A monster fleeing**: action `0xE1` on oneself removes the combatant with no draw (`func_ov024_021da670`). A monster that chooses to flee, flees. **USA only:** action `0x395` does the same.
 - **A heal that goes critical** multiplies by `between(1.5, 2.0)`: it takes the same `CalculateFinalDamage` path a blow does, and `CalculateCriticalDamage`'s flag is set only for actions 1, `0xDB` and `0x1F9`, which take `between(0.95, 1.05)` instead.
+- **A wake draw on every blow that lands** (`func_ov000_02157288`): after a blow that deals damage, if its action carries `+0x10` bit `0x800`, the battle draws `NextRandomMax(100)` (`0x02157340`), even when the target is neither asleep nor confused, which is what the draw goes on to test. INFERRED from the flags it leads to (16 woken, 25 come to its senses): the chance of a blow waking its target, which is not read. Its gate is `ctx + 0x70`, cleared when the blow's own rider put the target to sleep or confused it (`0x021dad74`). **EU only:** 154 actions carry the bit, the plain Attack among them; the spells do not.
 - **Action kind `0x22` is a metamorphosis**: the combatant's battle record is swapped for the monster named at the action's `+0x30` (`func_0204887c`, which carries the old record's name over), and the turn is then drawn again. Its handler slot is null, and the usable-action mask excludes it.
 
 ## Not established
@@ -332,7 +375,8 @@ On both releases checked, sixteen bytes: **up to 10,000 → 4, up to 20,000 → 
 - What the four ways of choosing an action that do not draw by weights do in detail — see [Battle weight tables](Battle-Weight-Tables).
 - What trait `0x11d` is, and what `func_ov000_02155a04`'s quarter is a quarter of, which together double a critical rate.
 - What the drop roll's four further passes scale their chance by.
-- What increments the combo counter at `[battle + 0x8e83]`.
+- What `func_ov000_0215af54` queues as a fighter reaches the maximum of tension, and what reads `ctx + 0x71`, which Psyche Up sets on a party target.
+- The chance the wake draw is held against.
 - What the flag at `[+0x138] + 0x14` bit 0, which stops the rounds counter, is; and which equipment sets the experience bonus.
 - What `func_ov000_0215f57c` is: it returns 0, 1 or 2 for a party member, by a three-bit field of the monster's record and one coin flip. It is **not** the action picker, which this page once supposed.
 - **USA only:** the state `func_ov000_02156404` tests, under which the evasion roll reads each target's die instead of drawing; and the statuses that double a dodge or set it at fifty.

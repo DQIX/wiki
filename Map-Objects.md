@@ -1,13 +1,13 @@
 # Map Objects
 
-A map archive holds a dozen loose files with no index between them. The `.bmdj` beside them is the list: the map-to-model manifest that says which models, collision meshes and animations compose a map, and where some of them are placed. It is an ordinary [Tagged-Data-Table](Tagged-Data-Table). All figures are from the European release (game code YDQP). The resource count, resource records and their string offsets are confirmed on all 755 manifests; five fields of the placement record are established, among them which resource it places; the remaining placement values, two values of each resource record and the tag that follows each placement record are not.
+A map archive holds a dozen loose files with no index between them. The `.bmdj` beside them is the list: the map-to-model manifest that says which models, collision meshes and animations compose a map, and where some of them are placed. It is an ordinary [Tagged-Data-Table](Tagged-Data-Table). All figures are from the European release (game code YDQP). The resource count, resource records and their string offsets are confirmed on all 755 manifests; five fields of the placement record are established, among them which resource it places; the remaining placement values, one value of each resource record and the tag that follows each placement record are not.
 
 ## Layout
 
 | tag | meaning |
 |---|---|
 | `0x6A` | number of resources |
-| `0x6C` | one per resource: position, **byte offset into the string table**, two unknowns |
+| `0x6C` | one per resource: position, **byte offset into the string table**, **its flags**, an unknown |
 | `0x6F` | one per resource, in the same order: where the map puts it (fourteen values) |
 
 ### Names are addressed by byte offset
@@ -19,6 +19,25 @@ Names are **authoring** names, such as `C01M0300.imd` (`.imd` being the source-f
 ### A resource is not one file
 
 One authored `.imd` compiles to everything it needs, and all the outputs keep its stem. `C01M0300.imd` is `C01M0300.nsbmd` *and* `C01M0300.nsbta`, and `C01M03G1.imd` is a model, a joint animation and a config. Resolving a name must return every file with that stem rather than choosing one. Choosing looks harmless and is not: taking the first match loses a map's **main geometry** to the manifest file sitting beside it under the same stem, and the map still assembles, just without most of itself.
+
+### What a resource is — the `0x6C` flags
+
+Read 1 October 2026 from the manifest's loader (`func_02014a24`, its opcode table `data_020ef418`, USA). The record's third value, its low six bits, says what is loaded for the resource:
+
+| bit | loads |
+|---|---|
+| `0x01` | its joint animation ([NSBCA](NSBMD)) |
+| `0x02` | its material animation ([NSBMA](NSBTA-and-NSBMA)) |
+| `0x04` | its texture animation ([NSBTA](NSBTA-and-NSBMA)) |
+| `0x08` | its pattern animation ([NSBTP](NSBTP)) |
+| `0x10` | a `.bcfg` of motions ([Motion tables](Motion-Tables)) |
+| `0x20` | not tinted |
+
+**An animation is loaded only when its bit is set**, whatever lies beside the model. **EU only:** 167 of the 5,342 resources differ from their files.
+
+A name whose fourth letter is `A` is collision. A resource with `0x10` becomes an `Object3D` with its motions (`func_020151cc`), one for each placement (`func_020177d4`); the rest are plain models the map draws itself (`func_02014d80`), their animations attached for good.
+
+**How they are paced** (`func_02015554`, each update): a plain model's animations, all four kinds, advance by the game's delta — **a frame every 17 ms**, at speed 1 (`Animation3D::AdvanceTimer`, `0x0207e168`; `GameState::CalculateDeltaTime`) — each round on its **full** frame count, and on even when it is hidden. A piece with motions moves only when one is asked for, by its record's rate (`AdvanceAnimations_v0`), all four kinds at once; until then it stands in its rest pose with no animation on it. **EU only:** all 112 such pieces on the cartridge have flags `0x11`: cabinets and gates.
 
 ### Placement: `0x6F`
 
@@ -116,7 +135,7 @@ This was measured while the village terrain was drawn at an eighth of its size. 
 
 ## Not established
 
-- The two unknown values in each `0x6C` record.
+- The fourth value of each `0x6C` record, and the flags' bits above the sixth.
 - `0x6F` values 7 and 14.
 - The small tag that follows each `0x6F` record. It is **not** a resource kind: `.nsbmd` and `.col2` alike are followed by `0x3F` most of the time. The `0x6F` records are numbered in order on only 534 of 755 files.
 - What places the `G1` resource.
