@@ -8,6 +8,8 @@ Notes on the file formats of *Dragon Quest IX: Sentinels of the Starry Skies* fo
 - **INFERRED** marks a meaning reasoned from evidence but not proven. The reasoning is given with it.
 - **`unknown_0x..`** regions and **Not established** sections are gaps. They're listed on purpose: a known gap is more useful than a guess.
 - **Evidence** sections say what was observed, in which file, at which offset.
+- **EU only** marks a section or line read on the European release and not yet checked on the US release (`YDQE`). File offsets, sizes and counts may differ there, and ARM9 addresses do: parts of the European ARM9 sit `0x10` above the USA one. If you check one on the US release, say what you checked and remove the mark.
+- **USA only** marks the reverse: code read in the USA release through the [dqix-decomp](https://github.com/DQIX/dqix-decomp) and not yet compared with the European one. **Checked on both releases** marks a file recorded as byte for byte the same in both.
 
 ## Which cartridge
 
@@ -21,13 +23,13 @@ File paths are paths inside the cartridge's filesystem ([NitroFS](NitroFS)).
 
 **Level-5 containers:** [GPC2](GPC2) · [.pac](Pac) · [Tagged data table](Tagged-Data-Table)
 
-**Maps:** [Map list](Map-List) · [Map archive](Map-Archive) · [Collision](Map-Collision) · [Objects](Map-Objects) · [Textures](Map-Textures) · [Doors](Doors) · [Area cast](Area-Cast) · [Triggers](Triggers) · [Treasure](Treasure) · [Mini-map](Mini-Map) · [Poison marsh](Poison-Marsh)
+**Maps:** [Map list](Map-List) · [Map archive](Map-Archive) · [Collision](Map-Collision) · [Objects](Map-Objects) · [Textures](Map-Textures) · [Doors](Doors) · [Area cast](Area-Cast) · [Triggers](Triggers) · [Story threads](Story-Threads) · [Treasure](Treasure) · [Mini-map](Mini-Map) · [Poison marsh](Poison-Marsh)
 
-**Graphics:** [Bitmap font](Bitmap-Font) · [Sprites](Sprites) · [Menu backgrounds](Menu-Backgrounds) · [Item icons](Item-Icons) · [Character parts](Character-Parts) · [Character presets](Character-Presets) · [Motion tables](Motion-Tables)
+**Graphics:** [Bitmap font](Bitmap-Font) · [Sprites](Sprites) · [Menu backgrounds](Menu-Backgrounds) · [Item icons](Item-Icons) · [Character parts](Character-Parts) · [Character presets](Character-Presets) · [Motion tables](Motion-Tables) · [NSBTA and NSBMA](NSBTA-and-NSBMA)
 
-**Text and scripts:** [Text markup](Text-Markup) · [Event text](Event-Text) · [Event scripts](Event-Scripts) · [Character dialogue](Character-Dialogue) · [Item descriptions](Item-Descriptions) · [Item kinds](Item-Kinds) · [Articles](Articles) · [Battle text](Battle-Text) · [System strings](System-Strings)
+**Text and scripts:** [Text markup](Text-Markup) · [Event text](Event-Text) · [Event scripts](Event-Scripts) · [Event lists](Event-Lists) · [Character dialogue](Character-Dialogue) · [Item descriptions](Item-Descriptions) · [Item kinds](Item-Kinds) · [Articles](Articles) · [Battle text](Battle-Text) · [System strings](System-Strings)
 
-**Game data:** [Party](Party) · [Items](Items) · [Vocation skill trees](Vocation-Skill-Trees) · [Skill panels](Skill-Panels) · [Alchemy](Alchemy) · [Recipes](Alchemy-Recipes) · [Battle weight tables](Battle-Weight-Tables) · [Level tables](Level-Tables) · [Spell table](Spell-Table) · [Attending characters](Attending-Characters) · [Monsters](Monsters) · [Event battles](Event-Battles) · [Encounters](Encounters) · [Actions](Actions) · [Battle resolution](Battle-Resolution)
+**Game data:** [Party](Party) · [Items](Items) · [Vocation skill trees](Vocation-Skill-Trees) · [Skill panels](Skill-Panels) · [Alchemy](Alchemy) · [Recipes](Alchemy-Recipes) · [Battle weight tables](Battle-Weight-Tables) · [Level tables](Level-Tables) · [Spell table](Spell-Table) · [Attending characters](Attending-Characters) · [Monsters](Monsters) · [Event battles](Event-Battles) · [Encounters](Encounters) · [Actions](Actions) · [Battle resolution](Battle-Resolution) · [Battle stages](Battle-Stages) · [Battle action scripts](Battle-Action-Scripts) · [Weapon positions](Weapon-Positions) · [Quests](Quests) · [Starflight Express](Starflight-Express)
 
 ## Contributing
 

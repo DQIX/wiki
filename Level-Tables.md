@@ -22,20 +22,22 @@ The 99 records are levels 1 to 99.
 | column | meaning |
 |---|---|
 | 0 | experience the level is reached at, INFERRED — 0 on the first record of every file and rising on every record after, to 4.3 million on `level1` and 6.9 million on `level0` |
-| 1 | strength, INFERRED |
-| 2 | resilience, INFERRED |
-| 3 | agility, INFERRED |
-| 4 | deftness, INFERRED |
-| 5 | charm, INFERRED |
-| 6 | magical might, INFERRED |
-| 7 | magical mending, INFERRED |
-| 8 | maximum HP, INFERRED |
-| 9 | maximum MP, INFERRED |
+| 1 | strength |
+| 2 | resilience |
+| 3 | agility |
+| 4 | deftness |
+| 5 | charm |
+| 6 | magical might |
+| 7 | magical mending |
+| 8 | maximum HP |
+| 9 | maximum MP |
 | 10 | **the skill points gained by that level, all told** — 0 at level 1, 12 at level 10 and 200 at 99 on twelve files; 17 and 350 on `level0` |
+
+Columns 1 to 9 were first INFERRED and are confirmed by a published guide — see Evidence.
 
 ## Files and vocations
 
-INFERRED: the files are the thirteen vocations in the order the status screen's strings name them.
+The files are the thirteen vocations in the order the status screen's strings name them. `level6` is confirmed as the Minstrel's by a published guide; the rest are INFERRED from the order of the names.
 
 | file | vocation |
 |---|---|
@@ -86,12 +88,26 @@ This numbering (Guardian 0, then Warrior 1 to Ranger 12) is the vocation order u
 
 The [spell table](Spell-Table) agrees: the Warrior, the Martial Artist and the Gladiator, whose columns 6 and 7 are both 0, learn no spells.
 
-## Not established
+### Confirmed by a guide
 
-- Column 10.
-- The `0x64`, `0x65` and `0x67` records.
 - **Confirmed by a guide, 22 September 2026.** The *Dragon Quest IX* Signature Series guide prints an attribute table for each vocation, at levels 1, 5, 15, 25, 40, 60, 80 and 99. Its Minstrel table agrees with `level6` at **all 72** of those values; no other file agrees at more than 2. That settles columns 1 to 9 — including the two taken against the status screen's order, 2 resilience and 3 agility, and 6 might against 7 mending — and that `level6` is the Minstrel's.
 - **Column 10 is skill points.** The same guide's table of the points gained at each vocation level, summed, is column 10 at every level from 1 to 99 on all twelve vocations' files, 200 at 99. The cartridge bears it out: `str_bres` 13, among the battle's result messages, is "`<val_1>` skill point(s) earned". `level0`, the Guardian's, does not fit — it hands points out a level earlier than the guide's walkthrough sees them, which is one more reason to think it is not a playable vocation's.
+- **EU only:** the guide's skill-point table gives 3 points at vocation levels 5, 6, 8, 9 and on, rising to 6 a level in the thirties, then 2 a level on two levels of every three from 50. Its walkthrough has the Hero first gaining skill points at level 5 (page 59). `level0` has them from level 4 and agrees with the table at 3 of the 99 levels; against the Minstrel's attribute table it agrees at 2 of the 72 values.
+- **EU only:** the guide has an attribute table for every vocation. Only the Minstrel's has been checked against the files.
+
+## How the game keeps a level
+
+> **EU only.** Code addresses are the USA release's, from the decomp; the files were read on the European release and are not yet checked on the US one.
+
+**Level and experience are kept per vocation.** A character's record (`0x23C` bytes; see [Party](Party)) holds thirteen level bytes at `+0x02` to `+0x0E` and thirteen experience words at `+0x1C` to `+0x4F`, one of each per vocation, with the current vocation at `+0x50` choosing among them. The initialiser's thirteen-step loop at `0x02086450` sets every vocation's experience to 0 and level to 1 together, and `GetExperience` (overlay 23, `0x021eea98`) reads the current vocation's word. So changing vocation changes an index: what the old vocation had waits until the character changes back.
+
+**The numbering is borne out by the Abbey.** Its list offers vocations 1 to 6, Warrior to Minstrel — the six a game begins with — with no condition, and 7 to 12 each behind an event flag, `0x113F` plus the vocation's number. It refuses 0, the Guardian, which the game writes when it creates the Hero. That the ungated six are the starting vocations and the gated six the advanced ones is a check on the files' order that does not rest on the status screen.
+
+## Not established
+
+- Column 0: that it is experience is INFERRED; the guide does not print it.
+- The `0x64`, `0x65` and `0x67` records.
+- **EU only:** that the files other than `level6` are the vocations the order of the names gives them.
 
 ## See also
 
@@ -99,4 +115,6 @@ The [spell table](Spell-Table) agrees: the Warrior, the Martial Artist and the G
 - [Spell-Table](Spell-Table)
 - [Vocation-Skill-Trees](Vocation-Skill-Trees)
 - [Attending-Characters](Attending-Characters) — stats in the same column order
+- [Party](Party) — the character record, and changing vocation
+- [Battle-Text](Battle-Text) — `str_bres` 13, skill points earned
 - [System-Strings](System-Strings)

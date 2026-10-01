@@ -31,6 +31,19 @@ Some third-party tools read a zero 24-bit size as "a 32-bit size follows at `0x0
 - the cartridge contains **no** stream that uses it — all 11,179 compressed NARC members declare a non-zero 24-bit size;
 - honouring it would misread a legitimately empty stream, whose size field is an ordinary zero.
 
+### A leading `0x10` is not proof of compression
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+A file's first byte being `0x10` does not make it an LZ10 stream. Identify a stream by its decoding to exactly its declared length, not by its first byte. Two kinds of file on the cartridge begin with `0x10` and are not compressed:
+
+- **173 `.spr` files begin `10 00 03 00`.** The `0x10` is the sheet's own first field, its frame count (16), and `03 00` its version (see [Sprites](Sprites)). `arrow3.spr` begins `01 00` and holds one 8×8 frame; `n003a.spr` begins `10 00` and holds sixteen 32×40 ones.
+- **372 files begin with the `u32` 16.** A [tagged data table](Tagged-Data-Table) whose first word is 16, the table header's own size, reads as an LZ10 header with a declared size of **0**. A stream of 0 bytes decodes to nothing whatever follows, so "it decoded to its declared size" passes, and the file is taken for empty. The 372 are in every language: 225 talk files (41 of them English), 54 map `.bmdj` and 25 `.bmbl` link tables, 25 event files (`ev03050`'s messages among them), 10 event scripts, four mini-map layouts (`F07`, `H07`, `M05`, `M12`) and two treasure files (`M09M05` and `D13M02`).
+
+So a declared size of 0 proves nothing: when asking whether bytes are a stream at all, the answer for a declared size of 0 is no. Taken for empty, the king's talk file for chapter C, `C01C0.gp2/045_en.bin`, said nothing; and the two treasure files were the two 13-wide gaps in the treasure numbering, which runs 0 to 847 without one once they are read (see [Treasure](Treasure)).
+
+Found 28 September 2026.
+
 ## LZ77 variant 10 (`0x10`)
 
 After the header comes a sequence of blocks. Each block is one flag byte followed by up to eight units, processed from the flag's **most significant bit downwards**:
@@ -126,6 +139,8 @@ The second check is the one a wrong decoder fails: it has to land on the boundar
 ## Earlier readings
 
 It was once thought that the run-length format did not appear on this cartridge. That rested on a test that decoded 3 of 334 candidate GPC2 regions, and it was pointed at the wrong regions: it assumed GPC2 numbers its codecs the way the BIOS does. It does not — it gives each codec *variant* its own number, so Huffman-4 and Huffman-8 take 2 and 3, and run-length is 4. Tested against codec 4, run-length matches 7,743 of 7,743.
+
+**EU only:** **A declared size of 0 accepted as an empty stream.** 372 uncompressed files whose first word is 16 were read as empty. See [A leading `0x10` is not proof of compression](#a-leading-0x10-is-not-proof-of-compression).
 
 ## Not established
 

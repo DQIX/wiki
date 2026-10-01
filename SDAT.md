@@ -179,6 +179,7 @@ An entry's offset is where its sequence starts in the stream. Its track and jump
 
 ### Music: `bgm.sdat`
 
+- **EU only:** 82 named sequences — `BG_001` and on, and the `ME_` jingles — 82 banks, 81 wave archives and 3 streams.
 - 64 sequences with files.
 - Their banks hold 996 instruments: 225 single notes, 456 key splits, 35 drum sets, 280 empty.
 - All 2,079 PCM notes resolve to a wave in the bank's wave archives.
@@ -195,6 +196,13 @@ The two effects archives are made of sequence archives, 1,398 records between th
 | `se_btl.sdat` | 936 | 481 | 101 to 935 | 1,081 | 105 |
 
 In both, every sequence names the bank at its archive's own index, and every one reads. An archive's filled slots are variants of one sound: the same two-note phrase at rising keys, or at full and lesser volume.
+
+### Who names them
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+- **The map list names a map's music** by its index in `bgm.sdat`'s sequence list — INFERRED from the values alone. The 25 grotto boss floors hold 80, which is `BG_100`, the one sequence past the `ME_` jingles; that pins the numbering to the list's own. See [Map-List](Map-List).
+- **The event scripts' sound functions** (700 to 738) are the SDAT player's. The field mounts `se_norm.sdat`'s sequence archive 100 as its **base** archive, and function 712 plays out of it; 726 and 730 load a scene's own archive, 728 and 732 play a sound out of the archive loaded by its number within it, and 727 and 731 give the archives back. See [Event-Scripts](Event-Scripts).
 
 ## Evidence
 

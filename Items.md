@@ -136,9 +136,19 @@ Words 5, 6 and 7 (bytes 20–31) are **three 10-bit fields each**: bits 30 and 3
 
 **Words 1 and 2** are packed, and set on every entry; not established.
 
-**Word 3**: bit 0 is set on all 936. **Bits 7–11 are a weapon's kind plus one** — exactly [Item-Kinds](Item-Kinds)' subtype + 1 on all 267 weapons, two files agreeing — 13 on all 44 shields, and 0 on 622 of the other 625. Its top bits are not established.
+**Word 3**: bit 0 is set on all 936. **Bits 7–10 are a weapon's kind plus one** — exactly [Item-Kinds](Item-Kinds)' subtype + 1 on all 267 weapons, two files agreeing — 13 on all 44 shields, and 0 on everything else. Its top bits are not established.
 
 **Word 4**: on the weapons, bits 12–15 are one number for each kind — swords 1, hammers 3, knives 4, wands 5, spears 6, axes 7, boomerangs 8, bows 9, whips 10, staves 11, claws 12, fans 13 — not established. Bits 0–11 are 0 on every weapon and shield, and **`0xfff` on all 51 accessories** and most armour, with other patterns on the rest — `0xebe`, `0x5e1`, `0x6a6`, and single bits `0x1`, `0x4`, `0x8`. INFERRED: who may wear it, a bit for each of the twelve vocations the equipment screen's "Used by" shows.
+
+#### The kind is four bits, not five
+
+> **EU only.** The field's width is read from the USA release's code, through the decomp; the counts are from the European release's tables (`YDQP`), not yet checked on the US release (`YDQE`).
+
+Corrected 24 September 2026; this page read the field as bits 7–11. The game isolates it in `0x020dd4c4`, its "may this character equip this?" (see [below](#who-may-wear-it)): `0x020dd5a4: lsl r1, r1, #0x15 / lsr r1, r1, #0x1c`, a shift of 21 then 28, which is bits 7 to 10 and nothing above.
+
+The cartridge shows the difference. Read as five bits, the field is 0 to 13 on 941 items and **16 on exactly three** — 15100, 15103 and 15106, all gloves in table `a`. Sixteen is no weapon tree, and armour carries none. Read as four bits they are 0, which is what a glove is.
+
+So **bit 11 is something else**, set on those three gloves and on nothing else in 944. What it is is **not established**.
 
 ### Who may wear it — word 4, bits 0–11
 
@@ -272,14 +282,24 @@ compared:
 020dd6d0  moveq r0, #0            ; clear: allowed outright
 ```
 
-Which of sex 0 and sex 1 is male is **not established** from code, and neither
-is where sex lives in the 0x23C persistent record — every read goes through
-`live+0x49C`, which is past that record's end.
-
 Two other places do the same triple and then push the piece into the bag —
 `0x02175ba8` and `0x02178448` in overlay 3 — so there *is* a "strip what you
 may no longer wear" routine. It is **not** the one
 [Alltrades](Party#changing-vocation-alltrades-abbey) calls.
+
+#### Which bit is which, off the cartridge
+
+> **EU only.** Counted on the European release's item tables (`YDQP`); not yet checked on the US release (`YDQE`).
+
+The code does not say which sex is male. **The items do**, and it is not an inference:
+
+- **823 of the 944 pieces of equipment are open to both, and none is closed to both** — already a sign that the pair is read right.
+- Of the rest, bit 27 carries *holy mail*, the *rogue's robes*, the warrior's gloves, the flamenco shirt and the twinkling tuxedo; bit 28 carries *holy femail*, the *roguess's robes*, the priestess's pinafore, the dancer's dress and the bunny suit. **The mail/femail and robes/roguess pairs settle it: bit 27 is male, bit 28 female.** 40 pieces are his alone and 81 hers.
+- [Character presets](Character-Presets)' own `sex` field numbers the sexes the same way, checked independently: across the 29 ready-made characters, **33 of 33** sex-restricted pieces they are dressed in allow the sex their record names.
+
+**Item 18048 is the wear-with-all award**, an accessory — which is what an item that lifts the sex rule would be called. **20 of the 121 sex-restricted pieces have bit 29 set**, the lock the award cannot lift: the bikini tops and bustiers are among them, the dresses are not.
+
+So sex 0 is male and sex 1 female. Where the sex lives in the persistent record is answered from the other side: the live `+0x488` block is copied whole into the record's `+0x160`, so `live+0x49C` bit 0 is the record's **`+0x174` bit 0** — see [Party](Party#the-appearance-is-0x160-and-it-is-the-live-structs-0x488).
 
 ### Not found as numbers
 
@@ -328,7 +348,7 @@ message; `func_0206f6cc` — the one function the talk service (5) calls for thi
 | 6, 12 | `0x218d77c` | the Quester's Rest counter | — |
 | **7** | `0x21b146c` | **the [Krak Pot](Alchemy)** | `<RENKIN>` |
 | 9, 10 | `0x21c12fc` | [Alltrades](Party#changing-vocation-alltrades-abbey), the second being revocation | — |
-| 11 | `0x21a8614` | the Starflight Express | — |
+| 11 | `0x21a8614` | the [Starflight Express](Starflight-Express) | — |
 
 **So a facility is never a menu command.** `<RENKIN>` and `<LUIDA>` are bare —
 there is one pot and one Patty, so they select nothing — and both appear as a
@@ -342,6 +362,16 @@ Patty share a room: `R01M01` is "Stornway, Lobby Interior 1".
 
 Codes 6, 9, 10, 11 and 12 have **no text tag** in the compiler's list, so
 whatever produces their code is elsewhere and is **not established**.
+
+**EU only:** a second way in, with **its own numbering**. A character's
+[trigger](Triggers) record can carry operation `145`, which names a facility
+that talking to that character opens. It occurs 58 times on the cartridge,
+always beside `6` on a character's record and always where there is a counter
+— 0, 2 and 3 in Stornway, 2, 5 and 6 at the Quester's Rest — and 7 only on
+Cap'n Max ([mini medals](Mini-Medals)). INFERRED from that distribution. The
+numbers are **not** the line-tag codes above, where 7 is the Krak Pot.
+Counted on the European release's trigger files, which are byte for byte the
+US release's (`YDQE`).
 
 ## Evidence
 
@@ -364,13 +394,19 @@ These found nothing, and are recorded so they are not repeated:
 - A Rusty sword's "Attack E 215", on a level-58 character wearing it, is the character's attack, not the sword's, so it is not a value to search for.
 - An earlier pass matched stats entries to records by position and found the used-by bits inconsistent; matched by name, they are consistent.
 
+## Earlier readings
+
+- Word 3's weapon kind was read as **bits 7–11**, giving 16 on three gloves. The game's own mask is four bits, 7–10; see [above](#the-kind-is-four-bits-not-five).
+- This page said **which of sex 0 and sex 1 is male was not established**, nor where the sex lives in the persistent record. The items settle the first (bit 27 male, bit 28 female) and the record's `+0x174` bit 0 is the second; see [above](#which-bit-is-which-off-the-cartridge).
+
 ## Not established
 
 - The names file's second `u16`.
 - The rest of the record's `+0x0A` run: which bytes are the sort position, the counting numbers and the icon; whether a record really begins 16 bytes earlier.
-- `+0x08` values other than the four listed (0 and a few others); the price of the bamboo lance (`0x55`) and the halberd (`0x2BC0`); why the scale is kept so.
+- `+0x08` values other than the four codes and the prices; why the scale is kept so.
 - Rarity byte `+0x15`: bit 0 and the high nibble.
-- Stats: the 100 bytes between the entries and the names; word 0 (resistances, perhaps); words 1 and 2; word 3's top bits; word 4 bits 12–15 on weapons; word 5 bits 20–29 on wands; word 6 bits 0–9 on shields.
+- Stats: the 100 bytes between the entries and the names; word 0 (resistances, perhaps); words 1 and 2; word 3's top bits; word 4 bits 12–15 on weapons; word 5 bits 20–29 on wands.
+- **EU only:** word 3 bit 11, set on gloves 15100, 15103 and 15106 and nothing else.
 - Where charm, max HP, max MP and the vocation medals' effects come from.
 - Shops: value 1.
 - What the inn's and the church's numbers select; where inn prices are kept.

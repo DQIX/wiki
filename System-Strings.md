@@ -21,6 +21,8 @@ The numbers skip — 0 to 69, 83 to 86, 200 to 202, 1000 on — and are the same
 - `actname.nat` — action names by number; see [Actions](Actions).
 - `/data/prm/article.gp2/article_<lang>.nat` — see [Articles](Articles).
 - `strbtl`, `actmsg`, `str_tm` — see [Battle-Text](Battle-Text).
+- **EU only:** `itemexpl_<lang>.nat`, the item descriptions, keyed by item id — see [Item-Descriptions](Item-Descriptions).
+- **EU only:** `/data/prm/actexp.gp2`, the ability descriptions, keyed by action id: 234 records, ids 0 to 804 — see [Skill-Panels](Skill-Panels#where-the-words-are).
 
 ## Messages
 

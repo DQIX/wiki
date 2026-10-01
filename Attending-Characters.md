@@ -47,6 +47,18 @@ Ivor's field set is `s017.chr` — the model, on a 12-bone rig, with `walk`, `ru
 
 Ivor joins as his call ends (`ev02210`, whose last message is "Ivor joins the party"), goes on ahead at the pass (`ev22591`, "I'll go on ahead!"), joins again at the landslide (`ev02350`) and goes home once the mayor has heard the news (`ev02400`). A let's play video shows the same: he walks off along the pass and is found at the landslide, and from 2.4 the Hero goes to the Hexagon alone.
 
+### The other two who join
+
+> **EU only.** Counted on the European release's trigger files (`YDQP`), which are byte for byte the US release's (`YDQE`).
+
+**The place in `205:n` holds for more than Ivor.** The three events whose own text says who joins each carry that character's place in this table: `ev02210`, "Ivor joins the party", `205:1`; `ev04080`, Dr Phlegming, `205:2`; `ev28991`, Sterling, `205:3`. Six event records carry `205`, all with 1 to 3.
+
+**`204:1` does not say who.** All six event records carrying `204` have 1, in Ivor's stretch, Dr Phlegming's and Sterling's alike, so the 1 does not name the one sent away.
+
+On a character's own record — 31 carry `205` and 35 carry `204` — neither is read. Nor is `203`, on two entry records (the pass's `203:1`, the mayor's `203:0`) and 71 characters'.
+
+**Whether a companion is with the Hero is a story condition.** Trigger condition `86` is partly read from the code: someone of a kind the game marks (`func_02061bd8`, USA) in the party is up, or failing one, its object `0xce` is there, for `86:1`; `86:0` otherwise. INFERRED, whoever goes along. All seven `86:0` records in Angel Falls sit before a character's first-time event in which Ivor speaks. See [Triggers](Triggers).
+
 ## Evidence
 
 - Model numbers: `ev02210` loads `s017.chr` for Ivor; `ev02130` loads `s016.chr` for Erinn.
@@ -57,7 +69,8 @@ Ivor joins as his call ends (`ev02210`, whose last message is "Ivor joins the pa
 ## Not established
 
 - Values 3, 4, 6 and 16.
-- The order of the numbers in values 7–15 (Aquila's agility reads 0, which fits nothing).
+- **EU only:** what `203` does, and what `205` and `204` do on a character's own record rather than an event's.
+- The order of the numbers in values 7–15 (Aquila's agility reads 0, which fits nothing). **EU only:** Ivor's hit points in a fight beside him, from a let's play or the status screen, would test it: 25 if the numbers are in the level tables' order.
 - **No column is a vocation.** Worth saying rather than leaving to be discovered: the record carries a level, nine stat numbers, a weapon and a shield, and nothing that selects one of the thirteen [level tables](Level-Tables). Of the four unknown values, 4 reads 3, 0, −1, −1, 3 and 16 reads 26, −1, 0, 0, −1, neither of which is a vocation number in the usual 0–12 range for all five. So where a party member's vocation comes from is open — see [Party](Party).
 
 ## See also

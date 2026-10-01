@@ -58,20 +58,22 @@ So a dot's colour belongs to the character, not to a place in the party, and **t
 
 **The screenshot shows exactly these strips**: four side by side across the foot of the screen, 64 pixels each (the screen's 256), each with a name in white, and nothing of the rest of the panel. `obj_mm.pac` holds the same panel cut narrower in four steps, perhaps a slide animation. Its slots 0 to 3 are all blue.
 
+**EU only:** the let's play shows the same wherever its map screen shows: the strips with the names alone, and no HP, MP or level. The fuller panel, and the digits beside it (`0`–`9`, `+1`–`+9` and a star), are for a screen not seen. The screenshot also shows a tab at the picture's top right, dark with a light edge, with the place's name in white. The sprite set has no tab of its own.
+
 ## `.bmmp` — which picture, and where on it
 
-A [tagged data table](Tagged-Data-Table). 279 read. `F07`, `H07`, `M05` and `M12` are empty files. The tags, with the value kinds the table's type bits give:
+A [tagged data table](Tagged-Data-Table). **EU only:** all 283 read. `F07`, `H07`, `M05` and `M12` begin with the word 16, the table header's own size, which read as an LZ10 header is an empty compressed stream; they are not empty (see [DS-Compression](DS-Compression)). The tags, with the value kinds the table's type bits give, counted over all 283 (**EU only**):
 
 | tag | kinds | on | read as |
 |---|---|---|---|
-| `0x66` | integer, string | 279 of 279, once | `unknown` (0 on all), then the picture's name: an `.obg` in the archive on 279 of 279 |
-| `0x6a` | string | 219 | the backdrop: `minimapbg2` ×205, `minimapbg3` ×13, `minimapbg4` ×1. The fields have none |
-| `0x69` | float ×264, integer ×15 | 279, once | the scale (INFERRED, below). 3.2 in the village, 1 on the field, 2 in the pass. The integers are 4 on fourteen `C02`/`C04`/`D17` maps and 1 on `O00` |
-| `0x64` | two integers ×278, two floats ×1 | 279, once | the picture's corner, in tiles (INFERRED, below). −18, −12 in the village. `S07M01`'s are the floats −15, −12 |
-| `0x6b` | integer, one or more records | 278 | the maps the picture is drawn for: **the map index's id for the file's own map on 242 of 279**, for example `M01` 1100, `F01` 20001, `S01M01` 5101. Most of the 37 others are the `H` overviews, whose ids are fields' (`200xx`). `T00` has none |
-| `0x6c` | float, float, integers | 249 records | a mark: a position, then the maps it stands for |
-| `0x70` | (integer, string) pairs | 264 | map codes by id: **the id is the map index's for the code on 497 of 498 pairs** (`C02M07` has 206; the index has 207) |
-| `0x65`, `0x67`, `0x68`, `0x6d` | | | `unknown`: `0x65` is 1, `0x67` 1 and `0x68` 0, 0, 0, 0 on all 279. `0x6d` is 3 ×60, 0 ×10, 4 ×6 |
+| `0x66` | integer, string | 283 of 283, once | `unknown` (0 on all), then the picture's name: an `.obg` in the archive on 283 of 283 |
+| `0x6a` | string | 221 | the backdrop: `minimapbg2` ×207, `minimapbg3` ×13, `minimapbg4` ×1. The fields have none |
+| `0x69` | float ×267, integer ×16 | 283, once | the scale (INFERRED, below). 3.2 in the village, 1 on the field, 2 in the pass. The integers are 4 on fourteen `C02`/`C04`/`D17` maps and `M05`, and 1 on `O00` |
+| `0x64` | two integers ×282, two floats ×1 | 283, once | the picture's corner, in tiles (INFERRED, below). −18, −12 in the village. `S07M01`'s are the floats −15, −12 |
+| `0x6b` | integer, one or more records | 282 | the maps the picture is drawn for: **the map index's id for the file's own map on 245 of 283**, for example `M01` 1100, `F01` 20001, `S01M01` 5101. Most of the 38 others are the `H` overviews, whose ids are fields' (`200xx`). `T00` has none |
+| `0x6c` | float, float, integers | 273 records | a mark: a position, then the maps it stands for |
+| `0x70` | (integer, string) pairs | 268 | map codes by id: **the id is the map index's for the code on 519 of 520 pairs** (`C02M07` has 206; the index has 207) |
+| `0x65`, `0x67`, `0x68`, `0x6d` | | | `unknown`: `0x65` is 1, `0x67` 1 and `0x68` 0, 0, 0, 0 on all 283. `0x6d` is 3 ×62, 0 ×10, 4 ×6 |
 
 Map ids are those of [Map-List](Map-List).
 
@@ -110,11 +112,15 @@ That the scale is pixels per unit and the corner counts tiles is read from these
 
 - `.obg` size formula holds on 268 of 268 files. No cell exceeds the tile count or sets a bit above bit 9.
 - Nibble order: the village's `INN` sign.
-- `.bmmp` tag counts across 279 non-empty files. `0x6b` and `0x70` checked against the map index.
+- `.bmmp` tag counts across all 283 files (**EU only**). `0x6b` and `0x70` checked against the map index.
 - Marks against the doorways of `M01M0000.bmbl`.
 - The pixel formula against the village, field and pass pictures.
 - Dot and panel colours: a screenshot of the game in Stornway's church with a party of four.
 - A room is shown on its area's picture: **observed** in that screenshot, taken inside Stornway's church, which shows the town's map with the party's dots on the church, just below its icon. The village's `0x70` and marks, which name all its rooms, suggested this.
+
+## Earlier readings
+
+- `F07`, `H07`, `M05` and `M12` were read as empty files, and the `.bmmp` counts were taken over the other 279. They begin with a word that looks like an empty compressed stream's header (above).
 
 ## Not established
 
@@ -124,6 +130,7 @@ That the scale is pixels per unit and the corner counts tiles is read from these
 - Which dot the game gives the Hero, how a character's dot colour is chosen, and what the other dots and `obj_mm.pac`'s church and swords mark.
 - `obj_minimap`'s `.NCGR`, `.NCLR` and `.NCER` are standard Nitro 2D files, and `obj_mm.pac` wraps the same three. They are not decoded beyond the cells described above.
 - The `z` sets, `pd_ab_*`, `C01M0000.MAP` / `.MBK` and `shipMPos.bin`.
+- **EU only:** where the tab at the picture's top right comes from, since the sprite set has no tab, and where its name is taken from.
 
 ## See also
 

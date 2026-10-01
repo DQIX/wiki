@@ -22,6 +22,8 @@ Angel Falls has ten doors, `D1` to `DA`. Of its houses, `M01M02` and `M01M09` ha
 - **The collision is two triangles facing the same way** on all of the village's doors, and on those of `M01M02` and `M01M09`. This reads as a marker: if it is kept as a wall, it seals the doorway.
 - **Erinn's house's two doors are four triangles, facing both ways.** That is a wall from either side, which stands only while the door is shut.
 
+**EU only:** a door can be placed more than once. A manifest can place one door model several times, and then places the door's collision as often, each hanging off its own placement of the door (see [Map-Objects](Map-Objects#a-resource-placed-more-than-once)). Across the cartridge 76 door resources are placed more than once; Coffinwell's `M03M00D1` is placed five times. `D03M06`'s door models are named `M0602` and `M0603`, not `D…`, so not every door follows the naming above.
+
 ### Sliding pieces — `<area>M<nn>S<x>` and `<area>A<nn>S<x>`
 
 Sliding pieces are named like doors, with `S` in place of `D`. Across the maps, 13 models are named this way, and 7 of them have a collision mesh beside them.
@@ -36,6 +38,14 @@ The Hexagon's first floor has one: `D01M01S1`, with collision `D01A01S1`. The co
 
 None of the other twelve sliding pieces has a placement record on it.
 
+#### The manifest places the piece at each end of its slide
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+The map's manifest places `D01M01S1` **twice, once at each end of its slide**, each end with its own collision (see [Map-Objects](Map-Objects#a-resource-placed-more-than-once)). The later of the two placements stands at (0.434, −1.709): exactly where character `202`'s record from step 5 stands. The other stands 0.434 from it; the record before step 5 stands 0.431 to the left.
+
+INFERRED: the piece's two places are these two placements, and the one it stands at from step 5 is the later. It is the only resource placed more than once whose name is a sliding piece's. Nothing else in the manifest marks it apart: its placements and flags are shaped exactly as a door's, so a reader must tell one thing at two moments from two things by the `S` in its name.
+
 No event moves the piece. `ev02530`, the switch's event, calls function 321 sixteen times. Each call aims the camera within 0.01 of the switch over three frames, which is a camera shake. So how the game slides the piece is in code (see [Event-Scripts](Event-Scripts), [Triggers](Triggers)).
 
 ## Evidence
@@ -48,7 +58,7 @@ No event moves the piece. `ev02530`, the switch's event, calls function 321 sixt
 
 - How a door opens: no animation file ships beside any door.
 - Whether the origin of a door model is really its hinge (INFERRED).
-- How and how fast a sliding piece moves. Its closed position is INFERRED from one case only.
+- How and how fast a sliding piece moves. Its closed position is INFERRED from one case only. **EU only:** that case's two positions are both in the map's manifest (above); what moves the piece between them is still not read.
 - What the other twelve sliding pieces do. None has a placement record on it.
 
 ## See also

@@ -173,7 +173,8 @@ is **not established** — no code was found that reads it.
 - What value 7 orders by. Its tree order is 1,2,3,4,**6,5**,7,8,9,10,**12,11**,
   13–21,**23,22**,**26,24,25**.
 - The one record with tree 0: values `[286, 0, 0, 168, 1, 0, 0, 286, 0]`, named
-  "Egg On". Outside the 26 trees.
+  "Egg On". Outside the 26 trees. Panel 286 is `0x11E`, which Patty sets
+  outside the points walk — see [Party](Party#cancel-teaches-you-egg-on).
 - Panel 230 (Force, cost 0) is `<Cap><str_1>` in `sklname` — a placeholder —
   and "Fource Majeure" in `sta_skl`, which is the usable label.
 - The `skl_art` record's `0x0D` and flag words.

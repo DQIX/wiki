@@ -43,6 +43,14 @@ In order, the twenty bytes at `+0x14` belong to elements
 
 So a party member's resistances are **the sum of what they wear, onto a hundred** — not a table of their own, and nothing else writes them: no vocation, no skill, no spell. A monster's come from its own record instead; see [Monsters](Monsters).
 
+## What is not in this file
+
+> **EU only.** The counts were taken on the European release (`YDQP`) and are not yet checked on the US release (`YDQE`); the code addresses are the USA release's, from the decomp.
+
+**A shield's chance of blocking** is not here. `func_02084ee8` sums ten bits of each worn piece's record in the item tables — the low ten of the equipment table's word 6, set on 42 of the 45 shields and on nothing else — over `10.0f`. See [Items](Items) and [Battle resolution](Battle-Resolution).
+
+**An item's defence, its rarity and who may use it** were not found in this file, at any position, width or scale tested against 41 shields' published defence and rarity. Where those published values came from was not recorded, which weakens the test. A weapon's attack and a piece's defence are read, INFERRED, from the item tables' stats; see [Items](Items).
+
 ## Evidence
 
 - Read from the USA binaries on 22 September 2026: the filename string is at `0x021d7ab6`, and `func_ov017_021b3780` is the only code that fills `char + 0x2F4`.

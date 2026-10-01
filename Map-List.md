@@ -1,6 +1,6 @@
 # Map-List
 
-`maplist9.bin` is the cartridge's index of every map. It is a [tagged data table](Tagged-Data-Table), and it says what the maps *are*: each entry has an id, a region, a map code that names the map's archive, a builder's label, a space kind and (INFERRED) a music track. Seven of the 22 values per entry are read. The other fifteen are not established. Counts are from the European release (game code `YDQP`).
+`maplist9.bin` is the cartridge's index of every map. It is a [tagged data table](Tagged-Data-Table), and it says what the maps *are*: each entry has an id, a region, a map code that names the map's archive, a builder's label, a space kind and (INFERRED) a music track. Seven of the 22 values per entry are read from the data. **EU only:** three more, slots 14, 15 and 18, are read with the game's code. The other twelve are not established. Counts are from the European release (game code `YDQP`).
 
 ## Layout
 
@@ -19,7 +19,9 @@ Four of the 22 values are byte offsets into the string table, and three more are
 | 5 | the name its builder wrote, for example "Inn", "Church", "Erinn's House Lv 1" |
 | 6 | **the music**: an index into `bgm.sdat`'s sequence list (INFERRED, below) |
 | 11 | a second code, usually one with a real attribute table, but not this map's |
+| 14, 15 | **EU only:** where the map lies: on a field region, its place in the world (integers); on a town or dungeon, its place in the sky map (floats). See [Where a map lies](#where-a-map-lies) |
 | 17 | the space: `1` indoors, `2` outdoors, `0` neither |
+| 18 | **EU only:** a battle stage's kind of ground, INFERRED. See [Battle-Stages](Battle-Stages) |
 
 Slot 0 is `0` on the 139 entries for maps that do not ship, and distinct on the rest (see [Area-Cast](Area-Cast) for how it was identified).
 
@@ -62,6 +64,19 @@ Not read:
 - Whether anything else changes the track, such as the time of day or the story.
 - `data/bin/mapbgm.bin`: 68 records pairing map ids with values from `0x0580` to `0x0857`. These values are not sequence indices.
 
+## Where a map lies
+
+> **EU only.** Code addresses are the USA release's, from the [dqix-decomp](https://github.com/DQIX/dqix-decomp); the files were read on the European release (`YDQP`) and are not yet checked on the US one (`YDQE`).
+
+Slots 14 and 15 are an x and a z, and the type bits say which of two things they are.
+
+- **Integers, on 645 entries: the field regions' place in the world**, in the maps' own units. Read against the doorways between regions, which put the Hero at the same place in the world on either side: going from Western Stornway (`F02`) to Eastern (`F38`) moves the Hero by (126.1, 15.6) in the regions' own units, and the two regions lie (128, 16) apart here; Slurry Coast to Bloomingdale moves by (29.6, 174.2), against (32, 176).
+- **Floats, on 365 entries, towns and dungeons: the map's place in the sky map**, the map the [Starflight Express](Starflight-Express) flies over. Angel Falls is at (−100.19, −26.04). The sky holds the world at a sixth. Taking off from a field region, the Express starts at (the Hero's place + the region's) ÷ 6 (`func_020acecc`); from a town, at the town's sky place as it stands. Landing, the Hero is put at the sky's place × 6 − the region's (`0x020acf40`).
+
+**Slot 18 is a battle stage's kind of ground, INFERRED**: 0 field, 1 forest, 2 coast, 3 wilderness, 4 flowers, 5 barley, 6 pampas, 7 swamp, 8 the `B02` stages on. The game keeps it in its entry's byte `+0x0e` and turns it into a bit (`func_02099a68`, 8 giving none). Overlay 17 asks it of the ground under a field object (`func_ov017_021a26e8`); what for is not read. The kinds are INFERRED from the stages' labels (see [Battle-Stages](Battle-Stages)).
+
+**The game finds an entry by its id** (`func_02099950`). Switching to a battle stage, it puts 30116, "F01 - Field", in place of an id the list does not have, so Western Stornway's 30103 is fought on Angel Falls' field.
+
 ## What it gives
 
 1,010 entries, 872 distinct codes. The code names the archive: `M01` is `M01.amdj`. So this is the bridge from a place to the files that draw it. 667 of the codes name an archive that ships. The rest are development maps the cartridge kept an entry for, with names like "Debug Floor", "Bed Test" and "For Encounter Testing".
@@ -79,14 +94,16 @@ Slot 0 joins exactly to the map word of every cast placement block on the cartri
 
 ## Not established
 
-- Slots 1, 3, 7, 8, 9, 10, 12, 13, 14, 15, 16, 18, 19, 20 and 21.
+- Slots 1, 3, 7, 8, 9, 10, 12, 13, 16, 19, 20 and 21.
+- **EU only:** what the game does with slot 18's kind of ground outside a battle; that the kinds are what the stages' labels say (INFERRED).
 - One reading was tried and **disproved**: slots 10 and 12 look like an exterior/interior pair on the ten maps of one village. They are not. Across the whole list, 48 maps labelled "Exterior" and 49 labelled "Interior" share the same combination of them.
 - What slot 11's second code is for.
 - Whether the music (slot 6) is the whole rule for which track plays.
 
 ## Earlier readings
 
-An earlier reading took the record header as four bytes. That put every slot number two higher than the ones above.
+- An earlier reading took the record header as four bytes. That put every slot number two higher than the ones above.
+- `O01` was listed with `O00` as a map with no collision mesh. Its collision is in its second archive, `O01b`.
 
 ## The places, by code
 
@@ -103,11 +120,28 @@ reimplementation loading a map asks for one. The region is what to call it.
 A place's interiors are its code with a suffix — `M01M07` is a house in
 `M01` — so this table is also the way in to the rest of the file.
 
-Two of these are worth a word. **`O00` and `O01` carry no collision mesh**,
-so a reimplementation has nowhere to stand a character and the map never comes
-up; whether they are backdrops rather than places is open. And **`M07` has a
+Two of these are worth a word. **`O00` carries no collision mesh**, so a
+reimplementation has nowhere to stand a character and the map never comes up;
+whether it is a backdrop rather than a place is open. And **`M07` has a
 doorway to `M07M07`**, which is the one destination on the cartridge that
 names no archive.
+
+**EU only: `O01` is the sky**, map 10100, "Field - Sky": the whole world drawn
+small, which the [Starflight Express](Starflight-Express) flies over. It is
+drawn from two archives, `O01a` and `O01b`, both named by its link table
+(`O01.bmbl`), with every piece placed at the origin. Its collision is
+`O01A0000.col2`, in `O01b`.
+
+**EU only: `X01` and `X05` are areas whose root map is never stood in.** The
+index labels `X01`, `X03` and `X05` "All Events". `X01` has ten sub-maps,
+`X01M01` to `X01M10`, and they are the walkable Observatory; only the root
+map, `X01` itself, has no collision. `X05` is the same shape, a root with
+none and sub-maps `X05M01` to `X05M13`. Nothing hands on to either root: no
+trigger names map 4100 (`X01`) or 4500 (`X05`). Angel Falls hands on to
+`X01M05`, and `S14` to `X05M09` and `X05M04`. `X03`, labelled the same, has a
+collision mesh, so the label does not decide it. What the roots are for is not
+established; the fly-home's outside shots of the Observatory, early in the
+story, are a candidate, unconfirmed.
 
 Generated from the European release (`YDQP`); a different release may number
 differently.
@@ -247,3 +281,6 @@ differently.
 - [Triggers](Triggers)
 - [Mini-Map](Mini-Map)
 - [SDAT](SDAT)
+- [Battle-Stages](Battle-Stages): slot 18, and stages not in the list
+- [Starflight-Express](Starflight-Express): slots 14 and 15
+- [Map-Collision](Map-Collision): the maps with no collision

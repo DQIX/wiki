@@ -13,6 +13,8 @@ Each event unpacks from its own `ev#####.gp2` (see [GPC2](GPC2)) into a `.stb` s
 
 No event number is in both folders.
 
+**EU only:** the game looks in `/data/event` first, and then in `/data/evspt_lv5`. Which map a scene plays in, and its script's file name, are in the [event lists](Event-Lists).
+
 Two events in `/data/evspt_lv5`, `ev21593` and `ev23190`, also carry a plain `ev#####.bin`. It has not been read.
 
 Example events:
@@ -124,16 +126,26 @@ Prompts are a small branching language inside the text. It is the same in all fi
 | events whose five languages carry the same message numbers in the same order | **518 of 518** |
 | bytes of `0x80` or above in any string of any language | **none** |
 
+### Text files once read as empty
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+On 28 September 2026, 25 event text files were found to have been read as empty. `ev03050`'s messages are among them. A text file is a [tagged data table](Tagged-Data-Table), and its first word is 16, the header's own size. Read as an LZ10 stream, those same bytes are a header declaring 0 bytes, and a stream of 0 bytes decodes to nothing whatever follows. So a check that the stream decoded to its declared size passes. The files are ordinary tables (see [DS compression](DS-Compression#a-leading-0x10-is-not-proof-of-compression)). Across the cartridge, 372 files of all kinds begin this way.
+
+The counts in the table above were taken before this was found. Whether these 25 are the same 25 files counted there as zero bytes is not established.
+
 ## Not established
 
 - `<.|>` and `<.|.|>`, used twelve times in English, which the tag table has no entry for at all. See [Text markup](Text-Markup); most of what used to be listed here has moved there and been read.
 - What each `<IF_x>` condition tests.
 - What the game does with a line that opens with `*:`.
 - The plain `ev#####.bin` in `ev21593` and `ev23190`.
+- **EU only:** whether the 25 files counted as zero bytes are the 25 once read as empty (see [Text files once read as empty](#text-files-once-read-as-empty)).
 
 ## See also
 
 - [Event-Scripts](Event-Scripts): the `.stb` beside the text, which names its own messages
+- [Event-Lists](Event-Lists): which map each scene plays in
 - [Character-Dialogue](Character-Dialogue): the talk files, which use the same markup and prompts
 - [Tagged-Data-Table](Tagged-Data-Table)
 - [GPC2](GPC2)

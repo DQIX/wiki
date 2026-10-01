@@ -11,6 +11,27 @@ There are 681 `.ambl` archives in all:
 
 A map's **textures** are in the `.ambl`. A map built from its `.amdj` alone has none. (One earlier inventory said `.ambl` holds the `.bats` tables. It does not.)
 
+## What a texture is called
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+**A map texture is named for what it is.** The name is the map's own code, then **three letters saying what the surface is**, then a number: `m01m00wtr01` is water, beside `m01m00grs01`, grass. Across the 4,337 models under `/data/map` the tags come out as a level artist's vocabulary:
+
+| tag | count | | tag | count |
+|---|---|---|---|---|
+| `grd` ground | 3,694 | | `sdw` shadow | 868 |
+| `wal` wall | 2,332 | | `dor` door | 739 |
+| `clf` cliff | 2,124 | | `wtr` water | 726 |
+| `grs` grass | 1,934 | | `hus` house | 694 |
+| `tre` tree | 1,632 | | `sky` sky | 606 |
+| `stn` stone | 1,451 | | `flw` flower | 452 |
+
+`hus` and `tre` are also **node** names inside the same models, so geometry and materials share the vocabulary. Some tags are Japanese words: `iwa` rock, `zou` statue, `kabe` wall, `yane` roof, and `dok`, INFERRED to be *doku*, poison (see [Poison-Marsh](Poison-Marsh)).
+
+**Water is found by its texture name, not by its collision**: the collision attribute word is not a terrain type (see [Map-Collision](Map-Collision#the-attribute-word)). The village has eight `wtr` surfaces, the river across the middle of the map and the pools at the falls.
+
+Only the tag is read. What each means to the game (which surfaces are solid, which sound different underfoot) is not established.
+
 ## Layout
 
 ### Header
@@ -26,6 +47,8 @@ The same as the shared [tagged data table](Tagged-Data-Table) header.
 | `0x10` | | the record stream, running up to the string table |
 
 Each record header is `u16 tag, u8 count, two type bits per value`, **padded to four bytes**. Records address strings by byte offset, not by ordinal.
+
+**EU only:** 25 `.bmbl` begin with the word 16, the table header's own size. Read as an LZ10 header, that is `0x10` and a declared size of 0, an empty stream; a reader that tries every file as LZ10 first takes them for empty. They are not (see [DS-Compression](DS-Compression)).
 
 ### What the names are
 
@@ -73,6 +96,26 @@ A `0x73` is a trigger, and the `0x74` that follows it says what the trigger does
 - They are adjacent on **2,301 of 2,301** records.
 - No `0x74` that names a map lacks a `0x73` before it.
 - Most `0x74` records do something other than change map. Those are not decoded. Of the 440 map-changing `0x74` records read, 415 have 24 values, and the rest are shorter.
+
+#### A `0x73` is a region, and its first value is its type
+
+> **EU only.** Code addresses are the USA release's, from the [dqix-decomp](https://github.com/DQIX/dqix-decomp); the files were read on the European release (`YDQP`) and are not yet checked on the US one (`YDQE`).
+
+Read from the game's code on 28 September 2026. The link table is run by a handler table at `0x020ef3d8`, for tags `0x64` to `0x7e`.
+
+- **The `0x73` handler** (`func_0201d530`) reads a **type**, a centre, a size (width, height, depth), an angle in radians and one more angle, and makes a squared radius from the width and depth. It adds the region through `func_0201e710`.
+- **The `0x74` handler** (`func_0201d638`) fills in what the region does, by its type.
+- **Type 2 is a doorway. Type 3 is an area of the map**, numbered by its `0x74`'s first value. There are 22 type-3 regions on the cartridge, in 15 maps. Stornway's throne room has areas 0 and 1; Zere's one is turned 45°. How areas are tested and what entering one runs is on [Triggers](Triggers).
+
+The types on the cartridge:
+
+| type | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| regions | 283 | 184 | 670 | 22 | 63 | 113 | 160 | 163 | 56 | 204 | 360 | 23 |
+
+Types other than 2 and 3 are not read.
+
+A region's test (`func_02094b9c`): it is off if flag 8 is set; it uses the turned-box test when the region has depth; and it carries once-only flags. What sets those flags for an area is not read.
 
 ### The destination slot
 
@@ -130,7 +173,8 @@ The arrival checks are weaker evidence and are reported as found. They fail wher
 
 - `unknown_0x00` in the header.
 - The tail of both doorway forms: the marker and the three positions after the arrival.
-- What non-map-changing `0x74` records do.
+- What non-map-changing `0x74` records do. **EU only:** a `0x73`'s type says which kind of region it is; types 2 (doorway) and 3 (area) are read, the other types are not.
+- **EU only:** what the second angle of a `0x73` region is for.
 - The two integers that differ between repeated `0x74` doorways.
 - The `0x72`, `0x73` and `0x74` slots not given in the doorway table.
 
@@ -150,4 +194,6 @@ The arrival checks are weaker evidence and are reported as found. They fail wher
 - [Doors](Doors)
 - [Tagged-Data-Table](Tagged-Data-Table)
 - [Mini-Map](Mini-Map): its marks stand beside these doorways
+- [Triggers](Triggers): the type-3 areas
+- [Poison-Marsh](Poison-Marsh): the `dok` texture tag
 - [NSBMD](NSBMD)

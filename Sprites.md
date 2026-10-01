@@ -16,6 +16,38 @@ The two copies of the barrel's breaking animation differ. The `/data/ani` copy h
 
 24 sprite names occur more than once on the cartridge. The copies differ on 18 of them. None of those 18 is a villager.
 
+### The field's own sprite ids
+
+> **EU only.** Read in the European release's overlay 17 (`YDQP`). The decomp has the same table as `fieldSpriteFiles` at USA `0x021d656c`; its entries have not been compared with the European ones.
+
+Overlay 17 numbers the sprites the field draws by itself. At `0x4AFCC` of the unpacked European overlay is a table of 16 entries, each an id and a pointer to a name, ended by an id of −1 and an empty name:
+
+| id | sheet |
+|---|---|
+| 2, 3, 4 | `fuki_com`, `fuki_in`, `fuki_hkn` |
+| 5, 6, 7 | `tsubo_01` to `tsubo_03` |
+| 8, 9, 10 | `taru_01` to `taru_03` |
+| 12 | `field_mon01` |
+| 13 | `ev_mark` |
+| 14 | `field_qu` |
+| 15, 16 | `fuki_com_q`, `fuki_com_apc` |
+| 17 | `field_satori` |
+
+The evidence is the name list at `0x4BE99` and the pointers into it, the −1 and empty name that close the table, and the code's one reference to it, which is to the first id. These are the game's own numbering of the pot, barrel and bubble sprites. How a treasure's kind chooses among them is in code that has not been read.
+
+### How scripts put a sprite on the field
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+Event scripts load sprites through their own functions (see [Event-Scripts](Event-Scripts)):
+
+- **`521`** takes a name and **finds the first free of 32 slots**, handing the slot back through its reference. It loads `data/ani/<name>.spr`, adding the suffix only where the name has not got one, and stages the texture into a VRAM partition. Its optional third number picks one of eight allocators and its fourth the partition, 27 by default. Neither is bounds-checked.
+- **`522`** is its inverse, taking the same 0-to-31 slot. **`573`** does the same teardown on the same manager, but finds the slot through the event placement table, from an entry of kind 2 or 6.
+- **`566(3, file, character)`** draws a character from a sprite sheet. All 203 such calls name a `.spr` file; `n012g.spr` is the figure fading in on `ev02500`.
+- **`541`, `561` and `542`** put a balloon over a character's head — one of the field's sprite sheets, parked 76 pixels above it — nudge it, and take it down.
+
+A party trick has a sprite too. **EU only:** the function the decomp calls `PartyMemberObject::LoadTrick` (USA `0x0205308c`) loads trick *n*'s archive, and for tricks 12 to 16 and 30 its sprite `sg%02d_<LG>.spr`.
+
 ## Layout
 
 A frame is built from parts, just as the DS's own hardware sprites are. Each part is a rectangle 8, 16, 32 or 64 pixels on a side. Each part has a position in the frame and its own pixels.
@@ -101,6 +133,8 @@ A breaking sheet carries one animation: frames 0, 1 and 2, each held for 4.
 
 ## Evidence
 
+**EU only:** a sheet with sixteen frames begins `10 00 03 00` — its frame count and version — which looks like an LZ10 header. 173 `.spr` files begin that way and are not compressed (see [DS-Compression](DS-Compression#a-leading-0x10-is-not-proof-of-compression)).
+
 The strongest check is to walk each sheet using nothing but its parts' own sizes. **On 1,314 of the 1,316 sheets, the walk lands exactly on a palette's count word.** A wrong reading does not do this. The two exceptions:
 
 - `n001a_test`, whose count word is 0
@@ -128,14 +162,19 @@ For a long time a sheet was read as one image: rows of pixels from the header to
 
 Those measurements were not wrong about the bytes. They were measuring the parts without knowing it.
 
+**EU only:** **The field sprite table read as (pointer, id) from `0x4AFD0`.** That paired each name with the next entry's id and missed `field_satori`. Corrected 17 September 2026 to (id, pointer) from `0x4AFCC`.
+
 ## Not established
 
 - When a looping animation stops, including when a breaking pot's or barrel's shards are removed. Nothing in the record says.
 - Which way the stands rotate. It is known only from looking at the drawn sheets.
+- **EU only:** How a treasure's kind chooses among the field's sprite ids.
 
 ## See also
 
 - [Area-Cast](Area-Cast): the cast lists whose `kind` decides sprite or model
 - [Item-Icons](Item-Icons): item icons are also `.spr` sheets
 - [Mini-Map](Mini-Map)
+- [Event-Scripts](Event-Scripts): the functions that load and place sprites
+- [Treasure](Treasure) · [Map-Objects](Map-Objects)
 - [2D-Graphics](2D-Graphics)

@@ -42,6 +42,16 @@ By the item names (see [Items](Items)):
 
 These outfits are the evidence for the "Used by" bits of equipment stats (see [Items](Items)).
 
+**EU only:** the game's own equipment check confirms that bit order. The function at USA `0x020dd4c4` (from the decomp) tests armour, headgear, gloves, legwear, footwear and accessories against a 12-bit mask, bit `v − 1` for vocation `v`; weapons and shields go by the vocation's skill trees instead. **27 of the 29 presets** are dressed in a kit that agrees on one vocation bit.
+
+### Which file the game reads
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+**`charapreset.bin` may not be read by the game.** The string `charapreset` appears in none of the ARM9 binary and the 35 overlays. What the game names is `/data/bin/presetdt.gp2`. A file id could still be computed at run time, so this does not prove `charapreset.bin` unused.
+
+The function the decomp numbers `func_0201099c` (USA) builds three characters from `presetdt` plus random numbers: a default party, not a menu.
+
 ## `presetdt_<lang>.bin`
 
 One to a language in `/data/bin/presetdt.gp2` (see [GPC2](GPC2)): a tagged data table whose `0x66` and `0x68` records each list 20 string offsets, then a `0x69` record holding 12, and 12 `0x6a` records of 35 values — value 1 a string, the rest integers. The strings are 40 Shift-JIS names and, in English, Aquila, Erinn, Patty and Sellma, whom the last four records name.
@@ -74,12 +84,14 @@ One to a language in `/data/bin/presetdt.gp2` (see [GPC2](GPC2)): a tagged data 
 - In `charapreset`, 141 of the 155 ids the vocations' presets wear name a part that exists (see [Character-Parts](Character-Parts)).
 - In `presetdt`, 55 of the 57 ids the records wear name a part that exists.
 - Face: value 78 (and `presetdt`'s 12) lands on an existing face on all 41 presets.
+- **EU only:** Sex: items carry their own sex bits, bit 27 of an item's stats word for "sex 0 may wear it" and bit 28 for "sex 1" (the game's check at USA `0x020dd6f8`). *Holy mail* and the *rogue's robes* are sex 0's, *holy femail* and the *roguess's robes* sex 1's, so 0 is a man and 1 a woman, as value 86 reads. Across the 29 presets, **33 of 33** sex-restricted pieces they wear allow the sex their value 86 names.
 
 ## Not established
 
 - `charapreset` values 0–74 (what the item lists are for), 75, 88, 89 and 92–101.
 - `presetdt` values 4–8 and 19–34.
 - The first of the two 90xx values (`charapreset` value 77, `presetdt` value 11).
+- **EU only:** Whether the game reads `charapreset.bin` at all (see [Which file the game reads](#which-file-the-game-reads)).
 - Where a preset's hair style, variant and colour are kept, if in it at all. (The Hero's own are the player's, chosen at character creation.)
 - Why six legwear numbers name no part on the cartridge. See below — the reading that those bodies cover the legs is INFERRED from two of thirteen.
 

@@ -14,6 +14,10 @@ established. This page is just the contents.
 - Grouped by what the recipe makes, using `itemsort`'s subtype, and ordered
   within each group by the Alchenomicon's own rank — so the order here is the
   order the game's recipe book would list them in.
+- **EU only:** these groups are not the book's own. The book groups by
+  category — Weapons, Armour, Accessories, Items — and then by eighteen By
+  Type headings, which cover weapons and armour only; see
+  [Alchemy](Alchemy#the-alchenomicons-own-grouping).
 - **Counts are the file's.** `3× agate of evolution` means three.
 - The last column marks the **alchemiracles**. 22 recipes can come out better
   than they say: the pair takes the same ingredients, and the odds shown are

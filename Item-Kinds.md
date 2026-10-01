@@ -68,7 +68,15 @@ By the items in each:
 
 **The weapon kinds 0 to 11 are in the order of the item-info icons**, `obj_iteminfo`'s cells 1 to 12 in `oiij_<lang>.pac` (see [Pac](Pac)): a sword, a spear, a knife, a wand, a whip, a staff, a claw, a fan, an axe, a hammer, a boomerang, a bow — and cell 13, a shield, is subtype 12's. The equipment screen draws a weapon's kind with them.
 
-A weapon's subtype + 1 equals bits 7–11 of word 3 of its stats entry on all 267 weapons (see [Items](Items)), and `unknown_1` is the order of the stats entries on most categories.
+A weapon's subtype + 1 equals bits 7–10 of word 3 of its stats entry on all 267 weapons (see [Items](Items#the-kind-is-four-bits-not-five)), and `unknown_1` is the order of the stats entries on most categories.
+
+## A third file agrees: the recipes
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+[Alchemy](Alchemy)'s `recipe.gp2` does not point at this file, but carries each result's category and subtype of its own, as recipe values 14 and 15. Against this file, value 14 matches on **470 of 470** recipes and value 15 on **469** — the miss is the leather kilt, a skirt filed under trousers in the recipe. Recipe value 19, the recipe book's alphabetical order, rises with `unknown_2` at **all 469 steps**, which supports reading `unknown_2` as alphabetical by name.
+
+**The Alchenomicon groups recipes by this file's categories**: Weapons is category 0, Armour 1 to 6, Accessories 7, and Items 8 and 9. Every one of the 470 recipes falls in exactly one with none left over. See [Alchemy](Alchemy#the-alchenomicons-own-grouping).
 
 ## Evidence
 
@@ -79,6 +87,8 @@ A weapon's subtype + 1 equals bits 7–11 of word 3 of its stats entry on all 26
 ### Earlier readings
 
 This file was once searched, with the item tables, `itembtlprm.nat` and the item records, for an item's numbers, rarity and who may use it, at any position, width or scale, tested against 41 shields' published defence and rarity (from a source not recorded, which weakens that test). Nothing was found here. Those values have since been read from the stats table after each equipment table's records and from the item record's byte `+0x15` — see [Items](Items).
+
+**EU only:** this page gave the stats entry's matching field as bits 7–11 of word 3. The game reads four bits, 7–10; see [Items](Items#the-kind-is-four-bits-not-five).
 
 ## Not established
 

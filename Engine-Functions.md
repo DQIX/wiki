@@ -17,6 +17,8 @@ fn(&args[1], argc - 1);
 
 So an engine function is `int fn(Value* args, int argc)`, and a number nothing has registered is silently a no-op.
 
+**EU only:** these numbers are not the operation numbers of [trigger](Triggers) records, which have their own numbering. Trigger operations `133`, `138`, `148`, `155`, `214`, `220` and `226`, for example, are not the engine functions of the same numbers.
+
 **A `Value` is 8 bytes**: a tag at `+0x00` — 0 an integer, 1 a float, 3 a reference — and the value at `+0x04`. The accessors are `ToInt` (`0x021d60f4`), `ToFloat` (`0x021d6110`), the raw/string reader (`0x021d612c`) and the store-through-a-reference (`0x021d6134`, and `0x021d6148` beside it). A store writes the payload word only where the tag is 3, and **does not change the destination's type** — so a script's variable must already be of the type the function hands back.
 
 **Overlay 1 fills the table** from a static array of `{function, number}` pairs at `0x02164d6c`, **304 entries**, ending `{0, -1}` at `0x021656ec`. The numbers registered are 0–9, 100–122, 200–240, 300–328, 400–421, 500–522, 530–603, 700–738 and 800–845. Two other modules register their own tables into the same VM for other kinds of script: the ARM9 at `0x0209dcbc` and overlay 23 at `0x021eb070`. **504 and 505 are not registered at all**, and the "append" twin of 506 at `0x0215ed74` is in the binary but unreachable.
@@ -92,19 +94,44 @@ That a placement 540 opens is a **door** is INFERRED — from the swing, the mat
 
 ## The brightness family — 100 to 122
 
-Eighteen numbers, one block. The handlers from `109` up are all the same three-instruction stub — `mov r0,#<type>` into one dispatcher at `0x0215b074` — and the type picks one of nine setters: three screens times three locking kinds.
+> **EU only.** Code addresses are the USA release's, from the decomp. The scripts and the counts over them were read on the European release (`YDQP`) and are not yet checked on the US release (`YDQE`).
+
+Eighteen numbers, one block. The handlers `111` to `122` are all the same three-instruction stub — `mov r0,#<type>` into one dispatcher at `0x0215b074` — with **type = fn − 105**. `100`, `101` and `104` to `107` are handlers of their own that call the same setters directly, filling types 0 to 5. So the types run 0 to 17 unbroken, but the numbers do not: `102`, `103` and `108` to `110` are other features in the same range (below). That is why `106` is the top screen and `111` starts at type 6.
+
+The type picks one of nine setters: three screens times three locking kinds.
 
 | | both screens | top | bottom |
 |---|---|---|---|
-| set | `100` (to normal), `101` (to black) | | `105` (to black) |
-| set and lock | | | |
-| unlock and set | | `121` (to normal) | `120` (to black) |
+| set, to normal | `100` | `106` | `104` |
+| set, to a level | `101` | `107` | `105` |
+| set and lock, to normal | `111` | `115` | `113` |
+| set and lock, to a level | `112` | `116` | `114` |
+| unlock and set, to normal | `117` | `121` | `119` |
+| unlock and set, to a level | `118` | `122` | `120` |
 
 Every one is `fn(frames [, level])`. The level defaults to **−16, black** (`mvn r5, #0xf` in all nine), and the frame count is turned into **milliseconds** inside the setter — `frames × 16.6667f`, the literal `0x41855604` = 1000/60. With `frames == 0` the setter writes the level and a flag that applies it this frame.
 
 The pairs alternate: the **even** type of each pair passes a level of 0 whatever the script gave it, the **odd** type passes the argument. So `120` honours a second argument and `121` cannot.
 
-So `120` is the **bottom** screen — the pair of `121`, not its opposite.
+So `120` is the **bottom** screen — the pair of `121`, not its opposite. And `107`, called in 162 events, is the **top screen fading to black**.
+
+**The lock is real.** A set-and-lock setter writes the level and then a lock byte: `+0x24` for the top screen, `+0x25` for the bottom. A plain set **returns without doing anything at all** while its screen's lock is set (`0x0203b1a4`). An unlock-and-set clears the lock first. A scene that locks a screen black and never unlocks it stays black through every later fade.
+
+**How scenes use it.** `101` is called 612 times, in 368 events. `120` is handed 0 on 365 of its 366 calls, always just before a `121`. The commonest sequence, in 188 events, is `101`; then `120(0)` and `121` as the scene is set; then `101` at its end.
+
+### 108, 109 and 110 swap the screens
+
+They are not brightness. All three write **bit 15 of `POWCNT1`** (`0x04000304`), the DS's display swap, which decides which physical screen the main engine drives. `109` sets it, `110` clears it, and `108` reads it and writes the opposite.
+
+### 102 and 103 are a colour over the screen
+
+Both write the same small record at `0x02108d5c`.
+
+- `103` packs its first three numbers as `r | g<<5 | b<<10` into a **halfword at `+0x02`**, which is the DS's own BGR555, and writes `0x1f` at `+0x04`.
+- `102` writes 1 at `+0x04`, and no colour at all.
+- Both then write `frames × 1000/60` milliseconds at `+0x08`, and 1 at `+0x00`.
+
+**What reads that record was not found.** No other address in the ARM9 holds its address. So the meaning is **INFERRED**: `+0x04` looks like the DS's 0-to-31 blend coefficient. That would make `103` a fade *to* the colour and `102` a fade back *from* it, and `102` naming no colour fits that. The packing masks nothing, so a component above 31 runs into the next channel.
 
 ## The worklist head, and the towns' shared set
 
@@ -114,9 +141,9 @@ So `120` is the **bottom** screen — the pair of `121`, not its opposite.
 | 233 | name, slot [, allocator] | loads a monster model out of `data/pack_lv5/enemy.gp2` — the first `.cchr` of the archive it finds — and installs it as a **GameState game object**. A negative slot maps by `-x + 0x9f` onto `0xa0`–`0xbf`, which is the range every scene uses. Scale `0x10a` on all three axes, animation 0; **whatever was in the slot is overwritten, not freed** (`0x0215ca4c`) |
 | 322 | x, y, z, yaw, height, distance, frames [, direction] | **moves the look-at point and the orbit together**, on two of the camera's queues. Not two points: the eye it hands the first command is a zero vector, and the command sets the flag that makes the camera recompute the eye from point and orbit at the end of the frame. `direction` is **−1, the short way round**, by default; 0 forces negative, anything else positive (`0x0215dd58`) |
 | 328 | frames | moves the camera back to the eye and look-at point its **idle placement** would have, computed by `0x020a2b38` without disturbing the camera, over a count. The default orbit triple it computes alongside is **discarded** (`0x0215e14c`) |
-| 547 | placement [, battle] | **begins the scripted battle.** The placement's entry must be of kind 1 and hold an `Object3D`, or the call does nothing at all; that model is made visible, flagged `0x40000000` and becomes the transition's foreground. `battle` is a record index into `data/event/eventbattle.bin`, which picks the battle and, from `+0x0e` of its record, the music — **−1** when the scene gives one argument, which skips the lookup and plays sequence `0x17`. The transition blacks both screens and snaps the volume to `0x7f` (`0x02163ccc`, task type `0x16` at `0x021b6290`) |
+| 547 | placement [, battle] | **the scripted battle's transition**, its swirl and its music. **EU only:** it does not start the fight; a [trigger](Triggers) record's operation `120` does that (see [Event battles](Event-Battles)). The placement's entry must be of kind 1 and hold an `Object3D`, or the call does nothing at all; that model is made visible, flagged `0x40000000` and becomes the transition's foreground. `battle` is a record index into `data/event/eventbattle.bin`, which picks the battle and, from `+0x0e` of its record, the music — **−1** when the scene gives one argument, which skips the lookup and plays sequence `0x17`. The transition blacks both screens and snaps the volume to `0x7f` (`0x02163ccc`, task type `0x16` at `0x021b6290`) |
 | 558 | reference | **which of a message's choices is highlighted**, 0-based. The field is walked by the d-pad handler (`0x02045740`), wrapping against the option count beside it, and set to a default when a two-option prompt is built. No bounds check (`0x021609c0`) |
-| 573 | placement [, ignored] | **takes a placed `.spr` away** — the exact inverse of `521`, which loads `data/ani/<name>.spr` and registers it. Releases the cached resource if one is held, else destroys the `Object3D`, then empties the manager slot. **Its second argument is read by nothing**: there is exactly one `ToInt` in the function (`0x02161754`) |
+| 573 | placement [, ignored] | **takes a placed `.spr` away**, which `521` loads from `data/ani/<name>.spr` and registers. **EU only:** it is not `521`'s direct inverse; `522` is. `573` does the same teardown, reached through the event placement table (see [Sprite placements](#sprite-placements--521-and-522)). Releases the cached resource if one is held, else destroys the `Object3D`, then empties the manager slot. **Its second argument is read by nothing**: there is exactly one `ToInt` in the function (`0x02161754`) |
 | 574 | group, object, visible | **shows or hides a thing the map placed.** The group is a key on a linked list of placements, the object a `u16` id within the group's array of `0x70`-byte records. A nonzero third argument **clears** bit 2 of the record's flags and a zero sets it — bit 2 being what the draw path tests to skip a record (`0x02163dec` → `0x02013380`). Its neighbours settle the record: `575` writes a position at `+0x08`, `577` a vector at `+0x14`, `576` a halfword at `+0x06` |
 | 603 | flag, reference | **reads one of the game's story flags** into a reference, 1 or 0. The bank is the bitfield at `0x02108844 + 0x8c`; ids from `0x400` up are displaced by **1,786 bits** (`id + 0x6fa`). Nothing is bounds-checked (`0x021633ec` → `0x0206eb98`) |
 | 715 | volume [, ticks] | the sound's **master volume, clamped to 0..127**, ramped linearly over a tick count (0 is immediate). The manager keeps it as the script's own level and scales it by the player's 1-to-5 sound setting — table `{0.0, 0.37795, 0.66929, 0.85039, 1.0}` at `0x020e8ec4` — before it reaches the mixer, halving it again if a flag is set (`0x021636d0` → `0x0209c2e0`) |
@@ -223,6 +250,41 @@ The game has the same preset written out by hand in C++ in four places, each str
 
 **Twelve numbers in the sound range are empty stubs** — `mov r0,#1; bx lr` and nothing else: **703–709** (`0x021634e0`–`0x02163510`), **716–719** (`0x02163724`–`0x0216373c`) and **724** (`0x02163764`).
 
+## The sound archives and the talking blip — 554, 712, 723, 726–733
+
+> **EU only.** Code addresses are the USA release's, from the decomp. The scripts and the counts over them were read on the European release (`YDQP`) and are not yet checked on the US release (`YDQE`).
+
+**The sound block, 700 to 738, is NNS SDAT** (see [SDAT](SDAT)).
+
+| fn | what it does |
+|---|---|
+| 726 | **loads** an archive of a scene's own sounds |
+| 730 | loads a second one |
+| 728, 732 | **play a sound out of the archive loaded**, by its number within it |
+| 727, 731 | give the archives back. Each is called once per event that calls it, in section 300: 503 and 506 calls |
+| 723, 729, 733 | stop one sound, by the handle it was given. There are sixteen handles |
+| 712 | plays out of the **base** archive, `se_norm.sdat`'s 100, which is what the field mounts |
+| 720 | plays sound *n*. **INFERRED**, from its arguments; `725` answers whether it is still sounding (see [Sound: arm and go](#sound-arm-and-go-and-twelve-dead-numbers)) |
+
+**`554` is the talking blip**: 13,496 calls across 487 events, once a speaker. It stores its integer in a field of the global field controller. That picks which of three looping sounds of the base archive runs while a message types itself out: `10` at its own pitch, `12` low, `11` high. The sound archive's names say so: `SE_SY010_L_kaiwa_n_010`, *kaiwa* being conversation. The shared message routines hand it their second value (see [Event-Scripts](Event-Scripts#the-shared-block)).
+
+## The camera's queue, a character's walk, and balloons
+
+> **EU only.** Code addresses are the USA release's, from the decomp. The scripts and the counts over them were read on the European release (`YDQP`) and are not yet checked on the US release (`YDQE`).
+
+| fn | what it does |
+|---|---|
+| 301 | whether the camera still has work queued |
+| 305, 306 | move what the camera looks at, and where it is, over a count |
+| 321 | aims the camera at a point, keeping the camera's own distance and angle |
+| 222 | stops what a character is playing, queued behind its other commands |
+| 545, 546 | a character starts and stops walking. The second value is an **animation rate**, not a speed over the ground |
+| 541, 561, 542 | a balloon over a character's head: one of the field's sprite sheets, parked 76 pixels above the character, then nudged, then taken down |
+| 595 | a flag of the field's. Its meaning is not established. 501 events call it, once each, in section 300 |
+| 596 | looks up a character a scene registered: its kind, a state, and the object it became |
+
+**`596` writes its second answer whether or not it was given anywhere to put it.** So a two-argument call writes one place past the end of its own arguments.
+
 ## The bone-driven camera — 572, 531, and 213
 
 **572** (`0x02161650`) takes a placement index and **two bone names**. It allocates a `0x268`-byte camera subclass, stashes the current camera in the event state at `GameState + 0x5ca8`, attaches the placement's `Object3D`, `strcpy`s the two names into `+0x224` and `+0x234`, and installs itself as `GameState::unknown_3b0_`. Each frame `func_0204a170` reads the two tracked bone matrices, scales and offsets their translations by the object's own, and sets **the camera's eye from bone A and its look-at from bone B**, then calls `UpdateCameraOrbitFromEye`.
@@ -279,6 +341,33 @@ So **a scene runs on into another script, keeping its context** — its cast, it
 
 **`+0x11c` is a second script id the trigger carried.** A trigger record holds two (`+8` primary, `+0xa` secondary); `func_ov017_021d1e50` runs the first and parks the second at `+0x11c`. **`834`** (`0x02163164`) answers whether one is parked — **1 or 0, not the id** — and **`810`** (`0x02162210`) moves it into `+0x11a` and clears it.
 
+**EU only: a parked scene outlives a map change.** A scene that ends with its second script still parked stores it in `GameState` at `+0x63d8` (ov017 `0x021bca4c`), and the field plays it once the next map is in (`0x0218c5fc`). The accessors are `0x020115f4` (set), `0x020115e8` (get) and `0x02011600` (clear). The [Starflight Express](Starflight-Express)'s leaving scenes end with `834` and `810`, and carry on into the arriving scene parked behind them.
+
+**EU only:** a script a scene chains into is started the same way the scene was, so it may change the map first. See [Event lists](Event-Lists).
+
+## A scene's hand-on to another map — 807
+
+> **EU only.** Code addresses are the USA release's, from the decomp. The scripts and the counts over them were read on the European release (`YDQP`) and are not yet checked on the US release (`YDQE`).
+
+**807** (ov001 `0x02161f80`, `0x13c` bytes) takes **a map, x, y and z, a facing and, given a sixth value, an event**. It fills the same map-change request that [trigger](Triggers) operation `133` fills (`func_0200fd0c`; `func_02070378` clears it and `func_0200fcfc` commits it):
+
+| offset | what |
+|---|---|
+| `+0x00` | the map |
+| `+0x10` | the place, × 4096 |
+| `+0x1c` | the facing |
+| `+0x20` | the event, or −1 |
+
+Two maps' ids, 29,501 and 29,504, also set a byte at `+0x69`. Its use was not followed.
+
+So once the scene is over, the Hero goes to that map, and the event plays there. Sixteen scenes call it:
+
+- `ev23189`, entering Loch Storn at 3.2, ends `807(5200, 0, 0, 0, 0, 23190)`. That is back into the lake's own map and on to `ev23190`, whose trigger record sets flag 0 and starts set battle 0. This is how the lake's first fight begins.
+- `ev24597` and `ev24599` hand on to map 6401 the same way.
+- The other fourteen move the Hero without an event: to the Observatory after the late story's scenes, to the fields, and to the tower at 17.1.
+
+The [event lists](Event-Lists)' scene start fills the same request when a scene starts outside its own map.
+
 ## Sprite placements — 521 and 522
 
 A create-and-destroy pair over the 32 slots of the sprite manager at **`0x021075f4`** (returned by `func_0203cf4c`).
@@ -307,7 +396,7 @@ That kind-6 case is confirmed by the dispatchers `0x02164624`, `func_ov001_02164
 | 238 | `0x0215cf98` | **a palette recolour, not a move.** Packs three numbers as `r \| g<<5 \| b<<10` into BGR555 and rebuilds the model's texture palette into a staging buffer bound for VRAM. An optional fifth number is the mode: **0 add** (held at 31), **1 fill**, **2 multiply** over 31. On one of the first four game objects it recolours the whole party member — the model plus twelve slots at `id × 12 + 0x13` |
 | 509 | `0x0215eeb0` | switch a **raw 32-bit mask** on `Object3D+0x6C`, the same word visibility and `SetFlag16` use |
 | 550 | `0x021605d4` | show or hide a character's objects at `12n + 0x1C` and `+0x1D`, skipping either whose model id is negative |
-| 556 | `0x02160938` | re-mount the weapon from **`data/bin/wpnpos.bin`** — `0x150 / 0x1C` = exactly **12 rows**, one a weapon class, each holding **two 14-byte placements** of a bone, a position and a rotation. Which of the two is picked by its second argument; **stowed-versus-drawn is INFERRED**, the halves being structurally identical |
+| 556 | `0x02160938` | re-mount the weapon from **`data/bin/wpnpos.bin`** — `0x150 / 0x1C` = exactly **12 rows**, one a weapon class, each holding **two 14-byte placements** of a bone, a position and a rotation. Which of the two is picked by its second argument; **stowed-versus-drawn is INFERRED**, the halves being structurally identical. **EU only:** the file is described on [Weapon positions](Weapon-Positions) |
 | 559 | `0x021609e4` | writes one byte at `0x02108844 + 0x490` — **two writers in the whole cartridge and no reader** |
 | 578 | `0x02164004` | `LightingManager::BeginFade`: a multiplier over the scene's two light colours and the horizon's, over a count of frames converted to milliseconds. 0 sets it outright |
 | 579 | `0x02164080` | `GameState::SetDayTimerRunning` — **inverted**: a 0 starts the clock |
@@ -471,7 +560,7 @@ All three speak these numbers.
 | 583 | `0x021618d0` | one byte at `GameState+0x63D6`, `&0xff`. Fifteen readers treat it as a gate on entering a map; **ov017 `0x0218b6c0` tells 4, 8 and `0x0c` apart** |
 | 591 | `0x02161988` | bit 0 of `zone+0x105`, **set when the argument is 0**. Six write sites in the cartridge and **no reader found** |
 | 599, 805 | `0x02161d2c`, `0x02161f3c` | a **whole word** at `zone+0x274C` and `zone+0x2750`; each is the first thing its render pass tests, and a zero skips the pass entire |
-| 601, 602 | `0x02163334`, `0x02163390` | bits of the **progress record in hand**. The bank at `0x02108844` opens with five `0x1C`-byte records (`0x8c = 5 × 0x1C`), `byte[base+0x332]` selects one, 601 reads its bitfield at `+0x03` and 602 its second at `+0x10` |
+| 601, 602 | `0x02163334`, `0x02163390` | **EU only:** **a mark and a flag of the live story thread.** The story bank at `0x02108844` opens with five `0x1C`-byte records (`0x8c = 5 × 0x1C`), one for each of the story's five threads, and `byte[base+0x332]` says which thread is live. `601 : n` reads bit *n* of the record's field at `+0x03`, the marks, which [trigger](Triggers) operation `102` sets. `602 : n` reads bit *n* of its field at `+0x10`, the flags, which operation `104` sets (ARM9 `0x02061ee4`, `0x02061f9c`). Gortress's `ev14640` sums `602(11)` to `602(14)` and chains into `ev14903` when they come to four |
 | 735 | `0x02163ab4` | bit `0x04` of the sound manager's `+0xC8`, **set when the argument is 0** — and that bit makes both `PlayBGM` and `FadeOutSequencePlayer` return immediately |
 | 736 | `0x02163aec` | play the zone's own tune: its id through a table of 47 at `0x020E8ED8`, substitutions that follow the time of day, and an override list whose entries each carry **a story flag to test** |
 | 737 | `0x021637a8` | the same teardown as 738, then `func_0209c6d8` starts a track on the manager's **second** player (`+0xC4`, id at `+0xCE`), leaving the first slot empty so a later `PlayBGM` proceeds |
@@ -485,7 +574,7 @@ Five switches read the argument the other way up — `536`, `581`, `591`, `735` 
 
 ## What is still only inferred
 
-The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304, 310, 321, the model and motion packs of 566 and 567, and the second folder's wait through 840. **5** numbers are invoked by the cartridge's scripts and answered by nothing in the reimplementation that measures them, down from about 150: 807, 837, 839, 843 and 844.
+The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still stand for everything not read here — the camera's 302, 303, 304 and 310, the model and motion packs of 566 and 567, and the second folder's wait through 840. **EU only:** 321 has since been read from the code (above). Four numbers invoked by the cartridge's scripts have no reading at all: 837, 839, 843 and 844. `807` was read on 28 September 2026.
 
 ## Not established
 
@@ -515,7 +604,7 @@ The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still 
 - **Who assigns `kind` and `slot`** in the 32-entry event placement table. The array is allocated and zeroed in `func_ov001_0215a850` (`Allocate(0x200)` = 32 × 16), and every use in ov001 and ov017 only reads or clears it. No writer was found in either overlay.
 - **What reads `0x02108844 + 0x490`**, the byte `559` writes. Two writers in the whole cartridge, no reader; every byte and halfword load that could reach the offset was searched for.
 - **The writer of `GameState + 0x397C` / `+0x3980`**, the party index array `598` reads and its count. Three readers, no writer found.
-- Whether `556`'s two `wpnpos.bin` placements are stowed and drawn. The halves are structurally identical and nothing names them.
+- Whether `556`'s two `wpnpos.bin` placements are stowed and drawn. The halves are structurally identical and nothing names them. **EU only:** see [Weapon positions](Weapon-Positions) for the file.
 - Which weapon category is `wpnpos` row 6 — the one that toggles `Object3D+0x18c` bit `0x20`. The table is filled at runtime from the file, so its contents are not in the binaries.
 - What `12n + 0x1D` is. `12n + 0x1C` is the weapon, from `556`.
 - Why `228` scales its copy to `0x10a` and `521` its placement to `0x8f`. The constants and the unit (fx16, 1.0 = `0x1000`) are certain; the reason is not.
@@ -524,17 +613,30 @@ The readings in [Event-Scripts](Event-Scripts) taken from arguments alone still 
 - **What reads bit 0 of `0x020FB4F5`** (`591`'s zone bit). Six write sites across arm9 and all overlays; no immediate-offset reader anywhere.
 - **`583`'s values.** Fifteen readers treat the byte as a yes-or-no gate on entering a map; ov017 `0x0218b6c0` distinguishes 4, 8 and `0x0c`. What those mean is open.
 - **What the models `599` and `805` draw are.** Both passes are walked structurally — a count, a list of `0x24`-byte (599) or `0x368`-byte (805) instances — but no filename was reached.
-- **The id space `func_02064b98` switches on** to pick one of the five `0x1C`-byte progress records. The ranges are exact (`[0xC8,0xDB]`, `[0x6A4,0x6AA]`, `[0x1068,0x106A]`, `[0x1E14,0x1E1D]`, `[0x2328,0x2330]`, …); the namespace is not identified.
 - **What the four `Object3D`s at `GameResources+0x4334..0x4340` are** (`809` reaches the first two). The fill loop is at ov017 `0x021bdef0`–`0x021bdfc8`, four `s16` file ids from a record whose owner was not chased.
 - **Overlay 29's algorithm** (`815`'s probe). Obfuscated; not decrypted. Only that 815 treats a mismatch as tampered.
 - **The contents of the four-word table at `0x020F33B4`** that `SetTimeOfDay` indexes. It lies past the end of `arm9.bin` and is runtime-initialised.
 - **Whether `845`'s count/argc mismatch is intended.** The code is unambiguous and its sibling `506` resets the count first, so the difference is deliberate somewhere — but whether the *argument cursor* starting at `args[0]` is by design cannot be told from the binary.
 - **What `func_02018fbc` does past its AABB setup** (`231`/`232`'s ground probe). The box is read — `x±0x800`, `z±0x800`, `y+0x1000` down to `y-0xa000` — but not the remaining ~0x1f0 bytes; "returns the floor height" is INFERRED from that shape and from both callers writing the result into `actor->pos.y`.
 - **Whether `532`'s field of view is a half-angle or the whole field.** The first reading called it a half-angle because the projection puts `cot` in the slot a perspective matrix holds `cot(fov/2)` in; reading `580` showed that slot takes `cot × aspect`, which weakens it. Against the half-angle: the engine's own default is **60** (`0xF000`, set at `0x02155fe0`), and scenes pass 15 — read whole those are 60° and 15°, read as half-angles 120° and 30°, and 120° vertical is implausible.
+- **EU only:** what reads the record `102` and `103` write at `0x02108d5c`. No other address in the ARM9 holds its address.
+- **EU only:** what the byte at `+0x69` of the map-change request is for, which `807` sets for maps 29,501 and 29,504.
+- **EU only:** what `595`'s flag means.
+- **EU only:** what `837`, `839`, `843` and `844` do.
+
+## Earlier readings
+
+- **EU only: the brightness stubs from 109 up.** This page said the handlers from `109` up were all the same stub. The stubs run from `111`; `100`, `101` and `104` to `107` are handlers of their own, and `108` to `110` are the screen swap.
+- **EU only: `547` begins the battle.** It was read as beginning the scripted battle. It is only the battle's transition; a trigger record's `120` starts the fight.
+- **EU only: `573` as `521`'s exact inverse.** `522` is `521`'s direct inverse. `573` reaches the same teardown through the event placement table.
+- **EU only: `601` and `602` as a "progress record in hand".** The five `0x1C`-byte records are the story's five threads, and the byte at `+0x332` picks the live one. The id ranges `func_02064b98` switches on, once listed here as an unidentified namespace, are map ids: the map the Hero is in picks the live thread. See [Triggers](Triggers).
 
 ## See also
 
 - [Event-Scripts](Event-Scripts) — the file, the machine and its instructions
 - [Event-Text](Event-Text) — the messages a script names
+- [Event-Lists](Event-Lists) — which map each scene plays in
+- [Weapon-Positions](Weapon-Positions) — the file `556` reads
+- [SDAT](SDAT) — the sound archives the 700s load and play
 - [Triggers](Triggers) — which event runs when
 - [Battle-Resolution](Battle-Resolution) — the same kind of reading, for battle

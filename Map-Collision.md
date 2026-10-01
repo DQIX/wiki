@@ -1,6 +1,6 @@
 # Map Collision
 
-`.col2` is a map's collision mesh: a header, a triangle list, a grid index over it, and a short trailing section. There are 1,178 files, 4.3 MiB, one or more per [Map-Archive](Map-Archive). It has no magic number. All figures are from the European release (game code YDQP). The header, triangle layout, face normal format, bounding box and grid tiling are confirmed on every file; the `shift` scale rule is INFERRED from three agreeing measurements; the triangle attribute word, the grid origin and the trailing records are not established. No published reference for `.col2` is known.
+`.col2` is a map's collision mesh: a header, a triangle list, a grid index over it, and a short trailing section. There are 1,178 files, 4.3 MiB, one or more per [Map-Archive](Map-Archive). It has no magic number. All figures are from the European release (game code YDQP). The header, triangle layout, face normal format, bounding box and grid tiling are confirmed on every file; the `shift` scale rule is INFERRED from three agreeing measurements; the grid origin is not established. **EU only:** the trailing records are ground records, read from the game's code, and a triangle's top seven bits are INFERRED to index them; the rest of the attribute word is not established. No published reference for `.col2` is known.
 
 ## Layout
 
@@ -35,7 +35,7 @@ The count at `+0x14` divides the triangle section exactly on **1,178 of 1,178** 
 | `+0x06` | 6 | `s16[3]` | vertex 1 |
 | `+0x0C` | 6 | `s16[3]` | vertex 2 |
 | `+0x12` | 6 | `fx16[3]` | face normal |
-| `+0x18` | 4 | `u32` | attributes (not established) |
+| `+0x18` | 4 | `u32` | attributes. **EU only:** the top seven bits INFERRED to index a trailing record; the rest not established (see [The attribute word](#the-attribute-word)) |
 
 **The normal is the check.** A triangle stores both a normal and the three points it was computed from, so the stored value must be the normalised cross product of the triangle's own edges. It is, for **108,471 of 108,471** triangles that have any area. The remaining 651 are degenerate, with no normal to store and none stored. A wrong field layout cannot satisfy this: the normal is read from one place, the points from another, and they have to agree.
 
@@ -69,7 +69,54 @@ The cell size is a power of two on **1,178 of 1,178**: 8192 on 667 files, 2048 o
 
 ### Trailing records (8 bytes each)
 
-Counted at `+0x34`, which divides the section exactly on **1,178 of 1,178**. There are 1,699 records in all, and they repeat: `0,0,0,0` on 488, `23254,0,0,0` on 240, `23254,9513,32767,0` on 115. `32767` is the largest positive `s16`, which suggests a sentinel. **Not established.**
+Counted at `+0x34`, which divides the section exactly on **1,178 of 1,178**. There are 1,699 records in all, and they repeat: `0,0,0,0` on 488, `23254,0,0,0` on 240, `23254,9513,32767,0` on 115. `32767` is the largest positive `s16`, which suggests a sentinel.
+
+#### A trailing record is a piece of ground
+
+> **EU only.** Code addresses are the USA release's, from the [dqix-decomp](https://github.com/DQIX/dqix-decomp); the files were read on the European release (`YDQP`) and are not yet checked on the US one (`YDQE`).
+
+Read from the game's code on 29 September 2026. A record says what the ground under a triangle is, and the triangle picks its record by the top seven bits of its attribute word (INFERRED, below).
+
+**A record's first halfword holds three five-bit digits**, `a`, `b` and `c`, and the code reads them as a map id:
+
+| read by | as | on |
+|---|---|---|
+| `func_0204bd7c` | **30000 + 100a + 10b + c**: the [battle stage](Battle-Stages) fought on that ground | ordinary maps |
+| `func_0204bef4` | **20000 + 100a + 10b + c**: the field region below | the sky, `O01A0000.col2` (see [Starflight Express](Starflight-Express)) |
+
+On the sky, **bits 5 to 9 of the second halfword say whether the Express may land** (`func_0204bedc`). The field's encounter code in overlay 17 takes the record under the encounter and hands its stage to the battle request (`func_ov017_021b848c`).
+
+Some collisions, with their records read as stages:
+
+| collision | its records, as stages (triangles) |
+|---|---|
+| `F01A0000`, Angel Falls Region | 30116 "F01 - Field" (714), 30117 "F01 - Forest" (112) |
+| `F03A0000`, Zere Region | 30105 Field (301), 30106 Forest (24), 30107 Barley Field (1), 30108 Poison Swamp (21) |
+| `F02A0000`, Western Stornway | 30103 (698), 30112 Forest (37), 30113 Field (115) |
+| `D01A0100`–`0400`, the Hexagon | 30214 "D01 - Inside" |
+| `D01A05E2`, Hexagoon's piece | 30215 "D01 - Hexagoon" |
+
+The sky's 57 records are 56 regions, 20001 to 20063, and one all zero, the sea.
+
+What the third and fourth halfwords hold, and the second's other bits, is not established.
+
+## The attribute word
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`). Code addresses are the USA release's, from the decomp.
+
+**It is not a terrain type**, or not in any form found. The opening village's **82** non-vertical triangles carry **51 distinct** attribute values, nearly one per triangle. The values read as packed orderings (`0x543210` and its permutations) rather than surface flags, and the same values appear on marker volumes and on terrain alike. Water is identifiable, but from the texture name, not from collision (see [Map-Textures](Map-Textures#what-a-texture-is-called)).
+
+**The top seven bits index a trailing record: INFERRED.** On the sky's collision, `O01A0000.col2`, all 799 triangles have an even top byte, which halved runs 0 to 56, and all 57 trailing records are used. The Starflight Express's code takes the index from the collision query `func_02017d90`, and keeps the record under it (overlay 17, `func_ov017_02193dc4`). The game's code reads ordinary maps' trailing records the same way, as battle stages (above). What the lower bits are is not established.
+
+## Volume meshes
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+**INFERRED: some collision meshes are volumes, not ground.** A map's collision arrives as several meshes (see [Map-Objects](Map-Objects)). **335 of the 358** meshes of two triangles or fewer have no standable surface at all: each is a single quad standing vertically. The opening village has thirteen meshes, and eleven are such quads: one across each of its ten doorways, and a four-by-six quad 2.5 units tall in the middle of the map. All are taller than any building there, and all are invisible.
+
+Treated as walls, they seal every doorway: walkable ground reachable from the village's middle drops from **61% to 24%**, and its largest connected region from 93% to 24%. They hold no standable surface, so no ground is lost by passing through them. The door collisions among them are described on [Doors](Doors).
+
+What they are is not established. The shape is the only signal found.
 
 ## Scale: a mesh is stored halved `shift` times
 
@@ -118,6 +165,20 @@ A field's drawn terrain is a grid of tile models named `F01M<row><col>00`: rows 
 
 Other files ruled out as field ground: `.bats` attribute tables are 736–1,072 bytes of what read as colour and lighting settings, four to seven records deep, with no grid in them; `.dat` files are 48 to 64 bytes. Only 13 of the 1,178 `.col2` sit in an archive whose name they do not match, and they look like development leftovers.
 
+## Maps with no collision
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+**196 of the cartridge's 669 maps have no collision mesh**, and nothing on the cartridge leads to any of them. 237 of the 669 have nothing leading to them, which is what a cartridge of assembled pieces looks like.
+
+- **174 are the whole `B` family**: the [battle stages](Battle-Stages), with no doorway, cast or trigger. `B01M16`, "F01 - Field", is one model of 457 triangles and no collision.
+- **The other 22 include the roots of `X01` and `X05`**, the Observatory, labelled "All Events" in the [map list](Map-List). Their sub-maps have collision. `X03`, labelled the same, has a collision mesh.
+- They also include `F34M01`, whose archive holds no collision file, while `F34`'s holds 66 KB of it for the whole field.
+
+Whether each of the 196 is meant to have none is not established. None is reachable, and none has a cast.
+
+A map whose archive holds two manifests needs the right one before its collision is found: see [Map-Objects](Map-Objects#more-than-one-manifest-in-an-archive).
+
 ## Doorway spaces
 
 The three things a doorway stores are in **three different spaces**:
@@ -164,9 +225,11 @@ A trigger is about half again the size of its own door, indoors and out. Left at
 ## Not established
 
 - `unknown_0x1a` in the header.
-- The triangle attribute word. Its values look like packed nibbles (`0x21`, `0x24`, `0x51`, `0x221` in the high half; `0x213`, `0x3210`, `0x513` in the low), and terrain kind is very likely among them, which is what a walkable/water/marsh distinction would need. Reading it means watching what the game does with it.
+- The triangle attribute word below its top seven bits. Its values look like packed nibbles (`0x21`, `0x24`, `0x51`, `0x221` in the high half; `0x213`, `0x3210`, `0x513` in the low). **EU only:** it is not a terrain type in any form found (see [The attribute word](#the-attribute-word)).
+- **EU only:** that a triangle's top seven bits index its trailing record. INFERRED from the sky's collision, where all 57 records are used; settling it means landing the Starflight Express over a few regions and seeing where it lands.
 - Where grid cell (0, 0) sits, and so how to look a position up in the grid.
-- The trailing records.
+- **EU only:** the trailing records' third and fourth halfwords, and the second's bits outside 5–9.
+- **EU only:** what the vertical two-triangle volume meshes are.
 - `shift` as a scale is INFERRED, not confirmed.
 - For the 11 field doorways without floor under them, where they stand relative to the ground.
 
@@ -177,3 +240,5 @@ A trigger is about half again the size of its own door, indoors and out. Left at
 - [NSBMD](NSBMD): models and `upScale`
 - [Doors](Doors): the doorway table
 - [Map-List](Map-List): indoor/outdoor flag
+- [Battle-Stages](Battle-Stages): the stages a trailing record names
+- [Starflight-Express](Starflight-Express): the sky's collision and its regions

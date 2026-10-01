@@ -15,6 +15,8 @@ How a made character's skin, eyes and brows are coloured: fresh colours written 
 | `0x68` | `0x02099c34` | `0x02109a30` | 8 × 2 | eyes, a pair per colour |
 | `0x69` | `0x02099c90` | `0x02109a50` | 1 | not established |
 
+**Added 1 October 2026, from the USA release's code in the decomp:** the loader is called once, from `main` at `0x02000eac`. It first clears exactly `0x12c` bytes from `0x02109928`, which the six tables fill exactly, and it loads and runs the file under the background loader's global lock.
+
 Colours are BGR555. The skin rows run pale to dark by tone, each ramp light to dark by shade; the eye pairs are greys, browns, red, gold, green, blue and purple.
 
 ## Where they go
@@ -28,6 +30,8 @@ Colours are BGR555. The skin rows run pale to dark by tone, each ramp light to d
 ## The appearance fields
 
 From the same caller: the **skin tone is bits 1–3** of the appearance record's `+0x14` byte, the **eye colour bits 4–7**, and the **hair colour the low four bits of `+0x15`**. Bit 0 of `+0x14` is the sex.
+
+**EU only:** overlay 15 holds a debug viewer whose labels name the appearance's knobs: `[Gender] [Face] [Eye Colour] [Skin Colour] [Hairstyle] [Hair Colour]`, then seven equipment slots, then `[Build]`. Read in the European release's overlay; not yet checked on the US release (`YDQE`).
 
 ## Not established
 

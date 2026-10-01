@@ -4,6 +4,17 @@ GPC2 is a Level-5 archive container (files with the `.gp2` extension, such as `/
 
 All observations were made on the European release (game code `YDQP`). The codecs GPC2 uses are Nintendo's; see [DS-Compression](DS-Compression).
 
+## What the archives hold
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+The cartridge has 1,671 GPC2 archives, 72.6 MiB between them. It is the one genuinely custom container on the cartridge, and it holds the event scripts, the scenario data, the fonts and the bulk of the monster models:
+
+- each event is one archive, `/data/event/ev#####.gp2`, holding its script `ev#####.stb` and its messages in five languages, `ev#####_<lang>.bin` (see [Event-Scripts](Event-Scripts) and [Event-Text](Event-Text));
+- the `.mes` glyph fonts are in `/data/pack/font.gp2` and `/data/pack_lv5/font_lv5.gp2` (see [Bitmap-Font](Bitmap-Font));
+- the monster models are the 601 `NARC`s of `/data/pack_lv5/enemy.gp2`, `<code>.mon` and `<code>_f.mon` (see [Monsters](Monsters));
+- the playable characters' worn parts are in `/data/pack_lv5/chara_pc.gp2` and `chara_pd.gp2` (see [Character-Parts](Character-Parts)).
+
 ## Layout
 
 ### Header

@@ -6,6 +6,8 @@ Cap'n Max Meddlin's service in Dourbridge: mini medals (item 22039) handed in fo
 
 Max is `s083`, cast member 103 in `M08M07` (map 1807). He has no talk file of his own. His [trigger](Triggers) record is `6:103 145:7`: operation `145` opens a facility when the character is talked to, and 7 occurs only on him. INFERRED from the operation's distribution; see [Triggers](Triggers).
 
+**EU only:** the distribution. Operation `145` occurs 58 times on the cartridge, always beside `6` on a character's record, and always where there is a counter — 0, 2 and 3 in Stornway, 2, 5 and 6 at the Quester's Rest — and 7 only on Max. Its numbering is **not** the line-tag facility codes' (see [Items](Items#how-a-tag-opens-a-facility)), where 7 is the Krak Pot. Counted on the European release's trigger files, which are byte for byte the US release's.
+
 ## The tables
 
 Two arrays of `(u16 medals, u16 item)` back to back in overlay 4 — US `0x1c918`, `0x0216fff8` in memory, and `0x1c930`, `0x02170010`:
@@ -16,6 +18,8 @@ Two arrays of `(u16 medals, u16 item)` back to back in overlay 4 — US `0x1c918
 | ten milestones | `cmp r3, #0xa` | 4 thief's key · 8 Mercury's bandana · 13 bunny suit · 18 jolly roger jumper · 25 transparent tights · 32 miracle sword · 40 sacred armour · 50 meteorite bracer · 62 rusty helmet · 80 dragon robe |
 
 Found in another release by shape: six rising pairs, then ten rising pairs ending at 80, each naming an item.
+
+The bounds are at `0x02168440` (`cmp r4, #6`) and `0x021679b4` (`cmp r3, #0xa`). The exchanges' two literals, `0x0216fff8` and `0x0216fffa`, fix the pair layout, and the milestones end with `(0, 0)`. A milestone is the first threshold that *exceeds* the medals handed in.
 
 ## The service
 
@@ -36,7 +40,27 @@ His lines are `str_mdl` (`/data/bin/menu/str_mdl.gp2`, `str_mdl_<lang>.bin`), a 
 
 The eightieth medal's scene is `ev28590`, its own record in map 1807; its lines are `str_mdl` 60–63 again.
 
+### The exchange after eighty
+
+> **EU only.** Code addresses are the USA release's, from the decomp; `str_mdl` is byte for byte the same on the European and US releases.
+
+Read 27 September 2026, the lines each step says:
+
+- **Opening** (`02168074`): after his greeting, 110, with medals held he says 120 and shows the list; with none, 151.
+- **The list** (`021680cc`) is the six exchanges at their prices, titled by line 100.
+- **A choice** (`02168318`) sets `val_3` to its price; with enough held he says 130 and asks, else 132.
+- **Yes** (`02168400`) takes the price through the same hand-over as a milestone, gives the item and says 140, which asks if there is more. **No** says 131. **More** says 141.
+- **Leaving** says 150 and 151 (`02168244`, `02168268`).
+
 ## Not established
 
 - What global sends a visit to the long introduction at 200.
+- **How many medals exist.** The mini medal is item 22039 and nothing in the data counts them; quests award them too.
 - The exact order of lines where a step's handler was not tied to its label: that handing over resumes after a reward while medals are left, and where 21 and 32 fall.
+
+## See also
+
+- [Triggers](Triggers) — operation `145`, which opens his service
+- [Items](Items#how-a-tag-opens-a-facility) — the other facilities, opened by a line's tag
+- [Alchemy](Alchemy) — where these tables were first written up
+- [Tagged data table](Tagged-Data-Table) — `str_mdl`'s shape

@@ -1,6 +1,6 @@
 # Map Objects
 
-A map archive holds a dozen loose files with no index between them. The `.bmdj` beside them is the list: the map-to-model manifest that says which models, collision meshes and animations compose a map, and where some of them are placed. It is an ordinary [Tagged-Data-Table](Tagged-Data-Table). All figures are from the European release (game code YDQP). The resource count, resource records and their string offsets are confirmed on all 755 manifests; three fields of the placement record are established; the remaining placement values, two values of each resource record and the tag that follows each placement record are not.
+A map archive holds a dozen loose files with no index between them. The `.bmdj` beside them is the list: the map-to-model manifest that says which models, collision meshes and animations compose a map, and where some of them are placed. It is an ordinary [Tagged-Data-Table](Tagged-Data-Table). All figures are from the European release (game code YDQP). The resource count, resource records and their string offsets are confirmed on all 755 manifests; five fields of the placement record are established, among them which resource it places; the remaining placement values, two values of each resource record and the tag that follows each placement record are not.
 
 ## Layout
 
@@ -24,23 +24,60 @@ One authored `.imd` compiles to everything it needs, and all the outputs keep it
 
 Some map pieces are authored **at their own origin** and moved into place. The village's ten doorways are ten models each spanning about a unit and a half from the origin; drawn unplaced they stack on top of each other in the middle of the map, with their collision boxes stacked there too.
 
-Fourteen values per record. Three groups are established:
+Fourteen values per record. Five groups are established (**EU only:** values 1 and 2 were read after the other three):
 
 | value | type | meaning |
 |---|---|---|
+| 1 | integer | **EU only:** the placement's instance number: what another placement's value 6 names (below) |
+| 2 | integer | **EU only:** the index of the resource it places (below) |
 | 3, 4, 5 | float | translation |
 | 6 | `u32` | the slot of the resource this one is attached to, or `0xFFFFFFFF` for none |
 | 8, 9, 10 | float | scale. `1, 1, 1` on every resource on the cartridge |
+| 11, 12, 13 | | **EU only:** zero in all 4,242 placement records, so there is no rotation there |
 
-The other values are not read.
+Values count from 1 here; counting from 0, value 1 is `values[0]` and value 2 `values[1]`. **EU only:** the record is otherwise accounted for: the values not in the table, 7 and 14, are zero or integers, and are not read.
 
 **Attachment matters.** A door's collision has no translation of its own: value 6 names the door model's slot (value 1 of that resource's record) and it goes wherever the door goes. Following that link is what puts the wall in the doorway rather than leaving it at the origin while the door moves away. Checked on the village: each of `M01A00D1`..`DA` names the slot of the `M01M00D1`..`DA` beside it, and none carries a translation.
 
 **The unit is the file's own**: the one models are in at their own `upScale` and collision at `2 ** shift` (see [Map-Collision](Map-Collision)). No further divisor applies.
 
-**Placements pair one-to-one with resources only on some manifests.** They match resources by position. 696 of the 755 manifests have exactly one placement per resource; the other 59 carry *more* placements than resources. Pairing positionally through an extra record places every piece after it in the wrong spot, so how those 59 pair is not established.
-
 Other pieces already hold their own world coordinates. On `C01M03` the main geometry, a lamp and a night overlay occupy three distinct, non-overlapping regions of one space, and a field's terrain tiles are each authored in world coordinates (see [Map-Collision](Map-Collision#fields)).
+
+### A placement names its resource
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+**Value 2 of a `0x6F` record is the index of the resource it places, and value 1 is which instance it is.** Placements do not pair with resources by position. The counts differ on 56 of the 755 manifests because **a resource can be placed more than once**. `D03M06` lists two door models and places each twice, a pair of doors at z 12.34 and another at z 17.70, so thirteen placements serve nine resources. Each door's collision is placed twice too, each hanging off one of the door's instances: value 6 names an instance, not a resource.
+
+Pairing by value 2 is checked three ways:
+
+- On `D03M06` the doors take their positions, and their collision follows by the parent link. Positional pairing cannot pair this manifest at all; left unplaced, its doors stand as slabs through the floor at the origin.
+- **It is right where the counts agree, too.** On maps whose counts match, it moves 22 pieces that positional pairing had off by one: doors in `C04M01` and `C04M02` leaving the origin.
+- On `S07M0000`, Gortress (29 resources, 45 placements), it puts six door models and both gates (`S07M00D1`, `D6`, `DB`, `DC`, `DD`, `DE`, `G1`, `G2`) where a fortress's gates belong. Unpaired, they lie at the origin and the fortress can be walked straight through.
+
+Pairing by value 1 instead puts a door's collision on the far side of the room from its door and loses the parent link.
+
+### A resource placed more than once
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+Across the cartridge **81 resources are placed more than once: 144 placements beyond the first, in 45 maps**, every one at a distinct position. Each placement is a piece of its own, with its own collision hanging off its own instance.
+
+- **76 are doors**, `…D1` and `…D2`. Coffinwell's `M03M00D1` is placed five times. The Observatory's doors have 12 placements beyond the first in `X01` and 14 in `X05`.
+- **Four are other repeated pieces**: `D03M06`'s door models, which are named `M0602` and `M0603` rather than `D…`; `D17M03G5`, four gates in a row; and `S07M0612`, three on a diagonal.
+- **One is not several of a thing.** The Hexagon's sliding statue `D01M01S1` is placed at each end of its slide, each end with its own collision (see [Doors](Doors)). It is the only resource so placed whose name is a sliding piece's. Nothing in the manifest marks it apart: its placements and flags are shaped exactly as a door's.
+
+### More than one manifest in an archive
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+Six of the cartridge's 1,348 archives hold more than one `.bmdj`. Only `M12`, Wormwood Creek, is one where it matters: its archive holds `M12M0000.bmdj` with 24 resources and `M12M0001.bmdj` with one. A reader that keeps one manifest per archive, and keeps the second, loses the map's collision.
+
+### A manifest that looks compressed
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+54 map `.bmdj` begin with the word 16, the table header's own size. Read as an LZ10 header, that is `0x10` and a declared size of 0: an empty stream, which decodes to nothing whatever follows. A reader that tries every file as LZ10 first takes them for empty. They are not (see [DS-Compression](DS-Compression)). The Hexagon's `D01M0000` is among the map files that begin so.
 
 ## Evidence
 
@@ -69,18 +106,21 @@ What the resources turn out to be: 2,985 models, 1,133 collision meshes, 702 `.n
 
 This was measured while the village terrain was drawn at an eighth of its size. With models drawn at their own `upScale`, placements need no divisor.
 
+**EU only:** pairing positionally, 56 manifests left 1,010 resources unplaced against 4,332 placed. Pairing by value 2 leaves 4,251 of those 4,332 untouched, moves 22 (above), and pairs 59 with a different record carrying the same position.
+
 ## Earlier readings
 
 - **Placements an order of magnitude too large.** The village's doors sit at x −28.56 and 26.10 while its terrain was then drawn from −4.38 to 7.61. The terrain was being drawn at an eighth of its size (see [NSBMD](NSBMD) for `upScale`), and a divisor of 8 was fitted to the placements (table above). The fit rediscovered the terrain's `upScale`; the placements themselves were right.
+- **Placements paired by position.** Placements were matched to resources by their order, and the manifests whose counts differ were recorded as 59 with more placements than resources, their pairing not established. They are 56, and they pair by value 2, the resource index (see [A placement names its resource](#a-placement-names-its-resource)).
 - **"There is no placement."** An earlier note said a manifest carries no transforms and a map's pieces all hold their own world coordinates, with the `G1` resource (centred on the origin, with a joint animation and a config) as the one exception placed by something other than the manifest. The `0x6F` translation and attachment fields above were read after that note.
 
 ## Not established
 
 - The two unknown values in each `0x6C` record.
-- `0x6F` values other than 3–6 and 8–10.
-- The small tag that follows each `0x6F` record. It is **not** a resource kind: `.nsbmd` and `.col2` alike are followed by `0x3F` most of the time.
-- How `0x6F` records pair with resources on the 59 manifests that carry more placements than resources. The `0x6F` records are numbered in order on only 534 of 755 files.
+- `0x6F` values 7 and 14.
+- The small tag that follows each `0x6F` record. It is **not** a resource kind: `.nsbmd` and `.col2` alike are followed by `0x3F` most of the time. The `0x6F` records are numbered in order on only 534 of 755 files.
 - What places the `G1` resource.
+- **EU only:** which resources placed more than once are one thing at several moments rather than several things. Nothing in the manifest says; on the cartridge the only such case found, the Hexagon's statue, is told apart by its sliding piece's name.
 
 ## See also
 

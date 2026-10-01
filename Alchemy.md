@@ -46,12 +46,12 @@ this wiki.
 | 11 | 0, or 300 on the 22 | **not established** |
 | 12 | 0, or 999 on the ten-per-cent ones and 700 on the twenty | **not established** |
 | 13 | 0 on 131, 1 on 339 | **not established** — shop stock, "is an ingredient elsewhere" and "has a buy price" were each tested and none fits |
-| 14 | the result's item category | **470/470** against `itemsort` |
-| 15 | the result's item subtype | **469/470** — the miss is the leather kilt, a skirt filed under trousers |
+| 14 | the result's item category — **EU only:** and the Alchenomicon's grouping, [below](#the-alchenomicons-own-grouping) | **470/470** against `itemsort` |
+| 15 | the result's item subtype — **EU only:** and the book's By Type headings | **469/470** — the miss is the leather kilt, a skirt filed under trousers |
 | 16 | **the recipe to reach instead** when an alchemiracle works, `−1` for none | 22 set; INFERRED, below |
 | 17 | **the recipe to fall back to**, `−1` for none | 22 set; INFERRED, below |
-| 18 | a display rank, 1–471, by equipment slot — the Alchenomicon's order | |
-| 19 | a display rank, 1–471, **alphabetical by the result's name** | rises with `itemsort`'s own alphabetical rank at **469/469** steps |
+| 18 | a display rank, 1–471, by equipment slot — **EU only:** the Alchenomicon's **By Type** sort | |
+| 19 | a display rank, 1–471, **alphabetical by the result's name** — **EU only:** the book's **By Name** sort | rises with `itemsort`'s own alphabetical rank at **469/469** steps |
 
 **At most three ingredients**, at least one, and the empty slots are always a
 suffix — checked on all 470. 331 recipes use three, 135 two, 4 one.
@@ -94,6 +94,41 @@ hypernova sword at 10 and points back at #17.
 
 **How the game draws that roll is not found.**
 
+## The pot is spoken to
+
+> **EU only.** Read on the European release (`YDQP`); the code addresses are the USA release's, from the decomp. Not yet checked on the US release's files (`YDQE`).
+
+Read 25 September 2026. **The Krak Pot is a facility, opened by a tag at the end of a talk line**, as the shop, the inn and the church are. `<RENKIN>` compiles to facility code 7, and the talk service's switch at `0x0206f6cc` sends code 7 to `0x021b146c`; see [Items](Items#how-a-tag-opens-a-facility). The tag is bare — there is one pot, so it selects nothing — and it appears both as a line of its own and as a suffix after `<END>`.
+
+**The pot is in the Quester's Rest at Stornway**, `R01M01`, "Stornway, Lobby Interior 1" in the map index. Its own line: "I am in tip-top shape, I assure you. Mentally and physically. A pot I may be, but I am in no way potty!"
+
+**Its interface is in `bm_rrb`**: **Use A Recipe** ("Pick a recipe from the Alchenomicon and get kraking"), **Try Your Luck** ("Take pot luck with your own pick of ingredients"), Cancel, and "How many?".
+
+**The Alchenomicon is a second way in.** The pot says so when it hands the book over — "The Alchenomicon is now accessible from the battle records menu." — and the code agrees: Battle Records (service 41) begins service 43, the alchemy overlay.
+
+## The Alchenomicon's own grouping
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+Read 25 September 2026. `bm_rrb` is a `0x67` table of 48 labels, the same shape as `sta_skl` (see [Skill panels](Skill-Panels#where-the-words-are)). Besides the pot's menu, it names the recipe book's grouping, and **recipe values 14, 15, 18 and 19 are that grouping** — not only the cross-check against `itemsort` they were first read as.
+
+The book groups by category:
+
+| the book's category | [`itemsort`](Item-Kinds) categories | recipes |
+|---|---|---|
+| All Recipes | all | 470 |
+| Weapons | 0 | 185 |
+| Armour | 1–6 | 224 |
+| Accessories | 7 | 30 |
+| Items | 8, 9 | 31 |
+| ??? | none | **0** |
+
+Then eighteen **By Type** headings: the twelve weapon types — Swords, Spears, Knives, Wands, Whips, Staves, Claws, Fans, Axes, Hammers, Boomerangs, Bows — then Shields, Head, Torso, Arms, Legs and Feet. They cover Weapons and Armour and nothing else, because Accessories and Items have no sub-kinds: a recipe has exactly one heading if it is in one of those two categories, and none if it is not.
+
+Each list sorts by one of two buttons, **By Type** (value 18) or **By Name** (value 19).
+
+Every one of the 470 recipes falls in exactly one category with **none left over**, which is what makes this the book's grouping rather than a plausible arrangement. **What `???` is for is not established**: nothing on the cartridge lands in it.
+
 ## Where a recipe book is found is not read
 
 Recipes are world objects and quest rewards, not items: **no item in any of the
@@ -102,38 +137,24 @@ skill books and nothing like a recipe book. A published guide's "where found"
 column names bookcases, rooms and quest numbers, so the mapping — if it is a
 table at all — is in the scenario scripts, and it was not found.
 
-## Mini medals
+## Not established
 
-Not in any data file. **Two arrays in overlay 4**, each `(u16 medals, u16 item)`.
+- How the game draws the alchemiracle roll.
+- Values 8 and 10 to 13.
+- Where a recipe book is found.
+- **EU only:** how **Try Your Luck** matches what goes in to a recipe. The game's own matching was not found. `str_ren` 11 suggests that only a recipe's exact ingredients, counts and all, make it; that is a reading of the line, not of the code.
+- **EU only:** what the book's `???` category is for.
 
-**Ten milestones**, USA `0x02170010`, terminated `(0,0)`, bounded by
-`0x021679b4: cmp r3, #0xa`, taking the first threshold that *exceeds* the
-medals handed in:
+## Earlier readings
 
-| medals | reward | medals | reward |
-|---|---|---|---|
-| 4 | thief's key | 32 | miracle sword |
-| 8 | Mercury's bandana | 40 | sacred armour |
-| 13 | bunny suit | 50 | meteorite bracer |
-| 18 | jolly roger jumper | 62 | rusty helmet |
-| 25 | transparent tights | 80 | dragon robe |
-
-**Six repeatable**, USA `0x0216fff8`, bounded by `0x02168440: cmp r4, #6`, its
-two literals `0x0216fff8` and `0x0216fffa` fixing the pair layout: 3 prayer
-ring · 5 elfin elixir · 8 saint's ashes · 10 reset stone · 15 orichalcum ·
-20 pixie boots.
-
-Which array is which is **INFERRED** from `str_mdl`: id 40 "For `<val_3>`
-medals, ye get …" is the milestone line, and 60 "From now on, ye can pick for
-yerself the booty" with 130 "That'll cost ye `<val_3>` mini medals" is the
-after-eighty shop.
-
-**How many medals exist is not found.** The mini medal is item 22039 and
-nothing in the data counts them; quests award them too.
+- This page carried the [mini medal](Mini-Medals) tables, with which array is the milestones and which the exchange **INFERRED** from `str_mdl`'s lines. Overlay 4's code has since been read, which settles it; the tables and the service are on their own page now.
+- Values 14, 15, 18 and 19 were read as a cross-check and "two display ranks". They are the Alchenomicon's own grouping and its two sort buttons; see [above](#the-alchenomicons-own-grouping).
 
 ## See also
 
 - [The recipes themselves](Alchemy-Recipes) — all 470, with their ingredients
 - [Items](Items) — the item tables the ingredients and results are in
 - [Tagged data table](Tagged-Data-Table)
-- [System strings](System-Strings) — `str_ren`, the pot's words; `str_mdl`, the medal man's
+- [System strings](System-Strings) — `str_ren`, the pot's words
+- [Mini medals](Mini-Medals) — Cap'n Max's tables and service, once on this page
+- [Party](Party) — Patty, who shares the pot's room

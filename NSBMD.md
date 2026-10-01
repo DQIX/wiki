@@ -1,13 +1,13 @@
 # NSBMD
 
-NSBMD is Nintendo's 3D model container (`BMD0`), with its companions NSBTX for textures (`BTX0`) and NSBCA for joint animation (`BCA0`). On the Dragon Quest IX cartridge they are found, LZ77-compressed, inside NARC archives, most of them under `/data/map`. The model header, resource dictionaries, bones, render commands, the geometry display list, textures, material bindings and joint animation are confirmed against every model and animation on the cartridge. Not established: several header bytes, two shape words, the node-transform `0x40` flag's parameter, what the header's bounding box describes, the wider animation step codes, and the texture, pattern and material animation containers (NSBTA, NSBTP, NSBMA), which are not documented here beyond their stamps.
+NSBMD is Nintendo's 3D model container (`BMD0`), with its companions NSBTX for textures (`BTX0`) and NSBCA for joint animation (`BCA0`). On the Dragon Quest IX cartridge they are found, LZ77-compressed, inside NARC archives, most of them under `/data/map`. The model header, resource dictionaries, bones, render commands, the geometry display list, textures, material bindings and joint animation are confirmed against every model and animation on the cartridge. Not established: several header bytes, two shape words, the node-transform `0x40` flag's parameter, what the header's bounding box describes, the wider animation step codes, and the pattern animation container (NSBTP), which is not documented here beyond its stamp. Texture and material animation (NSBTA, NSBMA) have a page of their own: [NSBTA and NSBMA](NSBTA-and-NSBMA).
 
 All observations were made on the European release (game code `YDQP`).
 
 ## Sources
 
 - Nintendo DS file formats wiki: *NSBMD*, *NSBTX*, and for the animation containers, *NSBCA*, *NSBTA*, *NSBTP*, *NSBMA*
-- GBATEK, [DS 3D Video](https://problemkaputt.de/gbatek.htm#ds3dvideo), for the geometry commands and their parameter counts
+- GBATEK, [DS 3D Video](https://problemkaputt.de/gbatek.htm#ds3dvideo), for the geometry commands and their parameter counts; "DS 3D Polygon Attributes" for a material's `POLYGON_ATTR` word
 - apicula, [`src/nitro/render_cmds.rs`](https://github.com/scurest/apicula), for the render commands' scale up (`0x0B`) and scale down (`0x2B`)
 
 ## The six containers
@@ -19,13 +19,15 @@ Every Nitro 3D container on the cartridge is the same shape — a four-byte stam
 | `.nsbmd` | `BMD0` | `MDL0` | 4,358 | yes |
 | `.nsbtx` | `BTX0` | `TEX0` | 737 | yes |
 | `.nsbca` | `BCA0` | `JNT0` | 317 | yes |
-| `.nsbta` | `BTA0` | `SRT0` | 873 | **no** |
+| `.nsbta` | `BTA0` | `SRT0` | 873 | on [NSBTA and NSBMA](NSBTA-and-NSBMA) |
 | `.nsbtp` | `BTP0` | `PAT0` | 525 | **no** |
-| `.nsbma` | `BMA0` | `MAT0` | 512 | **no** |
+| `.nsbma` | `BMA0` | `MAT0` | 512 | on [NSBTA and NSBMA](NSBTA-and-NSBMA) |
 
 The 12 `.nsbmd` files that carry a second block carry `TEX0`: a model with its textures packed in beside it.
 
-The three undocumented kinds are animation, as the block stamps say: `SRT0` a texture's scale/rotate/translate over time, `PAT0` a texture pattern swapped frame by frame, `MAT0` a material's own values animated. Those readings are the published ones, not anything measured on this cartridge; what is measured is the stamp, the single block and the counts.
+The three other kinds are animation, as the block stamps say: `SRT0` a texture's scale/rotate/translate over time, `PAT0` a texture pattern swapped frame by frame, `MAT0` a material's own values animated. For `PAT0` those readings are the published ones, not anything measured on this cartridge; what is measured is the stamp, the single block and the counts.
+
+**EU only:** `SRT0` and `MAT0` have since been read from the game's own code and checked on every file of the two kinds on the cartridge — see [NSBTA and NSBMA](NSBTA-and-NSBMA).
 
 **They matter more than their size suggests.** 1,910 of them sit in map archives, against 4,358 models — roughly one animated thing for every two models. A map drawn without its `SRT0` looks static: water, fire, and anything that scrolls or pulses.
 
@@ -182,6 +184,16 @@ Together with the inverse bind matrices and the position scale, every genuinely 
 
 *Genuinely* blended has to be judged per shape. A slot holding a blend when one shape is drawn often holds a plain node's transform by the time the next one is. Counting every slot that is a blend destination somewhere makes correct output look wrong: on `s107` that reads a 113-unit error into vertices whose slot had been reused.
 
+### A node description sets the current matrix
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+A node-transform command computes that node's world transform, and its flag bits say which stack slot to *store* it in. It also makes that matrix **the current one**, whether or not it stores it. The stored slot and the slot the next shape's vertices read are different things: only a restore command (`0x03`) changes the latter.
+
+Read only the stored matrices, and every shape under a node that does not store draws at the model's own origin. In the opening village, `M01M00L1` has a node `rai` carrying a translation of (12.50, 1.50, −18.71); read that way, its shape — the rainbow — sits on the ground at the map's origin.
+
+The opposite mistake is as easy. Moving the slot the next shape *reads* whenever a node stores puts a model's tree billboards in one pile: the twelve flat quads of `M01M0003`, one per `tre` node, then all read slot 0 while their own matrices were written to another. With the current matrix set by node descriptions and restores, and the read slot moved only by a restore, they stand on their node positions, within 0.08 units of the ground under them.
+
 ## Shape
 
 | offset | size | type | meaning |
@@ -297,6 +309,26 @@ The material section opens with two `u16` offsets — to a texture-name dictiona
 A texture-name dictionary entry is a `u16` offset and a `u8` count naming a run of `u8` material indices, packed just before the material records and relative to the material section start. Palettes are bound the same way.
 
 That is exact, and it is self-consistent in two ways that a wrong reading would break: every index named is a real material — **8,804 of 8,804 models** — and no material is claimed by two different textures, on all 8,804. **52,380 of 52,512 materials** are claimed by some texture.
+
+### A material's colour and alpha
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+A material's record begins **four bytes before** where its dictionary entry's offset lands. At `+0x08` is its `diffAmb` word: the diffuse colour, BGR555, in the low fifteen bits, and in bit 15 the hardware's flag to take the vertex colour from the diffuse rather than from the display list. The polygon is drawn in that colour, modulated by its texture, which is why a white texture can come out black: the round shadow under a character is a white blob whose material's diffuse is black. The offset is settled on the cartridge: across 47,953 materials the low fifteen bits are pure white on 47,871, black on 8 and another colour on 74, and bit 15 is set on all of them. Shifted on by four or eight bytes, the reading collapses: `+0x0C` is `specEmi`, zero on 47,919, and `+0x10` is never a plausible colour.
+
+The word at `+0x10`, eight bytes after `diffAmb`, is the hardware's `POLYGON_ATTR` register, which the material's display list loads. GBATEK, "DS 3D Polygon Attributes", documents it: bits 16–20 are the polygon's **alpha** — 31 solid, 1 to 30 see-through, and **0 a wireframe**.
+
+Across the cartridge's 8,804 models, measured 29 September 2026:
+
+| alpha | materials |
+|---|---|
+| 31 | 34,161 |
+| 1–30 | 5,320, 2,967 of them at 28–30 |
+| 0 | 13,031, most of them in the battle effects (`eb*.chr`) |
+
+The witness is that what reads see-through is see-through. A battle stage's fog, `B01M16L2` and `L3`, is 11 and 14; its sky 28, over the gradient its lighting draws behind it (see [Battle-Stages](Battle-Stages)); the paths and grass laid over a field's ground 28 to 30. That the effects' zeros are drawn as wireframes is what GBATEK says; it has not been looked at.
+
+A [material animation](NSBTA-and-NSBMA) writes its alpha into these same bits.
 
 ## NSBCA — joint animation
 
@@ -446,6 +478,7 @@ The vertex-count and triangle-count checks are independent, and both compare dec
 - **Rotation cells read row by row.** Both readings pass orthonormality and the animation-against-bind-pose check; a posed character standing at its built height settles it (see above).
 - **The texture from the material's name.** Stripping a `Mat_` or `M_` prefix and a trailing `_\d*` from the material name resolves only **41%** of bindings, and the failures are not edge cases: a material is as likely to be called `Material3166` and bind `eb0000_3`, or `a1_flash1` and bind `kaisin_1`. Reading the run instead takes the shapes that can be drawn with their own texture from 41% to **99.3%**.
 - **Rotation checks on constants only.** These miss both basis-pool failure modes; the curve samples exercise far more of the pools.
+- **EU only:** **Only stored node matrices.** Shapes under a node that does not store drew at the model's origin — the opening village's rainbow on the ground. Then **moving the read slot whenever a node stores** piled `M01M0003`'s twelve tree billboards at the origin. See [A node description sets the current matrix](#a-node-description-sets-the-current-matrix).
 
 ## Not established
 
@@ -456,15 +489,17 @@ The vertex-count and triangle-count checks are independent, and both compare dec
 - **The `0x40` flag's parameter on node-transform commands.** Skinning reproduces the bind pose to within a rounding without it.
 - **4x4 block compression** does not occur on the cartridge, so its reading is unverified here.
 - **`NORMAL` data and the material's texture coordinate-transform mode** have not been examined.
+- **EU only:** **The rest of a material's `POLYGON_ATTR` word** beyond its alpha (bits 16–20), and whether an alpha of 0 really draws the battle effects as wireframes, as GBATEK says.
 - **The step codes.** Bits 14–15 of a curve header's second word take the values 0, 1 and 2 and are read as a frame step of 1, 2 and 4. Only step 1 is confirmed. The wider steps cover about 1% of curves. The sample count for them, `floor(frames / step) + 1`, is INFERRED from their layout not overlapping, and it never over-reads.
 - **NSBCA `unknown_0x08`.** A `u32` that is 1 on most animations.
 - **The byte at `+0x02` of a track entry.** Always zero.
-- **NSBTA (`SRT0`), NSBTP (`PAT0`) and NSBMA (`MAT0`).** 1,910 files in the map archives; not documented here.
+- **NSBTP (`PAT0`).** 525 files in the map archives; not documented here. NSBTA and NSBMA are on [their own page](NSBTA-and-NSBMA).
 
 ## See also
 
 - [NitroFS](NitroFS) — the NARC archives these files live in
 - [DS-Compression](DS-Compression) — the LZ77 compression on the NARC members
+- [NSBTA-and-NSBMA](NSBTA-and-NSBMA) — texture and material animation
 - [2D-Graphics](2D-Graphics) — the 2D palette, character and cell formats
-- [Map-Archive](Map-Archive) · [Map-Textures](Map-Textures) · [Doors](Doors)
+- [Map-Archive](Map-Archive) · [Map-Textures](Map-Textures) · [Doors](Doors) · [Battle-Stages](Battle-Stages)
 - [Character-Parts](Character-Parts) · [Motion-Tables](Motion-Tables)

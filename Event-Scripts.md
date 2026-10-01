@@ -1,6 +1,6 @@
 # Event Scripts (`.stb`, magic `SB2`)
 
-`.stb` files are compiled scripts for a stack machine. Each event has one, next to its text (see [Event-Text](Event-Text)). A file has a header, a table of sections, and a shared library block. Every section is a routine of three-word instructions. The container, the routine header and every opcode used by the event scripts have been read, and each opcode's evidence is given below. The engine functions scripts call are mostly **not established**; a few readings are **INFERRED**.
+`.stb` files are compiled scripts for a stack machine. Each event has one, next to its text (see [Event-Text](Event-Text)). A file has a header, a table of sections, and a shared library block. Every section is a routine of three-word instructions. The container, the routine header and every opcode used by the event scripts have been read, and each opcode's evidence is given below. **EU only:** most of the engine functions scripts call have since been read from the game's code, on [Engine functions](Engine-Functions). Four have no reading at all, and some readings are still only **INFERRED** from their arguments.
 
 Nothing about this format is published. Everything here was read from the scripts themselves. All counts are from the European release (game code YDQP).
 
@@ -53,7 +53,7 @@ What a script does carry as strings:
 - fades (`EFADE`)
 - in some scripts, its own name in brackets
 
-Which event runs when is decided elsewhere. See [Triggers](Triggers).
+Which event runs when is decided elsewhere. See [Triggers](Triggers). **EU only:** which map a scene plays in, and which script file is the scene's, are in the [event lists](Event-Lists).
 
 ## The code
 
@@ -74,6 +74,8 @@ Which event runs when is decided elsewhere. See [Triggers](Triggers).
 **The entry address is what identifies a routine.** With the usual three sections, the code base is `0x58`, so the entry word first read as "own offset minus `0x20`". But `ev03130`, the one event with six sections, has its code base at `0x70`. It would not parse until the rule was taken to be the entry address.
 
 **The parameter count is confirmed by the shared routines' bodies.** Each one reads exactly its first *parameters* locals as inputs. The message routine at `+0xDE4` reads 2 of its 3 locals as inputs. The wait routine at `+0x0` reads 1 of 1.
+
+**EU only:** a routine with nothing to answer ends `push 0`, then `0x0F`.
 
 ### Instructions
 
@@ -115,6 +117,8 @@ The second folder also has `0x1D` and `0x1E`, twice each, and only in `ev29350`:
 
 These look like the two coordinates of a point on a circle: one a cosine and the other a sine. Which is which is not settled, and neither opcode has been read.
 
+**EU only:** this matters for the ending. `ev29300` is what winning the last set battle plays, before trigger operation `148` sets every story thread to 19.2, so it is **INFERRED** to be the ending and its credits. Until `0x1E` is read, the eight scripts from `ev29300` to `ev29350` cannot be run (see [Triggers](Triggers) for `148`).
+
 ### Strings
 
 **A string's offset counts from the code base**, just like jumps and routine calls. The 523 event scripts contain 9,273 string pushes:
@@ -134,7 +138,7 @@ These look like the two coordinates of a point on a circle: one a cosine and the
 
 **Engine functions are numbered in hundreds, and scripts write the number as a sum.** For example, `200 9 add` is function 209. With `add` read as a real add, **every invoke finds its `n` values**.
 
-**What the numbers reach has since been read from the code** — the table they index, and about twenty of the functions themselves. That is [Engine functions](Engine-Functions); the readings below are the older ones, taken from the arguments each function is handed, and are **INFERRED** where that page does not say otherwise.
+**What the numbers reach has since been read from the code** — the table they index, and most of the functions themselves. That is [Engine functions](Engine-Functions); the readings below are the older ones, taken from the arguments each function is handed, and are **INFERRED** where that page does not say otherwise.
 
 The hundreds group what the functions work on:
 
@@ -150,24 +154,60 @@ The hundreds group what the functions work on:
 
 - **302 is where the camera is.** Within a shot, 302 and 303 give the same yaw, rise and distance that 310 does. They agree on **1,024 of 1,032** shots in the second folder, and on 9 of 14 in the first. This holds **when the distance is the straight line from target to eye**.
 - **304 moves both the camera and the target.** Its arguments are the camera, then the target, then the frame count. Its camera and target agree with the 311 call beside it (yaw, rise, distance, frames) on 506 of 511.
-- **321 moves where the camera looks over a number of frames.** This is read from its shape alone: a point and a count, like 304's. There is no other call for it to agree with.
+- **321 moves where the camera looks over a number of frames.** This is read from its shape alone: a point and a count, like 304's. There is no other call for it to agree with. **EU only:** the code has since been read. 321 aims the camera at a point, keeping the camera's own distance and angle. See [Engine functions](Engine-Functions).
 
 **The second event folder waits its own way (INFERRED).** Each of its 164 scripts has one wait routine of 27 instructions. The routine doubles the frames asked for. Then, each frame, it calls function 840 with a reference, and takes what 840 wrote off the count. The first folder's wait takes 1 off instead. Function 840 is called nowhere else, in either folder.
 
 The two folders ask for waits of the same sizes. The commonest are 1, 10, 5, 30, 20 and 15 in both. The medians are 10 and 12, over 7,714 and 5,182 waits. So 840 reads as the frame's length in half-frames, and the game answers 2.
 
+**EU only:** the first folder's shared block also holds a wait against 840, at `+0x104`. No event calls it.
+
+### More readings from the arguments (INFERRED)
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+These come from running every event and looking at what each function is handed and where it stands. Some are backed by a recorded play-through of the game. None is read from the code; where the code has since been read, [Engine functions](Engine-Functions) says so.
+
+| fn | calls | reading |
+|---|---|---|
+| 204 | 78,948, in 7 events | whether character N is still walking or turning. It is polled |
+| 208 | 1,526, in 413 events | sets character N's rotation: x, y and z, in radians. The y is the facing |
+| 210, 224 | 3,580; 451 | **bit 1 of 210's flags plays the motion once.** A `224` follows at once 1,471 of the 2,534 calls with the bit set, and 21 of the 4,345 without it. `224` names the motion to go on to when one played once ends: `talk` → `stand`, `miage_in` → `miage_loop`, `ud_out` → `stand`. Bits 16 and 4 of the flags are not read |
+| 219 | 950 | how much of character N shows, at once, from 0 to 31. The DS's polygon alpha is 5 bits. Of 998 calls, all but three hand a whole number from 0 to 31, and 0 and 31 are the commonest. The other three hand 255 |
+| 220 | | fades character N to that much over n frames. All 313 targets are whole numbers from 0 to 31. After `219(N, 0)`, 72 go to 31 and 39 to 0. A recorded play-through shows the Hexagon's figure fading in on `ev02500` (`219(1, 1)`, then `220(1, 31, 90)`) and out on `ev02520` (`220(1, 0, 60)`). Nine calls give no frame count |
+| 221 | | turns character N to face character M over n frames, the short way. Of 45 calls in 49 Angel Falls events, the two are never the same character. Of the 22 that find both placed, 17 find N facing elsewhere. The fourth value, 0 or 1 or missing, is not read |
+| 300 | 1,016, in 477 events | first in a scene, before 303 and 310. Not established |
+| 560 | 252, in 112 events | **whether the scene carries straight on from a conversation.** Answered with 1, 100 of the 118 scenes that ask skip their opening fade (`101(16)`), and run `121(1)` in its place. 89 of those 100 are begun by talking or examining (trigger record kinds 0 and 1). A recorded play-through shows `ev02500` and `ev02520`, both begun so, not fading in. In about 20 scenes its answer also chooses between messages |
+| 566 | 2,303, in 522 events | what each character is, in section 200, by its first value. **2**: a model file for character N (`chara_sub/s016.chr`). **5**: one of the map's cast, by its placement id — of 217 such numbers in events whose own record names their map, 186 are in that map's cast ([Area cast](Area-Cast)). `ev02510`'s `566(5, 204, 1)` makes character 1 the Hexagon's figure, which its four `207`s lead to the statue room, as a recorded play-through shows. **3**: a sprite sheet — all 203 name a `.spr` file, and `n012g.spr` is the figure fading in on `ev02500`. **6** names a monster file. 0 and 1 take two values and are not read |
+| 570 | 111,451, in 517 events | polled. What it answers is not established |
+| 595 | 501, in 501 events | called once per event, in section 300. Not established |
+
+`101` and `121` were also read this way, as fading the screen to black and back over n frames. Both are now read from the code: see [Engine functions](Engine-Functions).
+
 ### The shared block
 
-**The shared block is a library of 18 routines**, with the same bytes in 522 of the 523 events.
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
 
-| routine | what it does | calls |
-|---|---|---|
-| `+0x0` | wait a number of frames | 6,982 |
-| `+0xDE4` | show a message and wait for it to be read, handing a second value to function 554 | 2,352 |
-| `+0xC68` | the same, without the second value | 898 |
-| `+0x9FC` | choose between two messages by what function 560 answers | 26 |
+**The shared block is a library of 18 routines**, with the same bytes in 522 of the 523 events. Offsets are from the code base. What each routine calls is read; what that amounts to is **INFERRED** from those calls. Call counts are over every event, where they were counted.
 
-The rest wait for a fade, a sound or a character's walk to finish, and a few handle motions.
+| routine | parameters | what it does | calls |
+|---|---|---|---|
+| `+0x0` | 1 | wait a number of frames | 6,982 |
+| `+0x104` | 1 | a wait against function 840. No event calls it | 0 |
+| `+0x28C` | 0 | wait while `507` answers 1 | |
+| `+0x3C0` | 1 | call `213`, then wait on `234` | |
+| `+0x548`, `+0x5E0` | 1 | wait, then wait for the fade | |
+| `+0x678` | 0 | wait while `725` says a sound is playing | |
+| `+0x7AC` | 1 | play a sound with `720`, wait for it, then call `724` | 19 |
+| `+0x88C` | 2 | call `813`, then wait on `814` | |
+| `+0x9FC` | 3 | choose between two messages by what function 560 answers, hand function 554 the third value, and wait | 26 |
+| `+0xC68` | 1 | show a message with `400`, and wait on `405` | 898 |
+| `+0xDE4` | 2 | show a message with `400`, hand function 554 the second value, and wait on `405` | 2,352 |
+| `+0xF9C` | 2 | wait while `204` says character N is moving | |
+| `+0x10C4`, `+0x11F8`, `+0x1374` | 2–3 | helpers over `202`, `203` and `205` | |
+| `+0x14A8` | 0 | return 0 | |
+
+The routine at `+0x28C` was first read as waiting for a fade. `507` has since been read from the code as the background loader's "still loading" answer; see [Engine functions](Engine-Functions).
 
 ### Section order
 
@@ -184,6 +224,7 @@ The scripts were run in that order against a stand-in engine that answers every 
 - **String offsets counted from the file's start.** Counted this way, only 283 string pushes land on a string at all, and those by chance (`walk` where `stand` belongs, `head` for `kiki`). The rest read as the tail of a name (`tand`, `ara_sub/s011.chr`) or as nothing. Counting from the code base fixed this.
 - **Entry address as "own offset minus `0x20`".** This works only when the code base is `0x58`, and fails on `ev03130` (see [Routines](#routines)).
 - **`add` as a "begin call" marker.** The `add` that builds an engine function's number was first taken for a marker. 98% of invokes fitted that reading. Read as a real add, all of them fit.
+- **The shared block's waits.** The routines were first summarised as waiting "for a fade, a sound or a character's walk". The full table above gives what each one calls.
 - **Camera distance across the ground.** Read as the distance across the ground, 302/303 and 310 agree on only 539 shots. Read as the straight-line distance, they agree on 1,024 of 1,032.
 
 ## Not established
@@ -194,14 +235,18 @@ The scripts were run in that order against a stand-in engine that answers every 
 - The meaning of `0x1D` and `0x1E`, including which is the cosine and which the sine.
 - What integer division does.
 - The ordered comparisons 42–45, beyond the **INFERRED** C order.
-- Most engine functions: about 126 numbers the scripts call are still unread. Twenty or so are read from the code — see [Engine functions](Engine-Functions) — and the rest of the readings above are **INFERRED**.
-- Which section runs when.
+- **EU only:** four numbers the scripts call have no reading at all: 837, 839, 843 and 844. Most of the rest are read from the code — see [Engine functions](Engine-Functions) — and the readings above that it does not cover are **INFERRED**.
+- Which section runs when, and whether 300 runs after 100 or beside it.
+- **EU only:** whether scopes other than 1, 8 and 64 exist.
+- **EU only:** what starts the opening morning's scene. No trigger names it; a new game plays it.
+- **EU only:** the 19 events that a stand-in answering 0 leaves waiting. They wait on `405` (a message), `570` or `204` (a character).
 - The `.stb` files in `/data/scenario`, `/data/menu` and `/data/event_lv5`.
 
 ## See also
 
 - [Engine functions](Engine-Functions): what the numbers a script invokes actually do
 - [Event-Text](Event-Text): the messages a script names
+- [Event-Lists](Event-Lists): which map each scene plays in
 - [Triggers](Triggers): which event runs when
 - [Character-Dialogue](Character-Dialogue)
 - [GPC2](GPC2): the archives events unpack from

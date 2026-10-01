@@ -105,6 +105,16 @@ An earlier reading took the zone numbers for places in the map list, and put lat
 
 Walking into a roaming monster does not always open an even fight. As the two meet, the encounter check (`func_ov017_02196430`) measures each one's facing against the bearing to the other and calls it a turned back past 49.48°, then rolls for a surprise round: `func_ov017_021970a0`. Face to face the party surprises the monsters on `2 + deftness ÷ 20` in a hundred and is surprised on 2; walk into a monster whose back is turned and the party's chance is `12 + deftness ÷ 20` and it cannot be surprised; let one reach the party from behind and the monsters take the round on 12. The answer travels to `[battle + 0xe49]`, and a scripted battle carries its own value instead. See [Battle resolution](Battle-Resolution).
 
+**USA only:** read from the USA release's code, through the decomp. The roll is called from the encounter check at `0x02196b40`. The deftness is the highest among the party who can act, and the draws are the C library generator's, as a drop's are: the battle has no generator of its own yet. The round counter, `[battle + 0xe20]`, bypasses the whole of it after the first round, so a surprise lasts one round.
+
+## Where the battle is fought
+
+> **EU only.** Code addresses are the USA release's, from the decomp; the collision files were read on the European release and are not yet checked on the US one.
+
+A battle is not fought where it starts. **The ground under the encounter names the stage**: the field's encounter code in overlay 17 (its calls at `0x021b76ac`, `0x021b7750` and `0x021b7840`) takes the collision record under the encounter and hands it to the battle request's `+0x02` (`func_ov017_021b848c`, `strh` at `0x021b865c`). On Angel Falls Region's collision the records name 30116, "F01 - Field", and 30117, "F01 - Forest". See [Battle stages](Battle-Stages) and [Map collision](Map-Collision).
+
+**More than one roamer can be in the fight.** The encounter keeps a list of the roamers in it, and as the battle is set up each of the others is moved toward the one touched until it stands the mean of their two radii plus 1 from it, and turned to face it (overlay 0, `0x02164600`–`0x02164710`). The party's field places are kept (`func_ov000_021643d4`) and put back after (`0x02168d08`). The radius is the monster's, from its name record; see [Monsters](Monsters).
+
 ## Not established
 
 - How a map chooses among its zones.
@@ -119,4 +129,6 @@ Walking into a roaming monster does not always open an even fight. As the two me
 - [Event-Battles](Event-Battles)
 - [Map-List](Map-List)
 - [Map-Collision](Map-Collision)
+- [Battle-Stages](Battle-Stages) — where an encounter's battle is fought
+- [Battle-Resolution](Battle-Resolution) — the surprise round
 - [Tagged-Data-Table](Tagged-Data-Table)

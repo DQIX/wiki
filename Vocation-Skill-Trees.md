@@ -69,6 +69,8 @@ The tree numbers' meaning is INFERRED, on three legs:
 
 The search that found it asked for that minstrel row and for the warrior's sword and shield, and nothing else. Found 16 September 2026. Row 0 and the table's start were seen 17 September 2026 in a European dump and in the USA build.
 
+**EU only:** the row order — vocations numbered as the level tables are — has an independent check in Alltrades Abbey's own list, read from the USA release's code. The Abbey writes vocations 1 to 6 in with no gate and gates 7 to 12, and in this numbering the ungated six are exactly the six a game begins with and the gated six the advanced ones. See [Party](Party#what-may-be-chosen).
+
 ## What is in a tree
 
 The eleven panels of each tree — their costs, what they give and the words

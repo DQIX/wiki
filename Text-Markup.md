@@ -127,6 +127,8 @@ Both handlers read the single character after the underscore, subtract `0x40`
 ```
 
 So `<LB_A>` is `0xFFD1` and `<JP_A>` is `0xFFE1`, and a label is **one letter**.
+**EU only:** the letters run `A` to `O`: sixteen slots each, of which the
+letter form can reach fifteen.
 The layout pass at `0x0206ab3c` resolves a jump by `eor`-ing off the `0xFFE0`
 base to get the index and rebuilding the matching `0xFFD0 + i`, then searching
 the stream for it. `<JP_x>` jumps to `<LB_x>`.
@@ -324,7 +326,10 @@ archive's own record order.
 | `<CEN>` | `win+0x19b8 = 1` — centres the box; the game's narration card |
 | `<GYOU=n>` | `win+0x9a4 = max(n, 1)` — 行, *line*: how many lines the box has |
 | `<MOJI=w,h>` | `win+0x1860 = w`, `win+0x1864 = h`, **defaulting to 12 and 16** when either is zero or less — 文字, *character*: the font cell |
-| `<COLOR=…>` | each component parsed as decimal and clamped to `0`–`255` |
+| `<COLOR=…>` | each component parsed as decimal and clamped to `0`–`255`; **EU only:** a negative one comes out as `255` |
+
+**EU only:** none of `<GYOU=>`, `<MOJI=>` and `<COLOR=>` is used by the
+cartridge's event text.
 
 The Japanese names here are a useful reminder that the vocabulary is the
 authors' and not the localisers'.
@@ -345,6 +350,30 @@ comparands by addition — `+0xB`, `+0xC`, `+0x17`. It **stops** on `0xFF01`
 `0xFF18`, the newline. It then multiplies `lines − 1` by the `<MOJI=>` line
 height to centre the window vertically.
 
+## Services in talk — `<SHOP=n>`, `<INN=n>`, `<CHURCH=n>`, `<BANK>`, `<RENKIN>`
+
+> **EU only.** Counts are from the European release's English talk files and
+> are not yet checked on the US release (`YDQE`). Code addresses are the USA
+> release's, from the decomp.
+
+A talk line that hands over to a service ends `<ADD>` and a service tag: 352
+`<SHOP=n>`, 505 `<INN=n>`, 325 `<CHURCH=n>` and 48 `<BANK>` across the English
+[talk files](Character-Dialogue). `<RENKIN>`, the Krak Pot, is bare, since
+there is one pot, and appears both as a line of its own and after `<END>`.
+
+**The compiler drops these tags** (see [The two parsers](#the-two-parsers)),
+so they never reach the message window. The service is reached by a facility
+code instead: `func_0206f6cc`, the one function the talk service calls for a
+facility, takes a code byte out of the message and switches on it through a
+table at `0x0206f70c` (1 the inn, 2 the church, 3 the bank, 4 the shop, 7 the
+Krak Pot, and the rest services with no text tag). The full table, the shops
+`<SHOP=n>` names, and what is known of the inn's price are on
+[Items](Items#services-in-talk--shopn-innn-churchn).
+
+**Not established:** what the inn's and the church's numbers select; where
+the codes of the services with no tag come from; and the step from an
+authored tag to its code byte, since the compiler emits nothing for it.
+
 ## Evidence
 
 | what | where |
@@ -356,6 +385,7 @@ height to centre the window vertically.
 | the interpreter | USA ARM9 `0x02065990`–`0x02066a60`, comparands derived from `0xFF4B` at `0x02066958` |
 | the compiler | USA ARM9 `0x0206a020`; the leading pass `0x0206a3c0` |
 | tag counts | 5,157 English event texts across 687 events, counted by running every one through a reimplementation |
+| **EU only:** the game's list of tag names | USA ARM9 `0x020f0600`–`0x020f0a00`, 127 strings |
 
 ## Not established
 
@@ -374,6 +404,32 @@ height to centre the window vertically.
   read.
 - `<.|>` and `<.|.|>`, which the English text uses twelve times and **the tag
   table has no entry for**. They belong to a pass not yet found.
+- **EU only:** what reads the names in the game's own list that are in neither
+  the tag table nor the leading pass: `WH=`, `XR=`, `/XR`, `XY=`, `SIZE=`,
+  `/TITLE`, `TMAP_SEC`, `ADDRESSEE`, `LEADER`, `val_`, `VAL_`, `STR_`.
+- **EU only:** what the inn's and the church's numbers select, and the step
+  from an authored service tag to its facility code (see
+  [Services in talk](#services-in-talk--shopn-innn-churchn-bank-renkin)).
+
+## The game's own list of tag names
+
+> **EU only.** The address is the USA release's ARM9, from the decomp; the
+> tag counts are from the European release's text.
+
+The ARM9 keeps the vocabulary as plain strings, **127 of them**, at
+**`0x020f0600`–`0x020f0a00`**. The 23 event-text tags that were still unread
+on 24 September 2026 are all in it, so none of them is a misparse. Besides the tag table's names and the
+leading pass's, it holds the grammar names of the [articles](Articles) pass
+(`DEF_`, `INDEF_`, `NOM_` …) and some not read: `WH=`, `XR=`, `/XR`, `XY=`,
+`SIZE=`, `/TITLE`, `TMAP_SEC`, `ADDRESSEE`, `LEADER`, `val_`, `VAL_` and
+`STR_`. `HERO` is there too: the player's name (see [Event text](Event-Text)).
+
+Some tags are values the engine fills in, not control codes:
+`<tmap_sec1>` to `<str_5>`, and `<val_1>`, `<val_2>`, such as the innkeeper's
+price and a battle message's number of points (see [Battle text](Battle-Text)).
+
+The prefix-comparison chain that reads `<WIN>`, `<CEN>`, `<GYOU=>`,
+`<MOJI=>` and `<COLOR=>` is at `0x0206a6b0`, through `func_020d85dc`.
 
 ## A caution
 
@@ -386,6 +442,13 @@ ASCII-to-ASCII substitution pass. Its `0xFF04`–`0xFF09` values look like they
 collide with `<YESNO>`…`<UKEYAME>` and do not, because they are never stream
 codes. See [Articles](Articles).
 
+## Earlier readings
+
+The line-count scan at `0x0206b6b8` was once read as stopping on `0xFF01`,
+`0xFF0B` and `0xFF0C` and counting `0xFF17`. Each was off by one. Read from
+the bases rather than recalled, it stops on `0xFF01`, `0xFF0C` and `0xFF0D`
+and counts `0xFF18`, as above.
+
 ## See also
 
 - [Event text](Event-Text) — the files this markup is authored in
@@ -395,3 +458,4 @@ codes. See [Articles](Articles).
 - [Bitmap font](Bitmap-Font) — what the compiled codes are eventually drawn with
 - [Engine functions](Engine-Functions) — the event VM, which reaches some of
   the same window fields by opcode rather than by tag
+- [Items](Items) — the shops a `<SHOP=n>` names

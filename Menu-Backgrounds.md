@@ -69,6 +69,14 @@ A screen uses the tiles and palette in the same pack. **On all 659 screens whose
 
 Drawn this way, the equipment screen's pieces come out whole: its backdrop, the frame of sixteen slots, the eight tabs, the sort buttons, and `bg_ii1.pac`'s parchment for the top screen. They match screenshots of the game.
 
+## The ending's credit cards
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+The same three files make the cards shown around the staff roll. The ending's event scripts name them: `ev29350` passes `chara_sub/toriyama.pac`, `sugiyama.pac`, `hino.pac` and `fujisawa.pac` to event function `820`, `ev29373` passes `ichimura.pac`, and `ev29306` passes `chara_sub/tobe_<LG>.pac`. Every one of those exists on the cartridge, beside a company card and one card per language. `horii.pac`'s members are `horii_san.bncg`, `.bncl` and `.bnsc`: one full-screen 256-colour picture.
+
+Function `820` puts a `.pac`'s picture on the top screen's fourth background layer and turns every other layer off; `826` blanks that layer between cards. See [Event-Scripts](Event-Scripts).
+
 ## Evidence
 
 The cartridge has 408 `.bncg`, 370 `.bncl` and 690 `.bnsc` files.

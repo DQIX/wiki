@@ -1,6 +1,6 @@
 # Battle Text
 
-Three message files hold what is said in battle and when something is used in the field: `strbtl`, `actmsg` and `str_tm`. Each is in the [system strings](System-Strings) layout — messages by number — and uses the same markup as the dialogue, with more of it. The files and the messages listed here are read; which message an action says is INFERRED to be in the action's record.
+Three message files hold what is said in battle and when something is used in the field: `strbtl`, `actmsg` and `str_tm`. Each is in the [system strings](System-Strings) layout — messages by number — and uses the same markup as the dialogue, with more of it. **Checked on both releases:** a fourth file, `str_bres`, holds what is said as a battle ends; its layout is not set down here. The files and the messages listed here are read; which message an action says is INFERRED to be in the action's record.
 
 All observations were made on the European release (game code `YDQP`).
 
@@ -56,6 +56,8 @@ Neither healing message names the amount. **Which message an action says is in i
 | 9062 | `<SGL_I_NAME> discarded.` |
 | 9065 | `The bag is currently empty.` |
 
+**EU only:** `/data/bin/strstd.gp2/strstd_<lang>.nat` 57, a [system string](System-Strings), is a head banged on the ceiling.
+
 ## `str_btl`
 
 The battle menu's `str_btl` numbers its commands:
@@ -71,6 +73,22 @@ The battle menu's `str_btl` numbers its commands:
 | 30023 | `<DEF_ART_ACTOR> doesn<1>t know any battle <str_2> yet.` |
 
 30023 is said with 30021, `spells`.
+
+## `str_bres` — the battle's result
+
+> **Checked on both releases.** `str_bres` was read on the European release (`YDQP`), and the file is byte for byte the same on the US release (`YDQE`). The code addresses are the USA release's, from the decomp.
+
+`/data/bin/str_bres.gp2`, `str_bres_en.bin` in English: the messages said as a battle ends, by number.
+
+| number | message |
+|---|---|
+| 6 to 9 | `<str_n> earns <val_n> experience!`, for one to four members — each named with their own amount |
+| 13 | `<val_1> skill point(s) earned.` |
+| 20 | the message for a wiped-out party coming round; its text is not quoted here |
+| 25 | `<DEF_ART_TARGET> receives some experience!` |
+| 26 | `Each party member receives some experience!` |
+
+Overlay 23 (`func_ov023_021f03a0`, at `0x021f07fc`) says 26 when more than one member has a share and 25 when one has; 6 to 9 are not found said in overlay 23. See [Battle resolution](Battle-Resolution), "Sharing the experience". Message 13 is what bears out the [level tables'](Level-Tables) column 10 as skill points.
 
 ## Markup
 
@@ -92,3 +110,5 @@ For the markup shared with dialogue, see [Event-Text](Event-Text).
 - [System-Strings](System-Strings)
 - [Event-Text](Event-Text)
 - [Monsters](Monsters)
+- [Battle-Resolution](Battle-Resolution) — when the result messages are said
+- [Level-Tables](Level-Tables)

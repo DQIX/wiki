@@ -28,6 +28,10 @@ Reflected polynomial `0xA001` (reversed `0x8005`), initial value `0xFFFF`, no fi
 
 `0xCF56` is a fixed constant for every retail cartridge, so a match is a useful signal that an image is an unmodified retail dump. A trimmed or patched image may fail the checks and still be readable.
 
+### Where the ARM9 binary lies
+
+**EU only:** the header places the ARM9 binary at ROM offset `0x4000`, 638,216 bytes long. It is BLZ-compressed and unpacks to 1,000,984 bytes (see [DS-Compression](DS-Compression#blz--backwards-lz)), so a search of the cartridge's own bytes cannot see the code's tables and strings. The overlay table says where each of the 35 ARM9 overlays lies and whether it is packed.
+
 ## FAT
 
 `fatSize / 8` entries, each two little-endian `u32`s: `start` and `end`. `end` is exclusive. Both are absolute within the image.

@@ -61,6 +61,14 @@ That is an argument from the layout: **no bound check against 4 has been
 found**, so the number is what fits rather than something an instruction
 states.
 
+**EU only:** two small readers count them, read 28 September 2026 from the
+USA release's code. `0x02010890` gives the filled slots of the four, the Hero
+among them, and `0x0200ff94` whether one slot is filled. The story's
+[trigger](Triggers) conditions 13, 14 and 15 — the party's size is at least,
+at most, exactly the argument — go through `0x02010890`: Gortress's captain
+at stage 14.3 speaks one way to two or more (`13:2`) and another to the Hero
+alone (`15:1`).
+
 ## Slot 0 is the leader
 
 **`0x0200fddc`** reads `+0x397c` with no index at all and hands it straight to
@@ -77,6 +85,127 @@ It is the function the message system calls to decide who a speaker should
 turn to face — see [text markup](Text-Markup), where every message turns the
 speaker toward the party leader unless `<N_TURN>` says otherwise. So the
 ordering is not cosmetic: **slot 0 is who the world talks to.**
+
+## What writes the slots: nothing, field by field
+
+Three reads of `+0x397c` exist in the ARM9 (`0x0200fde4`, `0x020100b4`,
+`0x0201064c`) and no write; `+0x3980` has the one read above and nothing
+else.
+
+**The search is exhaustive over the addressing form, 25 September
+2026.** Every ARM single-data-transfer with an immediate offset was decoded
+across the ARM9 and all 35 overlays — any width, **any base register** — and
+every one landing in `0x97c`–`0x980` or `0x397c`–`0x3980` collected. Nine
+turned up: the four known reads, four pc-relative literal loads, and one
+apparent `strb` at `0x020002dc` which is Thumb code decoded as ARM, sitting
+among the SDK stubs beside `LZ77UnCompReadByCallbackWrite16bit`
+(`0x020002cc`). No store. `0x397c`, `0x097c` and `0x3980` are not literal-pool
+words anywhere either.
+
+That rules out the shape the reader uses, which is the point: the walk folds
+the index into the base and keeps the offset (`add r0, sl, r6`;
+`add r0, r0, #0x3000`; `ldrb r7, [r0, #0x97c]`), so a writer built the same
+way would have shown up. **The array is not addressed by that offset at
+all** — whatever writes it holds a pointer that is neither the state nor
+`state + 0x3000`, or writes the block in bulk.
+
+Three near-misses, so nobody spends the time twice: the register-offset
+store at `0x020c6d64` is `+0x3f7c`; the read-modify-write at `0x020106ec`,
+right after the slot walk, halves a bitfield at `+0x3970`; and the
+`ORR`/`BIC #0x800` pairs at `0x02087914` and `0x02089188` act on words at
+`+0x14` and `+0x18` of their struct, not on a record's first halfword.
+
+The next move was the behaviour, not the address: Patty's call-up and
+drop-off are what reorder the party. It was made, below.
+
+### The party in play is a sixteen-bit mask
+
+> **EU only.** Code addresses are the USA release's, read from the decomp on 25 September 2026; none of this rests on a file, and it has not been looked for in the European binary.
+
+Followed from Patty rather than from the address, and it ends in a positive
+conclusion rather than another miss.
+
+**Patty is `0x021b65e0` in overlay 17.** The facility launcher gives her twice
+— `mov r1, #0` for facility code 5 and `mov r1, #1` for code 8 — so a mode
+byte is the difference between her two doors, and everything else is shared.
+
+**The game state is a global at a fixed address.** `0x0200f398` is
+`ldr r0, [pc]; bx lr` over the word `0x020f33d8`, so the slots are
+`0x020f6d54` absolutely and the count `0x020f6d58`. Patty's setup then calls
+`0x0202ae18`, the same shape over **`0x020fefec`, a second global**, and it is
+that one she works on. `0x0202bd34` asks whether a character is in the party
+and answers `tst r0, r1, lsl r4` — a bit per member — after `0x0202bcbc` turns
+a character id into a bit index by searching a signed-byte array at that
+global's `+0x1038`. Neither is the state block.
+
+A later reading, of the trigger interpreter on 28 September 2026, takes
+`0x020fefec` as **a session object**: `0x0202ae18` returns it, `0x0202b7d8`
+asks whether its first word is set, and [trigger](Triggers) conditions 23 and
+81 test it — INFERRED multiplayer. The two readings have not been reconciled.
+
+**A third global holds the party in play.** The membership getter
+`0x0202bc8c` has two sources, and the live one is `0x0202d698`:
+`ldr r0, [pc]; ldrh r0, [r0, #0xa]` over the word `0x021015a0`. So **the party
+in play is the halfword at `0x021015aa`**.
+
+**Exactly two instructions write it**, found by taking every halfword store to
+`+0xa` whose base is that global — five sites, of which these two are the arms
+of one dispatcher:
+
+```
+0202ca74  ldr  r0, =0x021015a0
+0202ca78  ldrh r1, [r0, #0xa]
+0202ca7c  orr  r1, r1, r5, lsr #16     ; mask |= bits
+0202ca80  strh r1, [r0, #0xa]
+0202ca84  ldr  r1, [r0, #0x18]         ; a callback
+0202ca94  blx  r1
+
+0202ca9c  ldr  r1, =0x021015a0
+0202caa0  mvn  r2, r5, lsr #16
+0202caa4  ldrh r3, [r1, #0xa]
+0202caa8  and  r2, r3, r2              ; mask &= ~bits
+0202caac  strh r2, [r1, #0xa]
+0202cab0  ldr  r1, [r1, #0x18]         ; the same callback
+```
+
+The bits come from the **high half of a command word** (`r5 lsr #16`), so
+joining and leaving are not calls but messages: something posts a command and
+this pair applies it.
+
+**The callback is never installed.** Every pc-relative reference to
+`0x021015a0` was followed into the register that receives it, and every load
+and store off it collected — 106 sites. `+0x18` is **read by ten and written by
+none**; the offset written is `+0x10`, 115 times, the status word the arms
+above also set. The struct is in `.bss` — `arm9.bin` ends at `0x020f2e60`, well
+short of it — so it begins zeroed, the pointer is null, and every one of the
+ten reads is guarded by `cmp r1, #0; beq`. The hook exists and this build never
+fills it, so a change to the mask notifies nobody.
+
+**Sixteen bits is the whole roster.** The mask is a halfword, and twelve on
+Patty's list plus four in the party is sixteen — the same number reached from
+her own screens (see [the list](#the-list-is-the-character-record-array)).
+
+**A false trail**, so it is not walked twice: `0x02028c64` looks exactly like
+the party setter — bounded at 16, `mask |= 1 << index`, written back to a
+halfword at `+4` — and is not. It is a generic bitfield helper with three
+callers; the one in overlay 17 (`0x021d1a10`) is a script flag handler taking
+its object from `0x02027ca4` and its index from a parameter block.
+
+**And no `ADD` immediate anywhere** in the ARM9 or the 35 overlays builds a
+base into `+0x3900`–`+0x39ff`, which was the last way left to reach the slots.
+Four instructions read them; nothing addresses them to write.
+
+| | where | how it changes |
+|---|---|---|
+| the party in play | `0x021015aa`, sixteen bits | two instructions, by message |
+| the second global | `0x020fefec` | Patty's screens |
+| the ordered slots | `state+0x397c` | **nothing writes them field by field** |
+
+**So the slots are serialisation, not state** — INFERRED in one respect. They
+are written when the state block is written whole, a save or an init, and read
+back by the four readers; the party the game plays is the mask. The bulk copy
+is the only mechanism left rather than one seen running, but the negative
+behind it is exhaustive.
 
 ## The character record: thirteen of everything
 
@@ -142,9 +271,9 @@ thing, and `GetEquipmentArray` (`0x02052e2c`) proves that base with
 |---|---|---|
 | `+0x160` … `+0x173` | `+0x488` | ten `s16` equipment slots |
 | `+0x174` bit 0 | `+0x49C` bit 0 | **the sex** — see [items](Items#sex) |
-| `+0x174` bits 1-3 | | a colour applied to **every** body part; INFERRED skin |
-| `+0x174` bits 4-7 | | a second colour, used only on the head |
-| `+0x175` bits 0-3 | | added to the hair part's model number; also a head palette index |
+| `+0x174` bits 1-3 | | a colour applied to **every** body part — **EU only:** the **skin tone**, read from the code; see below |
+| `+0x174` bits 4-7 | | a second colour, used only on the head — **EU only:** the **eye colour** |
+| `+0x175` bits 0-3 | | added to the hair part's model number; also a head palette index — **EU only:** the **hair colour** |
 | `+0x176` | `+0x49E` | `s16`, **not established**; set from a preset's `+0x0A` |
 | `+0x178`, `+0x17A` | `+0x4A0` | **the build**: two `fx16`, 4096 = 1.0 |
 
@@ -185,11 +314,22 @@ proves it: when a visible part's model id is 1000 the face index is added to it
 The knob set is confirmed from the other side by overlay 15's debug viewer,
 whose own labels are **`[Gender] [Face] [Eye Colour] [Skin Colour]
 [Hairstyle] [Hair Colour]`**, then seven equipment slots, then `[Build]`.
-**Which of the three colour fields is skin, hair and eye is not established.**
 
 The visible-slot map at `0x020E6D74` pairs equipment slot to model part slot:
 (0,0) (1,1) (4,5) (5,6) (6,7) (7,8) (8,9) — seven visible; slots 2 and 3 are
 not drawn.
+
+#### Which colour field is which
+
+> **EU only.** Code addresses are the USA release's, from the decomp; `data/chara/palette.bin` and every file under `data/chara` are byte for byte the same on the European and US releases.
+
+Read 27 September 2026, from the code that recolours a made character (see
+[character colours](Character-Colours)). `func_020730e0` recolours a character
+part by part, and hands the face to `func_02099e18(model, skin, hair colour,
+eye colour)`. From that caller: the **skin tone is bits 1–3** of the
+appearance block's `+0x14` byte (the record's `+0x174`), the **eye colour bits
+4–7**, and the **hair colour the low four bits of `+0x15`** (the record's
+`+0x175`). Bit 0 of `+0x14` is the sex.
 
 ### The name at `+0x140`
 
@@ -198,6 +338,11 @@ The bytes are a game-internal code indexing a glyph table, not ASCII or
 Shift-JIS. `func_020426bc` packs (`0204274c strb r7, [sb], #1` — one byte out
 per source character, `02042738 moveq r7, #0xff` for a space) and
 `func_02042764` unpacks.
+
+**EU only:** the name screen takes **eight letters at most** — a let's play of
+the European release shows the name field as eight slots — although the
+record leaves room for twelve. The screen and its keyboard are on
+[given names](Given-Names).
 
 **The decisive instruction** is the initialiser's thirteen-iteration loop,
 which writes all three per-vocation arrays together:
@@ -316,6 +461,10 @@ What it really does is two plain loops:
   slot to −1. No vocation test, no sex test — the block was recorded while
   that vocation was worn, so what is in it was already legal.
 
+**EU only:** so a vocation taken up for the first time puts nothing back on.
+Its block is still what the initialiser left, and the character changes into
+it wearing no equipment at all. That is the game's behaviour, not an omission.
+
 There is **one** conditional removal, and it is narrow. At `0x02155b04` the
 routine looks at stored index 7 — the accessory — and does nothing at all
 unless it is **item 18048 (`0x4680`)** *and* the bag no longer holds one:
@@ -363,6 +512,10 @@ then thirteen levels, thirteen revocation counts, thirteen experiences and
 thirteen twelve-byte blocks. Looking for a writer of `rec+0x50` finds only
 creation, a zero-init, a field copy and that sync.
 
+**EU only:** the setter at `0x02086598` writes the vocation and ORs its "has
+been held" bit. Its only caller in the ARM9 and all 35 overlays is character
+creation; the Abbey's apply does not go through it.
+
 ## Recruitment — Patty's Party Planning Place
 
 Read 25 September 2026. **Service 23**, a sixteen-step flow in overlay 3 at
@@ -380,6 +533,11 @@ Her top menu is four or five items, from `bm_lui_wnd` window `0x1E` — or
 | Drop Off a Friend *(absent when alone)* | the party | 3 |
 | Part With a Friend | the list | 5 |
 | Cancel | — | ends |
+
+**EU only:** Patty is `0x021b65e0` in overlay 17, given twice by the facility
+launcher — `mov r1, #0` for facility code 5 and `mov r1, #1` for code 8 — so
+a mode byte is all that differs between her two doors. Code addresses are the
+USA release's, from the decomp.
 
 ### The same screens make the Hero, off the title screen
 
@@ -412,6 +570,11 @@ which drives overlay 9 directly. Both run the same knob screens.
 > movie, not character creation. `0x020115b4` sets that byte and `0x020115c0`
 > clears it; see also [Engine Functions](Engine-Functions) 583.
 
+**EU only:** `func_0201099c` is a separate thing. It builds three characters
+from `/data/bin/presetdt.gp2` and the random number generator — a default
+party, not a menu. See [character presets](Character-Presets). USA address,
+from the decomp.
+
 ### Recruiting asks the vocation first
 
 Step 4 opens window 8 — `bm_lui` "Vocation" then **Warrior, Priest, Mage,
@@ -427,8 +590,15 @@ hair, hair colour and face, eight each for the two colours. The knob *names*
 are INFERRED from the file basenames (`sx`, `fig`, `ht`, `hc`, `fac`, `sc`,
 `ec`, `nm`); the order and the counts are the step chain and the jump table.
 
-`str_cm` holds **201 given names** — 20000–20100 male, 21000–21100 female —
-for the random-name button.
+`str_cm` holds **101 given names a sex** — 20000–20100 male, 21000–21100
+female — for the random-name button; see [given names](Given-Names). `str_cm`
+is byte for byte the same on the European and US releases.
+
+**EU only:** two knobs offer fewer than their fields hold. The cartridge has
+**24 hair styles** and the screen offers ten — ten a sex, INFERRED from the
+two backgrounds `bg_cm_ht_m` and `bg_cm_ht_f`. **Which ten is not
+established.** And the eye-colour field is four bits while its screen is a
+4 × 2 grid of eight.
 
 ### The list is the character record array
 
@@ -448,6 +618,12 @@ Two limits, both checked:
   word at `GameState+0x3974` that is **not established** — so it grows from 8
   to 12 as something happens.
 
+**EU only:** twelve on the list and four in the party make sixteen, which is
+the width of the [party mask](#the-party-in-play-is-a-sixteen-bit-mask) —
+the same number reached from the other side. Once a new character is filed,
+and only then, she asks whether they should join now. Her message 22 is
+"That's it! All done. Your application has been processed!"
+
 ### No cost in gold
 
 **A negative result, not a citation.** No function in steps 1–8 reads or
@@ -462,35 +638,12 @@ out that time at the ruins" — and sets that panel. It is the one place a
 
 ## Not established
 
-- **What writes the slots or the count.** Three reads of `+0x397c` exist in
-  the ARM9 (`0x0200fde4`, `0x020100b4`, `0x0201064c`) and no write; `+0x3980`
-  has the one read above and nothing else.
-
-  **The search is now exhaustive over the addressing form, 25 September
-  2026.** Every ARM single-data-transfer with an immediate offset was decoded
-  across the ARM9 and all 35 overlays — any width, **any base register** — and
-  every one landing in `0x97c`–`0x980` or `0x397c`–`0x3980` collected. Nine
-  turned up: the four known reads, four pc-relative literal loads, and one
-  apparent `strb` at `0x020002dc` which is Thumb code decoded as ARM, sitting
-  among the SDK stubs beside `LZ77UnCompReadByCallbackWrite16bit`
-  (`0x020002cc`). No store. `0x397c`, `0x097c` and `0x3980` are not literal-pool
-  words anywhere either.
-
-  That rules out the shape the reader uses, which is the point: the walk folds
-  the index into the base and keeps the offset (`add r0, sl, r6`;
-  `add r0, r0, #0x3000`; `ldrb r7, [r0, #0x97c]`), so a writer built the same
-  way would have shown up. **The array is not addressed by that offset at
-  all** — whatever writes it holds a pointer that is neither the state nor
-  `state + 0x3000`, or writes the block in bulk.
-
-  Three near-misses, so nobody spends the time twice: the register-offset
-  store at `0x020c6d64` is `+0x3f7c`; the read-modify-write at `0x020106ec`,
-  right after the slot walk, halves a bitfield at `+0x3970`; and the
-  `ORR`/`BIC #0x800` pairs at `0x02087914` and `0x02089188` act on words at
-  `+0x14` and `+0x18` of their struct, not on a record's first halfword.
-
-  The next move is the behaviour, not the address: Patty's call-up and
-  drop-off are what reorder the party.
+- **Whether the slots are written by a bulk copy** of the state block — the
+  only mechanism left standing, INFERRED; see
+  [what writes the slots](#what-writes-the-slots-nothing-field-by-field). Not seen
+  happening.
+- **EU only:** whether `0x020fefec` is a roster or a session object; see
+  [above](#the-party-in-play-is-a-sixteen-bit-mask).
 - What bit `0x800` means, beyond fitting "in the party".
 - That four is a limit rather than what the layout leaves room for.
 - **Where the service record carrying byte `0x2E` lives** in map data, so
@@ -504,9 +657,6 @@ out that time at the ruins" — and sets that panel. It is the one place a
 - The contents of the thirteen twelve-byte blocks at `+0x58 + v*12`.
 - What the thirteen `0x0C`-byte sub-records at `+0x58` hold.
 - Whether thirteen character records is the whole roster or one page of it.
-- How a battle's experience is split among the party. Only the award being
-  read from `battleState + 0x5758 + i*4` (i < 4) was found, not how that word
-  is computed.
 - A story companion's vocation is still not in [attnpc](Attending-Characters),
   which has no such column.
 - `str_lui` ids **15 and 16 are absent** from the English file, though the code
@@ -516,6 +666,30 @@ out that time at the ruins" — and sets that panel. It is the one place a
   character list?" — are looked up. Neither constant appears anywhere in that
   overlay.
 - What `GameState+0x3974` counts, which is what grows Patty's list from 8 to 12.
+- **EU only:** the label of Patty's Cancel. Her window's item 186 maps through
+  `bm_lui_txt`, which has not been read.
+- **EU only:** which ten of the 24 hair styles the creation screen offers.
+- **EU only:** where a [preset](Character-Presets)'s hair comes from, if
+  anywhere. The record names a face, armour, legwear, gloves, footwear,
+  headgear, a weapon, a shield and the arms, and nothing about hair.
+- **EU only:** whether the game does anything with a character's build beyond
+  drawing it.
+
+## Earlier readings
+
+- `str_cm` was said to hold **201 given names**. It is 101 a sex; the error
+  was found when `str_cm` was checked against the US release.
+- The appearance block's colour fields were "INFERRED skin", "a second colour"
+  and a hair-part number, with which is which **not established**. The
+  recolouring code has since named all three; see
+  [above](#which-colour-field-is-which).
+- How a battle's experience is split among the party was listed as not
+  established, with only the award's place (`battleState + 0x5758 + i*4`)
+  found. It is read now; see [battle resolution](Battle-Resolution),
+  "Sharing the experience".
+- The search for what writes the slots sat under "Not established". It is
+  answered — nothing, field by field — and has moved to
+  [its own section](#what-writes-the-slots-nothing-field-by-field).
 
 ## See also
 
@@ -523,6 +697,9 @@ out that time at the ruins" — and sets that panel. It is the one place a
   stretch of the story, and their models, names and numbers
 - [Level tables](Level-Tables) — thirteen files, one per vocation
 - [Skill panels](Skill-Panels) — what the points in a tree buy
+- [Battle resolution](Battle-Resolution) — how a battle's experience is shared among the party, "Sharing the experience"
+- [Given names](Given-Names) — the names to roll from, and the name keyboard
+- [Character colours](Character-Colours) — what the skin, eye and hair colour fields recolour
 - [Text markup](Text-Markup) — where the leader decides who a speaker faces
 - [Engine functions](Engine-Functions) — the event VM, whose `205` and `206`
   bring characters in and send them away

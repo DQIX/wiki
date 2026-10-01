@@ -37,6 +37,27 @@ So something maps some items to another item's part. That mapping has not been f
 
 **Earlier reading:** the `p_s` files were taken to be shoes, until the counts were compared with the icons.
 
+## The rig
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+`chara_pc.gp2` holds **796 part models**:
+
+| prefix | count | | prefix | count |
+|---|---|---|---|---|
+| `p_w` weapons | 200 | | `p_p` legwear | 79 |
+| `p_b` bodies | 192 | | `p_s` shields | 35 |
+| `p_m` headgear | 142 | | `p_f` faces | 24 |
+| `p_h` hair | 121 | | `p_test` | 3 |
+
+**Only the bodies and legs carry the shared fourteen-bone rig** — 274 of the 796. Those pose themselves, and together they make a figure that ends at the neck. Everything else carries a single bone of its own and sits at its own origin until something hangs it off the skeleton.
+
+The rig's bones are `root`, `waist`, `chest`, `arm0L`, `arm1L`, `arm0R`, `arm1R`, `head`, `usiro`, `leg0L`, `leg1L`, `leg0R` and `leg1R`, plus one named after the part itself.
+
+**So the head is an attachment.** The rig's `head` bone sits at y 16.27 on a body reaching 16.57. A face put through that bone lands at 15.94 to 20.26: on the neck, and a fifth of the finished figure's height.
+
+The three `p_test` parts are a **half-scale test figure**: 7.68 units tall where a real body reaches 16.57, and with no head at all.
+
 ## Textures: arms, gloves, footwear and hair colour
 
 **Arms, gloves, footwear and hair colours are textures, and all files of one kind use the same texture name.**
@@ -70,7 +91,7 @@ The rig's forearm bones, `arm1L` and `arm1R`, start at the elbows: (±5.81, 13.4
 
 Besides its limbs, trunk and head, the rig has one more bone, **`usiro`**, at (0, 13.00, −2.00). That is behind the shoulders, and *usiro* is Japanese for "behind". It is where things carried on the back hang. This is **INFERRED** from the name and from a let's play video. In that video, outside battle, the Hero carries a shield on his back and a fan at his side. In battle he holds the sword in his hand.
 
-How the game turns a part to hang on the back, and exactly where a weapon sits in the hand, is in its code, which has not been read.
+**EU only:** where a weapon hangs is now read, from `/data/bin/wpnpos.bin` and the code that runs it — see [Weapon-Positions](Weapon-Positions). It gives each of the twelve weapon kinds two placements, each a bone slot, an offset and a turn. A bone slot names one of seven bones a character looks up by name when it is made: `head`, `waist`, `chest`, `arm1L`, `arm1R`, `leg1L` and `leg1R`. `usiro` is not among them. That the first placement is the back and the second the hands is INFERRED: the second names a forearm on eleven kinds, the first the chest on eleven. The shield is not in the file. Code addresses there are the USA release's, from the decomp.
 
 `chara_pc`'s rig has no hand bone.
 
@@ -87,6 +108,18 @@ Ivor's rig, `s017`, has the same limbs and no `usiro`.
 | face | `p_f006` | −0.32 to 4.00 |
 
 Faces and hair have been shown to land on the neck when placed through the rig's `head` bone.
+
+## Motions
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+**A character's motions are spread across a family of packs**, in `chara_mp.gp2`, apart from the parts. The `.bcfg` beside a part names one motion pack, and that pack holds **one** animation. For the opening character, `mp0200ne` is `walk`; standing is in `mp0200n` and `mp0200f`, smiling in `mp0200b`, attacking in `mp0200be`, items in `mp0200bi`, casting in `mp0200bm`. Of the cartridge's **136** motion packs, **56 carry a `stand`, 13 carry a `walk`, and not one carries both.** So the pack the config names is not the character's whole set of motions.
+
+The packs' motions on this rig have 29 distinct names: `walk`, `run` and `stand`, and beside them `attack0a`, `guard`, `damage`, `death`, `dance`, `sleep` and `smile` among others.
+
+**There is no root motion.** The root node's translation is zero on every frame of `walk`, `run` and all three `stand` variants.
+
+**The pack's two numbers are the body's and the weapon's.** A character moves by the packs `mp%02d%02d` (the function the decomp numbers `func_02072c9c`, its `sprintf` at USA `0x02072d48`). The second number is the weapon's **motion set**, word 4 bits 12 to 19 of its stats entry in `itemdt_w`, and 0 with no weapon; the first is the body's. The motion set is one value per weapon kind — 1 the swords, 6 the spears, 4 the knives, 5 the wands, 10 the whips, 11 the staves, 12 the claws, 13 the fans, 7 the axes, 3 the hammers, 8 the boomerangs, 9 the bows — 2 on every body piece, and 0 on the rest. So `mp0200` is bare-handed, and the Hero with the copper sword moves by `mp0201`. See [Weapon-Positions](Weapon-Positions) and [Items](Items).
 
 ## `chara_pd`: the same wardrobe on another rig
 
@@ -113,11 +146,15 @@ Beside the parts, `chara_pd` also holds:
 - `d_wing`
 - a coffin, `d_kanoke`
 
+## Earlier readings
+
+- **EU only:** **"Where a weapon hangs is in code that has not been read."** It is now read: `wpnpos.bin` and its loader. See [Where parts hang](#where-parts-hang).
+
 ## Not established
 
 - The four bodies whose arms material is named otherwise: `p_b003`, `p_b016`, `p_b490`, `p_b505`.
 - The one arms file whose texture is named for itself.
-- Where weapons and shields attach, and how the game places a part on the back or in the hand.
+- Where shields attach, and how the game places one on the back or the arm: `wpnpos.bin` holds only the weapons (see [Weapon-Positions](Weapon-Positions)).
 - Which hair variant goes with which headgear.
 - The items worn that have no part of their own, and what maps them to another item's part.
 
@@ -126,6 +163,8 @@ Beside the parts, `chara_pd` also holds:
 - [Item-Icons](Item-Icons): the same naming rule
 - [Character-Presets](Character-Presets)
 - [Motion-Tables](Motion-Tables)
+- [Weapon-Positions](Weapon-Positions)
+- [Character-Colours](Character-Colours)
 - [Items](Items)
 - [NSBMD](NSBMD)
 - [GPC2](GPC2)

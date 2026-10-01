@@ -37,7 +37,28 @@ What the region is used for is not established.
 
 `105` and `106` records open with an index that counts from zero within the file, so both are per-slot settings. Their values mix IEEE floats around `1.0` and `0.2` with 16-bit values that read as `fx16`: `32767` for one, `22528` for 0.6875, `20479` for 0.625. That is what colour and intensity values look like. A map ships its lit pieces twice, once per lighting, so a per-slot table of colours is the shape this should have.
 
-**What the slots are is not established**, and neither is which value is which. Earlier notes record that these are float-valued fog and lighting settings, and that they carry no music selection.
+Earlier notes record that these are float-valued fog and lighting settings, and that they carry no music selection.
+
+### Read from the game's code
+
+> **EU only.** Code addresses and names are the USA release's, from the [dqix-decomp](https://github.com/DQIX/dqix-decomp); the files were read on the European release (`YDQP`) and are not yet checked on the US one (`YDQE`).
+
+Read on 29 September 2026. `LightingInfo::LoadFromScript` (`src/Graphics/LightingInfo.cpp` in the decomp) runs the file as a script, one handler per tag, and names every value:
+
+| tag | handler | values |
+|---|---|---|
+| `100` | `DeclareAdvancedLighting` | the gradient centre's offset, a float |
+| `102` | `CreateAdvancedLightingEntry_Alternate` | not on the cartridge |
+| `103` | `DeclareBasicLighting` | the same offset |
+| `104` | `CreateBasicLightingEntry` | index; a vector; background, horizon and pots-and-barrels colours; two floats; sprite, model and edge colours |
+| `105` | `CreateFogEntry` | index; on; colour; type; depth shift; offset; eight packed density words; alpha |
+| `106` | `CreateAdvancedLightingEntry` | index; light 1 (on, direction x, y, z, colour); light 0 (the same); background, horizon, ambient, one more, sprite, model and edge colours |
+
+- **A slot's index is the time of day**: 0 night, 1 morning, 2 day, 3 evening. The script refuses an index past 6.
+- **Colours are `BGR555`.**
+- **The background and horizon colours are the gradient drawn behind everything** (`LightingManager::DrawBackgroundGradient`). The horizon colour falls on the screen row that a point far ahead of the eye falls on, and it blends toward the background colour a whole change per half screen.
+- **Where a map's `.bats` lives**: in `ats_<letter>.ambl`, by the first letter of the map's code, named `<code>00.bats`. Every [battle stage](Battle-Stages) has its own in `ats_B.ambl`. `B01M1600`'s day is `#0073ff` over `#00ffff` at the horizon; its night is `#000052` over `#29527b`.
+- **A battle takes its slot from the battle request's `+5`**, not from the clock (`DrawBackgroundGradient`, under flag `1 << 9`). `func_020a3578` makes it 2, day. What sets it on an ordinary encounter is not read.
 
 ## `.bcfg` — a piece's named states
 
@@ -90,7 +111,7 @@ A `102` record names a `.chr`, for example `D04M02E1.chr` or `F18E1.chr`. So an 
 ## Not established
 
 - What a map's `.dat` region is used for. The meaning of tags `102`, `109` and `105` in `.dat`.
-- Which `.bats` slot is which, and which value in a slot is which.
+- **EU only:** the `.bats` value the handlers name only as "one more" in `106`, and what sets a battle's lighting slot on an ordinary encounter.
 - In `.bcfg`, confirmation from these files that the three numbers are a frame range and speed.
 - In `.bpos`, what the `W`/`R`/`E` codes mean, and what the grid is for.
 - In `.bmed`, tags `100`, `101`, `103`, `104`, `105`, `107`, `109`, the meaning of `108`'s `44` and `106`'s float.
@@ -104,3 +125,4 @@ A `102` record names a `.chr`, for example `D04M02E1.chr` or `F18E1.chr`. So an 
 - [Map-Collision](Map-Collision)
 - [Doors](Doors)
 - [Motion-Tables](Motion-Tables)
+- [Battle-Stages](Battle-Stages): every stage has its own `.bats`

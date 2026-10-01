@@ -6,20 +6,22 @@ All observations were made on the European release (game code `YDQP`).
 
 ## The archive
 
-268 members. Two are empty (`M09M05`, `D13M02`). Three — `randTBox`, `randTD`, `randTTT` — are named for no map. Every non-empty member walks to its string table, and the first header word, `unknown_0x00` to the tagged data table, is the record count on all 266.
+268 members. Three — `randTBox`, `randTD`, `randTTT` — are named for no map. Every member walks to its string table, and the first header word, `unknown_0x00` to the tagged data table, is the record count on all 266 read before 28 September 2026.
+
+**EU only:** `M09M05` and `D13M02` are not empty, though they look it. Their first word is 16, the table header's own size, which read as an LZ10 header is `0x10` and a declared size of 0: an empty compressed stream. A reader that tries every file as LZ10 first takes them for empty (see [DS-Compression](DS-Compression)). Counts on this page marked "266 files", and the 821 records in the table of record shapes, were taken while those two were read as empty.
 
 | tag | values | seen | meaning |
 |---|---|---|---|
 | `0x65` | a string | 266 files | a date and time, 2009 — when the file was written, by the look of it |
 | `0x64` | a string | 266 files | the same date as `yymmdd` |
-| `0x66` | an integer | 263 files | **the game-wide number of the file's first treasure** — below |
-| `0x67` | 3, 5 or 6 | 821 records in 263 files | one treasure |
+| `0x66` | an integer | 265 files (**EU only**) | **the game-wide number of the file's first treasure** — below |
+| `0x67` | 3, 5 or 6 | 847 records in 265 files (**EU only**) | one treasure |
 | `0x6A` | an integer | the three `rand*` tables | their row count |
 | `0x69` | an integer | the three `rand*` tables | a row — see [Random treasure](#random-treasure) |
 
 ### Treasure numbering
 
-**`0x66` numbers every treasure in the game.** Take each file's span as its `0x66` value up to that plus its count of `0x67` records. The 263 spans run from 0 to 847 without overlapping. The only two gaps, 13 wide each, fall where the two empty files sort (`M09M05` after `M09M04`, `D13M02` after `D13M01`). So a treasure's number is its file's first plus its place in the file.
+**`0x66` numbers every treasure in the game.** Take each file's span as its `0x66` value up to that plus its count of `0x67` records. **EU only:** the 265 spans run from 0 to 847 without overlapping and without a gap. So a treasure's number is its file's first plus its place in the file.
 
 INFERRED: that number is what an opened treasure is remembered by — it is the one numbering that covers every treasure exactly once.
 
@@ -136,9 +138,19 @@ The `_02` sheets name their one animation `taruware` and `tsuboware` — *ware* 
 
 Nor is a chest named inside a model or a texture set. Of 8,207 models and the 23,585 textures of 1,495 standalone texture files, the one texture named `takara` — and the one material — belong to `F99M0000`, which is not a chest: nine flat panels lying at height 0, `takara` a grid of 52 vertices beside a `num` grid the same size, with `train`, `umi` and monster names for the rest. A test sheet of textures, by the look of it. Pots and barrels turn up only as parts of a few rooms' own models (`tsubo` with a `futa`, lid, in `D04M02E4`; `taru` in `M08M0300`).
 
+### The field sprites' ids
+
+> **EU only.** The offset is into the European release's unpacked overlay 17; the decomp's address is the USA release's. Not yet checked on the US release (`YDQE`).
+
+Overlay 17 holds a list of the field sprites at `0x4AFCC`: 16 entries of an id and a pointer to a name, ended by id −1 and an empty name. The decomp calls it `fieldSpriteFiles` (USA `0x021d656c`). The pot's three sheets are ids 5, 6 and 7 (`tsubo_01` to `03`) and the barrel's 8, 9 and 10 (`taru_01` to `03`). The others are `fuki_com` 2, `fuki_in` 3, `fuki_hkn` 4, `field_mon01` 12, `ev_mark` 13, `field_qu` 14, `fuki_com_q` 15, `fuki_com_apc` 16, `field_satori` 17. How a treasure's kind chooses among them is still in code, not read.
+
+The evidence is the name list at `0x4BE99` and the pointers to it, the −1 and empty name that close the list, and the code's one reference to it, which is to the first id. The ids are the game's own numbering of these sprites.
+
+It was first read as (pointer, id) from `0x4AFD0`, which paired each name with the next entry's id and missed `field_satori`.
+
 ## Evidence
 
-- Treasure numbering: the 263 `0x66` spans, 0 to 847, with two 13-wide gaps at the two empty files.
+- Treasure numbering: **EU only:** the 265 `0x66` spans, 0 to 847, with no gap.
 - Positions: tested against the collision floors of `M01M04`, `M01M07`, `M01M08`, `C02M01`, `C01M12`, `C01M14`, `C01M15`, `C04M04`, `D03M05`; integer-typed coordinates in `C04M04`.
 - Item contents: all 142 kind `0x8`/`0x9` records name an item.
 - Cabinet pairing: counts agree on 62 of 89 maps; `unknown_2` matches the cabinet number on 45 of 89.
@@ -148,12 +160,14 @@ Nor is a chest named inside a model or a texture set. Of 8,207 models and the 23
 
 ## Earlier readings
 
+- `M09M05` and `D13M02` were read as empty, which left two gaps 13 wide in the treasure numbering where they sort (`M09M05` after `M09M04`, `D13M02` after `D13M01`). They hold the 26 missing treasures.
+
 - `T00GDS01`–`04` were first read as a chest shut and the same chest open. Drawn so, a chest stood open until it was opened and then showed only its lid. They are a body and a lid, as the casino chest's nodes show.
 - The kind-3 values 38–40 were first matched by counting the monster list's codes from 1 (the 38th to 40th codes are `z009a`–`z009c`). The list's own number field gives the same three, and is what settles that the values are monster numbers, not a count.
 
 ## Not established
 
-- Which kind is a chest, a pot or a barrel (only `0x30` = cabinet is read; `0x10` pot and `0x20` barrel are INFERRED).
+- Which kind is a chest, a pot or a barrel (only `0x30` = cabinet is read; `0x10` pot and `0x20` barrel are INFERRED). **EU only:** the pot's and barrel's sprite ids are read (above); how a map object's kind chooses among them is in code, not read.
 - What `unknown_2` counts outside the village.
 - The high half of value 0.
 - The kind `0x0` records (value 0 is 0 on all six).

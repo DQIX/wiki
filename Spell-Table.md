@@ -11,7 +11,7 @@ A loose file, `/data/prm/spelltable.bin`, listing the spells in order and which 
 | 1 | `0x65` | `0` |
 | 1 | `0x64` | `20` |
 | 65 | `0x66` | two integers: a place in the spell list, and an action |
-| 108 | `0x67` | three integers: vocation, place, level — INFERRED |
+| 108 | `0x67` | three integers: vocation, place, level — confirmed on the Minstrel's records, INFERRED on the rest |
 | | | then the date and version the loose tables carry: `2010/04/09 00:18:34`, `100203` |
 
 The `0x65` and `0x64` records open the file as the [level tables](Level-Tables) do.
@@ -32,7 +32,9 @@ The list runs a family at a time, each family's last member one of actions 779 t
 
 ## Learning records (`0x67`)
 
-**A `0x67` record is a vocation learning a spell**, INFERRED: (vocation, place, level), with vocations numbered as the [level tables](Level-Tables) are (0 Guardian, 1 Warrior … 12 Ranger).
+**A `0x67` record is a vocation learning a spell**: (vocation, place, level), confirmed on the Minstrel's records and INFERRED on the rest, with vocations numbered as the [level tables](Level-Tables) are (0 Guardian, 1 Warrior … 12 Ranger).
+
+**USA only:** the numbering is borne out by the game's own code: the Abbey offers 1 to 6, the six vocations a game begins with, freely, and 7 to 12 each behind an event flag, and refuses 0, the Guardian — see [Level tables](Level-Tables).
 
 | value | meaning |
 |---|---|
@@ -53,6 +55,7 @@ The list runs a family at a time, each family's last member one of actions 779 t
 
 - Place 25's absence.
 - The `0x65` and `0x64` records.
+- Whether the other vocations' `0x67` records are (vocation, place, level) as the Minstrel's are: they are read the same way and have not been checked against the guide.
 
 ## See also
 

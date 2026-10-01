@@ -27,6 +27,7 @@ The worn parts in `/data/pack_lv5/chara_pc.gp2` take the same letters and number
 
 - The copper sword's icon, `d_w004.spr`, was found by browsing the files, and the rule followed from it.
 - The letters were found by which letter each thousand's remainders land on, then checked by eye: one item of each thousand drawn with its icon is the thing it is named — a gold helm, red armour, a glove, purple shorts, boots, a ring, a knife, the copper sword, a shield, a herb.
+- **EU only:** the European release's ARM9 carries the path as a format string, `/data/ani/d_%c%03d.spr`, at `0x020ef20b`: a letter and a three-digit number, the shape of the rule. Nothing around it has been disassembled, so no behaviour is claimed from it.
 - The gloves' remainders land on `i` a little more often than on `g`, 68 to 62, because the tools' icons share the numbers. Drawn under `i`, a glove is a medicinal herb; under `g`, a glove.
 
 ## Not established
@@ -38,5 +39,5 @@ The worn parts in `/data/pack_lv5/chara_pc.gp2` take the same letters and number
 
 - [Sprites](Sprites)
 - [Items](Items)
-- [Item-Kinds](Item-Kinds)
+- [Item-Kinds](Item-Kinds) — also the weapon kinds' own pictograms, in `oiij_<lang>.pac`
 - [Character-Parts](Character-Parts)

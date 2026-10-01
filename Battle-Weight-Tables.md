@@ -56,6 +56,19 @@ This page had it that **bit 4 of the byte at `+0x27`** (see [Monsters](Monsters)
 
 **It does not.** The two commonest ways stand on both sides of that bit, and **the Hexagoon — a boss, and the one this reading was checked against — is way 0**, the even table. The bit is read by no instruction in the ROM at all; see [Monsters](Monsters).
 
+## Beside the run
+
+> **EU only.** The offsets are into the European release's unpacked ARM9 (`YDQP`); the neighbours have not been looked for on the US release (`YDQE`). The function address is the USA release's, from the decomp.
+
+The bytes around the run were searched for the battle's other chances, and one group is now accounted for.
+
+- **The four words `1024, 2560, 2048, 1024`**, after the run, are **heap sizes in bytes**: `func_0208b8c4` copies them to the stack and hands each to `SafeAllocator::Allocate`. They are not a flee chance or any other chance. Settled 19 September 2026.
+- Between `0xE8C60` and `0xE8D40`, before the run: sixteen words from `0x0E35` to `0x1051` — 0.888 to 1.020 if read as 4096ths — then `02 03`. Not identified.
+- After it: `03 01 04 02 02 03 01 00`, the float 0.2, the four heap sizes, four pointers into the ARM9, and the floats 1.3 and 1.0 separated by `0x80`, `0x60` and `0xD3`. The 1.3, at `0xE8D24`, stands alone between `0x80, 0x60` and a 1.0. Not identified.
+- At `0xE8C40`: the pairs `(7, 125)`, `(8, 181)`, `(9, 189)`, `(11, 213)`, then two `0xFFFFFFFF`. Not identified.
+
+The party's flee chance, once looked for here, is in code: see [Battle resolution](Battle-Resolution).
+
 ## Evidence
 
 - Found 16 September 2026 in the unpacked ARM9, as a run of four six-byte tables each summing to 256.
@@ -67,6 +80,7 @@ This page had it that **bit 4 of the byte at `+0x27`** (see [Monsters](Monsters)
 
 - What the four ways that do not draw by weights do in detail — the round robin's counter, the pair and the coin, the two passes.
 - What makes a slot unusable, beyond MP, a spent once-a-battle way and a missing target.
+- **EU only:** the words and pairs beside the run, other than the heap sizes.
 
 ## See also
 

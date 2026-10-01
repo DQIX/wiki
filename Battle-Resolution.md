@@ -21,7 +21,17 @@ The helpers, all in 32-bit floats:
 - `NextRandomMax(n)` — `(int)(n × float01)`, held below `n`.
 - `NextRandomFloatBetween(a, b)` — `(b − a) × float01 + a`.
 
+**USA only:** read from the USA release's code, through the decomp, and not compared with the European release's. `0x02160600` reads the battle generator's state out into `+0x6e3c` of another object — INFERRED: for a battle shared between consoles. The world's generator is seeded beside the C library's `srand`, with the same number. So a battle's rolls replay from the battle's seed alone, and the monsters' HP belong to the world's stream, drawn before the battle's generator exists.
+
 **The battle's arithmetic is in `float`, and the rounding is part of the answer.** `0.01f` is not a hundredth: a critical threshold computed in doubles or integers is off by one at 151 of the 850 deftness values past 150.
+
+**USA only:** `NextRandomMax(n)` computed as `(top × n) >> 32` in whole numbers parts from the game's float form about once in 4,000 draws at `n` = 10,000. Deftness 159 gives a critical threshold of 208, one under `200 + (deftness − 150)`.
+
+## The draws a battle makes
+
+> **USA only.** Counted from the decomp's cross-references to the USA release's code; not compared with the European release's.
+
+There are **183** calls to the generator in overlays 0 and 24. 65 are a percent roll, 17 a coin, 4 a die of four and one the critical's 10,000; 13 are a float between 0.9 and 1.1. A battle replays from its seed only when every one of them is made in the game's order.
 
 ## A monster's HP
 
@@ -31,14 +41,14 @@ The helpers, all in 32-bit floats:
 (int)(0.5f + (float)HP × NextRandomFloatBetween(0.8f, 1.0f))
 ```
 
-one draw **from the world's generator**, and the result is both its HP and its maximum. The table's HP is a ceiling: a slime's 8 comes to 6, 7 or 8. The draw is skipped, and the table's HP used, when the battle's setup holds a number other than −1 at `+0x0C` (`func_020a3694`) — INFERRED: a scripted battle's number.
+one draw **from the world's generator**, and the result is both its HP and its maximum. The table's HP is a ceiling: a slime's 8 comes to 6, 7 or 8. The draw is skipped, and the table's HP used, when the battle's setup holds a number other than −1 at `+0x0C` (`func_020a3694`) — INFERRED: a scripted battle's number. **USA only:** a second reading of the same flag, also INFERRED, is a grotto's or a legacy boss's battle. Which it is has not been settled; the same `+0x0C` not being negative is what forbids the party to flee, below.
 
 ## The order of draws for one action — `func_ov024_021eb5d0` [`ResolveAction`]
 
 One function resolves every action — a blow, a spell, an item, a change of state. It loops over the targets itself.
 
 1. Four actions draw before any target is looked at: `0x1FF`, `0x200`, `0x20B`, `0x20C`. Not followed.
-2. **The critical roll, once for the whole action**, if `func_ov024_021ea4d0` or `func_ov024_021ea500` says so: the action's reach (`+0x14`, top four bits) is 3 or 4 — all, or a group — and `+0x1C` bits 14–18 are 0; or it is the plain Attack from a party member whose weapon strikes more than one.
+2. **The critical roll, once for the whole action**, if `func_ov024_021ea4d0` or `func_ov024_021ea500` says so: the action's reach (`+0x14`, top four bits) is 3 or 4 — all, or a group — and `+0x1C` bits 14–18 are 0; or it is the plain Attack from a party member whose weapon strikes more than one. **USA only:** that the weapon strikes more than one is two bits at `+0x2F4` of what they wear.
 3. Then, **for each target**:
    1. `NextRandomMax(100)`, kept at `[battle + 0x8e6e]` (`0x021ebf28`). Made for every action. Read only by the evasion roll and by `func_ov000_02156558`, in place of a draw of their own, for a target in a state `func_ov000_02156404` tests (under 50 dodges; 50 to 74 does the other's thing). What state is not established.
    2. **The critical roll**, if it was not made for the whole action. Actions `0x48` (Thunder Thrust) and `0x70` (Hatchet Man) take `NextRandomMax(2) == 0` instead.
@@ -46,7 +56,7 @@ One function resolves every action — a blow, a spell, an item, a change of sta
    4. **The block roll**, if it can be blocked (`+0x10` bit 6) — **skipped for a blow already dodged**.
    5. **The accuracy roll** — always, dodged or not.
    6. If it landed, **the amount** — `GetAttackBaseDamage` — **even for a blow that was dodged or blocked**. The dodge and the block ride along as flags and zero the damage later.
-   7. The damage handler (`func_ov024_021da55c` [`DispatchDamageHandler`]: 67 member pointers at `0x021ff1e0` [`damageHandlers`], indexed by the action's `+0x18` bits 18–26; slot 0 is none and 570 of 681 actions are on it).
+   7. The damage handler (`func_ov024_021da55c` [`DispatchDamageHandler`]: 67 member pointers at `0x021ff1e0` [`damageHandlers`], indexed by the action's `+0x18` bits 18–26; slot 0 is none and 570 of 681 actions are on it). **EU only:** the cartridge's action names say what the handlers are for — Dragon Slash on 1, Metal Slash on 2, Falcon Slash on 9, and Thunder Thrust and Hatchet Man sharing 45, whose handler holds a 0.95-to-1.05 draw of its own. None of the handlers is read.
    8. The handler for the action's **kind** (`+0x18` bits 5–11), from a table at `0x021ff508` [`actionKindHandlers`]. Kind 1 calls `func_ov024_021e6a90` [`CalculateFinalDamage`]; kinds 3, 4, 5, 6, 8 … apply a change of state.
 
 So a plain blow that lands costs: the die, the critical, the dodge, the block, the accuracy, and the damage's own one or two draws. A spell at one target costs the die, the critical, the accuracy and its amount. A spell at three costs one critical and then a die, an accuracy and an amount apiece.
@@ -69,13 +79,15 @@ Two more `NextRandomMax(100)` at `0x021ecfd8` and `0x021ed324`, for a party memb
 
 ## The evasion roll — `func_ov000_02156f98` [`RollEvasion`]
 
-`NextRandomMax(100) < (int)rate` — the rate **truncated**. The rate is `func_ov000_02156270` [`GetEvasionRate`]: a party member's is `2.0` plus what they wear (`func_02084f58` [`SumEquipmentEvasion`], see [Items](Items)) and bonuses; a monster's is a grade in its record through the table **0, 2, 4, 8, 25**.
+`NextRandomMax(100) < (int)rate` — the rate **truncated**. The rate is `func_ov000_02156270` [`GetEvasionRate`]: a party member's is `2.0` plus what they wear (`func_02084f58` [`SumEquipmentEvasion`], see [Items](Items)) and bonuses; a monster's is a grade in its record through the table **0, 2, 4, 8, 25**. **USA only:** that table is at `0x020e88e4`; a party member's bonuses are an accessory's and a skill's; and either side's rate doubles under one status and is fifty flat under another. Which statuses is not established.
 
 ## The block roll — `func_ov000_02156e30` [`RollBlock`]
 
 `(float)NextRandomMax(100) < rate` — the rate **not truncated**. The rate is `func_ov000_02156118` [`GetBlockRate`]: nothing for a party member with no shield; with one, `func_02084ee8` [`SumEquipmentBlockChance`] — ten bits of every worn piece's record over `10.0f`, summed (see [Items](Items)) — plus a whole-number bonus from three traits (`func_02085b88`), doubled under one status. A monster's is a second grade, bits 16–18, through the same table as its evasion.
 
 Because the rate is not truncated, the bronze shield's 0.5 and the iron shield's 1.0 both block on a draw of 0 — once in a hundred — and the steel shield's 1.5 on 0 or 1.
+
+**EU only:** the addresses are the USA release's; the shield counts were taken on the European release. `func_02084ee8` walks the eleven places of what is worn — `0x20` bytes each from `+0x194` of the equipment at the character's `+0x150`, the shield's the tenth, its item at `+0x2CC` — and the ten bits it sums are the low ten of the equipment table's word 6, set on 42 of the 45 shields and on nothing else. The bronze shield's is 5. The three traits' bonus is a number each, fetched by `func_0201137c` at `0x22`, `0x24` and `0x26`.
 
 ## The accuracy roll — `func_ov000_02156648` [`RollAccuracy`]
 
@@ -92,6 +104,15 @@ Before any draw it leaves with a miss for a metal-bodied target under an action 
 5. It lands when the draw is under `(int)accuracy`.
 
 **This is the whole of whether a change of state lands.** The kind handlers for Sap, Snooze and their like (`func_ov024_021db7c0` for defence) make no draw: they are handed the answer. So Kasap's 75 in 100 and Sweet Breath's 25 are those actions' `+0x14` bits 0–6 — and what *raises* a stat does not scale, so it always lands.
+
+**EU only:** the addresses are the USA release's; the values were read from the European release's action tables.
+
+- The kind handlers are a table of member pointers at `0x021ff508`: 3 attack, 4 defence (`func_ov024_021db7c0`), 5 agility, 6 poison, 8 sleep.
+- A monster's chances: Snooze 37, Kasnooze 50, Deceleratle 75, beside Kasap's 75 and Sweet Breath's 25. A party member's Sap runs from 75 to 100.
+- Against a resistance: Kasap's 75 on a target whose byte for it is 75 is `(int)(56.25 + 0.5)`, 56.
+- How far it moves the stat is the action's `+0x30`, signed and held to two either way: Buff 1, Sap −1, Oomph 2, Blunt −2.
+- The draws are made **before it is known whether there is anything left to change**: the handler finds that out afterwards (`func_02087860`), so a cast on one already asleep costs the same draws as any cast.
+- A breath's record allows a dodge and a spell's does not, so a breath at a target can spend an evasion draw that a spell does not.
 
 ## The amount — `GetAttackBaseDamage` (overlay 24, `0x021e7bc0`)
 
@@ -111,7 +132,7 @@ else:                d  = between(0, attack/16)                           one dr
 | a party member, the action's amount scaling (`+0x18` bits 16–17 at **2**) by a number it names (`+0x10` bit 14 might, bit 15 mending) | bits 10–19 at or under `lo`, bits 20–29 at or over `hi`, `(int)((stat − lo) × ((max − min) / (hi − lo))) + min` between; plus the spread's draw | 1 |
 | a party member otherwise | **drawn** between bits 10–19 and bits 20–29, *then* the spread's draw | 2 |
 
-Every arm returns through a truncation. `lo` and `hi` are the action's `+0x04` bits 12–21 and 22–31: Frizz is 14 to 99 as might goes from 50 to 999. The medicinal herb names no number, so it costs two draws, the first between 35 and 35.
+Every arm returns through a truncation. `lo` and `hi` are the action's `+0x04` bits 12–21 and 22–31: Frizz is 14 to 99 as might goes from 50 to 999. **EU only:** Heal is 35 to 160 as mending goes from 50 to 999. The medicinal herb names no number, so it costs two draws, the first between 35 and 35.
 
 Six skills scale by a number made from the user's and what they hold, by a table at `0x021fe8b6` [`skillAmountScaling`]: Gigaslash, Gigagash, Lightning Storm and Boulder Toss 500 to 1,998; Hand of God 300 to 999; Whopper Chop 250 to 600. Not followed.
 
@@ -120,16 +141,16 @@ Six skills scale by a number made from the user's and what they hold, by a table
 A float to the end. In order:
 
 1. **A critical**: the greatest of `1.2 × damage`, `func_02074838` [`CalculateCriticalDamage`], and a floor. For the plain Attack (and actions `0xDB`, `0x1F9`) that is the *attacker's attack power* × `between(0.95, 1.05)` with the damage itself as the floor; for anything else it is the damage × `between(1.5, 2.0)` with no floor.
-2. **× the target's resistance** to the action's element (`+0x08` bits 22–26) — `0x021e6e8c`.
+2. **× the target's resistance** to the action's element (`+0x08` bits 22–26) — `0x021e6e8c`. **USA only:** it stays a float, so a blow of 1 against a resistance of a half is 0.5 — above 0, so it gets no coin at step 6, and is truncated to 0.
 3. For a party attacker with an elemental weapon, on an action with `+0x10` bit 18, a second product by the weapon's element. Not followed.
 4. **Blocked, then dodged, each zero it** (`0x021e777c`, `0x021e77a0`).
-5. **A metal body zeroes it** (`0x021e77a4`): a target whose record's `+0x0A` bit 12 is set — `func_ov000_02156068(battle, target, 0, 1)`, and never a party member — under an action that **carries** `+0x10` bit 24 and is of kind 1 (or is action `0xDB`), where the blow is not a critical and the action is not `0x205` or `0x82`. The damage becomes exactly 0. Note the polarity: the flag must be *set* for the zeroing, so it reads less like "works on metal" than like "deals damage at all".
-6. **The coin**: if the damage is not above 0, and it was not blocked or dodged, the action is not `0x70`, `0x48` or `0x1B` (Kamikazee), the target's resistance is above 0, and the target is not a metal body under an action that does not work on one — `(float)NextRandomMax(2)`. **Whoever struck it**: no test of the attacker's side.
+5. **A metal body zeroes it** (`0x021e77a4`): a target whose record's `+0x0A` bit 12 is set — `func_ov000_02156068(battle, target, 0, 1)`, and never a party member — under an action that **carries** `+0x10` bit 24 and whose `+0x08` bits 8–9 are 1 (or is action `0xDB`), where the blow is not a critical, the action is not `0x205` or `0x82`, and the flag of a party member's skill that adds 1 against a metal body (below) is not set. **USA only:** this gate is corrected; see Earlier readings. The damage becomes exactly 0. Note the polarity: the flag must be *set* for the zeroing, so it reads less like "works on metal" than like "deals damage at all".
+6. **The coin**: if the damage is not above 0, and it was not blocked or dodged, the action is not `0x70`, `0x48` or `0x1B` (Kamikazee), the target's resistance to both of the action's elements is above 0, and the target is not a metal body under an action that does not work on one — `(float)NextRandomMax(2)`. **Whoever struck it**: no test of the attacker's side.
 7. Metal Slash (`0x40`) and Metalicker (`0x7E`) on a metal body, not critical: `1.0f + NextRandomMax(2)`.
-8. `× 0.5f` for an action of kind 1 whose target carries status bit `0x1000000`. This page once read that as defending; **it is maximum tension** — see below. Defending is a guard level, and is applied earlier, at step 6 of the tail.
+8. `× 0.5f` for an action of kind 1 whose target carries status bit `0x1000000` (`0x021e7a58`). This page once read that as defending; **it is maximum tension** — see below. Defending is a guard level, and is applied earlier, at step 6 of the tail.
 9. **The combo table** at `0x021fe778` — `1.0, 1.2, 1.5, 2.0` — for an action with `+0x2C` bit 27 and damage of at least 1, indexed by a counter byte at `[battle + 0x8e83]` held to 3. Anything else resets that counter (`func_ov000_0215cd80`). What increments it was not followed.
 10. Truncated, and held to the action's cap (`+0x1C` low 14 bits, where not 0).
-11. Action `0xAF` (Double-Edged Slash) has a quarter of the number kept — INFERRED: its recoil.
+11. Action `0xAF` (Double-Edged Slash) has a quarter of the number kept — INFERRED: its recoil. **USA only:** it is kept at `[battle + 0x8e38]`.
 
 Between the resistance and the guard sit the wards and the slayer multipliers: `× 0.75` of fire or of ice for a target under status `+0x18` bit 1 or bit 2 (five turns each); `× 0.5` under status `+0x14` bit `0x20000000` (four turns) when the **attacker** is a monster of one family; and twelve family-slayer products for a party attacker, gated by `func_ov000_02156068(battle, target, N, 0)` for N of 1 to 12 against what they hold. A party member with a certain skill adds **1** to the damage against a metal body (`+0x10` bit 18).
 
@@ -159,6 +180,14 @@ The byte at **`[status + 0x24]`** is the tension level, 0 to 4. `func_02088220` 
 
 The level indexes ten floats at `0x020e88f8` through `func_02074738(level, isMonster)` — **1.0, 1.5, 2.5, 4.0, 6.0** for the party and **1.0, 1.3, 2.0, 3.0, 4.5** for a monster, held at 1.0 — which multiplies the damage at step 17 of the tail. The symbol immediately after that function in the ARM9 is `CalculateTensionBonus`.
 
+**USA only:** read from the USA release's code, through the decomp.
+
+- The multiplier is applied only where the byte at `[battle + 0x76]` is set and the action carries `+0x10` bit 13.
+- `CalculateTensionBonus` is `tension × (1 + level / 10)`, the division a whole number's — so levels 10 to 19 all double the bonus.
+- The bits live in the status object's flag word, `[combatant + 0x138] + 0x14`, which overlay 24 tests through the one-line predicate `func_ov024_021dd260`. `0x1000000` has four writers, all in the ARM9: `func_02088150` sets it (`0x0208819c`), `func_020881ac` clears it, `func_02087704` clears it as the level decays, and `func_02088474` clears it conditionally.
+- `func_0208767c` steps the level byte 1, 2, 3 and sets `0x1000000` only as it reaches 4.
+- No Defend command sets `0x1000000`: a search of every module's writes to the status word, and of every call into the flag class, found none. Every other bit of that word carries a duration byte of several turns.
+
 That also explains the bit on the **attacker**: at the head of `CalculateFinalDamage` it writes a message code for tension spent on a blow that did nothing (1 psyched up, 2 at maximum).
 
 ## A monster's drops — `func_ov023_021f454c`
@@ -178,7 +207,7 @@ Each roll is `func_02032370(oneIn) == 0`, where `oneIn` is the table of eight wo
 
 **The generator is the C library's `rand`** (`0x02003d14`, `seed × 0x41C64E6D + 0x3039`, the draw its bits 16 to 30), not the battle's and not the world's: a drop spends none of the battle's own numbers. `GetBTRandom()` is called in the same function, but only for a grotto or legacy boss's drop. The collected list is capped at 8, and four further passes follow the first — one for each standing party member above half its HP, at a rescaled chance — which are the series' item-finding abilities.
 
-Nothing in the battle seeds `rand`; twelve places elsewhere do, two from a clock and the rest deterministically for generating grottoes, floors and treasure maps.
+Nothing in the battle seeds `rand`; twelve places elsewhere do, two from a clock and the rest deterministically for generating grottoes, floors and treasure maps. **USA only:** `rand` keeps its seed in one global at `0x020eef30`, and the ROM holds 1 there. The two clocks are the hardware timer at `0x04000100` and a timestamp from the real-time clock. So a drop's seed is whatever was last installed, from outside the battle.
 
 ## The party fleeing — `func_ov000_0215f7a8`
 
@@ -227,7 +256,7 @@ on the **buffed** agility (`[status + 0x0c]`, which `UpdateCombatantAgility` has
 
 A second effect on top of a damaging action — Toxic Dagger's poison, Helm Splitter's fall in defence. The action's `+0x18` bits 0–4 index 22 member pointers at `0x021ff450` [`riderEffectHandlers`]; 0 is none. It is called from the kind's handler once the blow has landed. Every handler has one shape:
 
-- nothing, **and no draw**, for a blow that dealt nothing, for a target whose resistance byte for it is 0, or for one who cannot take it now;
+- nothing, **and no draw**, for a blow that dealt nothing, for a target whose resistance byte for it is 0, or for one who cannot take it now. **USA only:** the byte is at the target's status `+0x46` to `+0x52`, one a rider — the same array as the resistances below, elements 9 to 21;
 - then `(float)NextRandomMax(100) < chance × (byte / 100.0f)` — a monster's chance `+0x14` bits 0–6, a party member's bits 7–13 — or under `100.0f` for a critical;
 - the levels, where it moves a stat, at `+0x32`.
 
@@ -261,7 +290,7 @@ The modifier: −50 under a ward, for each of elements 1 to 7 (five wards: 1, 2,
 | 8 | **the plain Attack** | 20 | agility down — Decelerate |
 | 9 | Dazzle | | |
 
-5, 7, 11, 12, 14, 15, 17 and 21 are not established.
+5, 7, 11, 12, 14, 15, 17 and 21 are not established. **USA only:** the 22nd byte is reached by no element.
 
 ## Sharing the experience — `func_ov023_021f4098`
 
@@ -285,6 +314,8 @@ A member down at the end takes nothing and weighs nothing in the others' shares.
 
 On both releases checked, sixteen bytes: **up to 10,000 → 4, up to 20,000 → 3, beyond → 2** — a big haul leans harder on level.
 
+**USA only:** the file's name is at `0x021fe338`. The share's other caller, beside the victory routine at `0x021ee140`, is a multiplayer path at `0x021ee400`. **Checked on both releases:** the file is byte for byte the same on the US and European releases, and neither has the second block.
+
 ### The line that says it
 
 `func_ov023_021f03a0` counts the nonzero shares and says `str_bres` **26**, `Each party member receives some experience!`, for more than one, and **25**, `<DEF_ART_TARGET> receives some experience!`, for one (`0x021f07fc`). The numbers themselves go to overlay 17 with the award array (`func_ov017_021cd590`), taken to be the results window — INFERRED. `str_bres` 6–9, `<str_n> earns <val_n> experience!` for one to four, are not found said in overlay 23.
@@ -292,7 +323,7 @@ On both releases checked, sixteen bytes: **up to 10,000 → 4, up to 20,000 → 
 ## Other things read
 
 - **The surprise round** (`ProcessCombatTurn`): at `[battle + 0xe49]` of 1 the monsters sit the first round out; at 2 the party does, the first monster always acts, and each after it acts on `NextRandomMax(100) < 67`. What sets it is above.
-- **A monster fleeing**: action `0xE1` on oneself removes the combatant with no draw (`func_ov024_021da670`). A monster that chooses to flee, flees.
+- **A monster fleeing**: action `0xE1` on oneself removes the combatant with no draw (`func_ov024_021da670`). A monster that chooses to flee, flees. **USA only:** action `0x395` does the same.
 - **A heal that goes critical** multiplies by `between(1.5, 2.0)`: it takes the same `CalculateFinalDamage` path a blow does, and `CalculateCriticalDamage`'s flag is set only for actions 1, `0xDB` and `0x1F9`, which take `between(0.95, 1.05)` instead.
 - **Action kind `0x22` is a metamorphosis**: the combatant's battle record is swapped for the monster named at the action's `+0x30` (`func_0204887c`, which carries the old record's name over), and the turn is then drawn again. Its handler slot is null, and the usable-action mask excludes it.
 
@@ -304,6 +335,12 @@ On both releases checked, sixteen bytes: **up to 10,000 → 4, up to 20,000 → 
 - What increments the combo counter at `[battle + 0x8e83]`.
 - What the flag at `[+0x138] + 0x14` bit 0, which stops the rounds counter, is; and which equipment sets the experience bonus.
 - What `func_ov000_0215f57c` is: it returns 0, 1 or 2 for a party member, by a three-bit field of the monster's record and one coin flip. It is **not** the action picker, which this page once supposed.
+- **USA only:** the state `func_ov000_02156404` tests, under which the evasion roll reads each target's die instead of drawing; and the statuses that double a dodge or set it at fifty.
+- **USA only:** what the draws made by actions `0x1FF`, `0x200`, `0x20B` and `0x20C` before any target are for.
+
+## Earlier readings
+
+- **USA only:** step 5 of the final damage once read the metal body's gate as an action "of kind 1". The code tests `+0x08` bits 8–9 at 1, not the kind at `+0x18`.
 
 ## See also
 
@@ -311,3 +348,5 @@ On both releases checked, sixteen bytes: **up to 10,000 → 4, up to 20,000 → 
 - [Monsters](Monsters) — resistances, and the five numbers
 - [Items](Items) — a shield's chance of blocking, and evasion
 - [Battle weight tables](Battle-Weight-Tables)
+- [Battle text](Battle-Text) — `str_bres`, the result messages
+- [Equipment battle parameters](Equipment-Battle-Parameters) — a party member's resistances

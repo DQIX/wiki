@@ -43,6 +43,26 @@ A pack's members can be:
 
 Which dot marks the Hero on the mini-map, and in what colour, is not established. See [Mini-Map](Mini-Map).
 
+### Example: the equipment screen
+
+> **EU only.** Read on the European release (`YDQP`); not yet checked on the US release (`YDQE`).
+
+The equipment screen is drawn from several packs, identified by drawing them and comparing with screenshots of the game:
+
+| pack | holds |
+|---|---|
+| `bg_eq_en.pac` | the backdrop, the frame, the tabs, the name plate and the sort label, as `.bncg`/`.bncl`/`.bnsc` screens (see [Menu-Backgrounds](Menu-Backgrounds)) |
+| `spr_eq.pac` | the slot boxes, the row bars and the green corners |
+| `clmm_en.pac` | the hints, L, R and the hand |
+| `oiij_<lang>.pac`, in `/data/ani/oiij.gp2` | `obj_iteminfo`: the slots' small icons, the weapon kinds' pictograms (see [Item-Kinds](Item-Kinds)) and, at cell 21, the lit star of an item's rarity |
+| `/data/ani/obj_gl.pac` | cells 10–21, the pictograms of the "Used by" grid |
+
+The item icons themselves are loose sprites, not packs (see [Item-Icons](Item-Icons)).
+
+### Example: the ending's credit cards
+
+**EU only:** the credit cards around the staff roll are packs in `/data/chara_sub` — `toriyama.pac`, `sugiyama.pac` and others, and `tobe_<LG>.pac` once per language. `horii.pac`, for one, holds `horii_san.bncg`, `.bncl` and `.bnsc`: one full-screen 256-colour picture. See [Menu-Backgrounds](Menu-Backgrounds#the-endings-credit-cards).
+
 ## Evidence
 
 The cartridge has 468 files named `.pac`.

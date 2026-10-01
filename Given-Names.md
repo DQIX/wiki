@@ -1,6 +1,10 @@
 # Given Names
 
-The names a made character's last creation screen offers to roll from, and its keyboard. Observations are from the European release (game code `YDQP`); `str_cm` and the three keyboard files are byte for byte the same in the US release (`YDQE`).
+The names a made character's last creation screen offers to roll from, and its keyboard. Observations are from the European release (game code `YDQP`); `str_cm`, `keyboard_cm.bin` and `keyboard_cs.bin` are byte for byte the same in the US release (`YDQE`). `keyboard_pr.bin` has not been compared.
+
+## The screen
+
+**EU only:** the name is the eighth of the creation screens, in overlay 9's own order: sex, figure, hair, hair colour, face, skin colour, eye colour, then the name (see [Party](Party)). The name it takes is stored on the character's record, one byte a character (see [Party](Party), the name at `+0x140`).
 
 ## The names
 
@@ -12,6 +16,14 @@ The names a made character's last creation screen offers to roll from, and its k
 
 `/data/bin/keyboard_cm.bin`, 7,216 bytes, a loose [tagged data table](Tagged-Data-Table): one `0x65` record a key, each with its place on the 256 × 192 bottom screen and two of the game's own character codes — for a letter, its two cases, INFERRED. Which code is which letter is not established; the let's play's keyboard (QWERTY, with a case key, accents and symbols) shows which letter sits at each place, which would settle it without a guess. `keyboard_cs.bin` (7,264 bytes) and `keyboard_pr.bin` (7,248) sit beside it, not read.
 
+**EU only:** both Latin fonts carry three glyphs that belong to this keyboard, named `<capslock>`, `<shift>` and `<back>` (see [Bitmap font](Bitmap-Font)).
+
+## Earlier readings
+
+This page once said all three keyboard files were byte for byte the same in the US release. The check covered `keyboard_cm.bin` and `keyboard_cs.bin` only.
+
 ## See also
 
 - [Character presets](Character-Presets)
+- [Party](Party): the creation screens and the name's place in a character's record
+- [Bitmap font](Bitmap-Font)
