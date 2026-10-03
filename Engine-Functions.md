@@ -345,6 +345,27 @@ So **a scene runs on into another script, keeping its context** — its cast, it
 
 **EU only:** a script a scene chains into is started the same way the scene was, so it may change the map first. See [Event lists](Event-Lists).
 
+## The last four — 837, 839, 843, 844
+
+> **USA only:** read through the [dqix-decomp](https://github.com/DQIX/dqix-decomp), overlay 1's table at `0x02164d6c`. The scenes that call them were found by running every event on the European cartridge.
+
+Each is called by one or two scenes and nowhere else, and each returns 1,
+which none of its callers tests. With these, **every engine function an event
+on the cartridge calls has a reading.**
+
+| fn | address | what it does | called by |
+|---|---|---|---|
+| 843 | `0x02160bc0` | **shut a door at once.** Instruction for instruction `563`'s handler, but ending in `func_02018918` where 563 calls `func_0201874c`: a sliding door is put back with no animation; a swinging one has its flags cleared and no target angle set. Like 563 it acts only on an open door, and clears the map's remembered-open bit unless the door's flag 8 is set | `ev24590`, `D04` at 1.1–4.99: doors 28 and 30 shut on frame 2, so that `540` can open them on camera at frame 182 |
+| 837 | `0x02163200` | **whether the Hero was fallen when the map was loaded**, 1 or 0 written through its reference. The byte is the map-load state's `[field+0x3734]+0x107`: cleared at the start of every load (`func_ov017_021baedc`), set in the load's state 2 (`func_ov001_021552a8`, `0x02155604`) when bit 0 of game object 0's status word is set — INFERRED fallen, from the revive function, the wipe-out check and the post-battle grace bypass. Not refreshed during the stay | `ev24593`, `M03` at 4.4: begun by talking, it leaves the Hero where they stand — unless 837 says 1, when it puts them on the scene's mark (`206`/`208`) |
+| 839 | `0x02163248` | **let the bone camera turn what it drags, or not**: `(n == 0)` into byte `+0x265` of the current camera (`[gs+0x3b0]`). Its only reader is [`552`](#the-bone-driven-camera--572-531-and-213)'s per-frame update, `func_0204a170`, which still drags the second object to the bone when the byte is set but skips turning it; clear, every third frame it turns the object `(rot + heading + 1) >> 1`, halfway. A new camera starts clear, turning | `ev28920`, `D16` at 14.4: `552(-6, "eye", "lookat", "foot", 0)`, then `839(0)` |
+| 844 | `0x02163dc8` | **keep the map's placements as the scene left them, across its battle.** It records every placement's shown-or-hidden bit in two 256-bit arrays (`func_02017c58`) in `data_02108844` — the record that holds the story threads — and sets byte `+8` of the battle's transition task. The battle's teardown (`func_ov017_021b6f9c`) sees the byte and arms a restore, which `func_02017a94` performs at the map's next setup. An ordinary encounter has the byte set; [`547`](#the-worklist-head-and-the-towns-shared-set), the transition, clears it at `0x02163da8`, so 844 must come after it | `ev29220` and `ev29230`, `X04` at 17.2: `547(5, 24 or 25)`, a run of `574`s, then `844()` |
+
+**Not established**: whether returning from a battle counts as a map load for
+837's byte; what makes a swinging door look shut after 843; what the
+teardown's `+0x6b6 & 0x2000` flag and its "type-4 task" condition mean, so
+whether X04's two battles do restore; `func_02064b24`, called at the end of
+the restore.
+
 ## A scene's hand-on to another map — 807
 
 > **EU only.** Code addresses are the USA release's, from the decomp. The scripts and the counts over them were read on the European release (`YDQP`) and are not yet checked on the US release (`YDQE`).
