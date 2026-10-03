@@ -106,6 +106,8 @@ A tag-6 record is a box on the ground: its four floats are x and z at most, then
 
 **The Hero talks to whoever's box holds them**, and to a thing to examine only so (see [Character-Dialogue](Character-Dialogue)). There are 570 boxes on the cartridge. Yggdrasil's is `199, 3.24, 1.27, −3.36, −2.52, 80`, and the village shopkeeper's three are over his counter. Trigger condition `41` tests whether the Hero stands in one of a character's boxes (see [Triggers](Triggers)).
 
+**A box can belong to a character with no name.** At the Quester's Rest the keepers are talked to across their counters through such stand-ins: kind 0, no name, a box of label 80 on the near side — Erinn's counter is 208, the bank 212 (see [The Quester's Rest](Questers-Rest)). A reader that drops unnamed entries loses both.
+
 ### Not read
 
 - **Tag 14**, which places a character by a quest's state (`func_0206cbcc`, using `func_0206e120`; see [Quests](Quests)).

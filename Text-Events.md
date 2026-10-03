@@ -23,7 +23,7 @@ code, the table of where each flow begins, and the counts.
 |---|---|---|---|
 | `<INN=n>` | 1 | **an inn**: stay the night, or rest until evening, one price for either by the beds wanted | "You wish to stay the night, or merely to rest until evening? Either service costs a highly reasonable `<val_2>` gold coins" — 181 innkeepers' lines; "There are `<val_1>` of you in need of a bed" |
 | `<CHURCH=n>` | 2 | **a church** | its priests' own talk lines; the service's words are not established |
-| `<BANK>` | 3 | **the bank**: Deposit, Withdrawal, Leave — Ginny's Rainbow's End Gold Bank at the Quester's Rest | `str_bank`: "We accept deposits in units of one thousand gold coins" |
+| `<BANK>` | 3 | **the bank**: Deposit, Withdrawal, Leave — Ginny's Rainbow's End Gold Bank at the Quester's Rest — see [The Quester's Rest](Questers-Rest) | `str_bank`: "We accept deposits in units of one thousand gold coins" |
 | `<SHOP=n>` | 4 | **a shop**, the stock named by *n* (see [Items](Items#services-in-talk--shopn-innn-churchn)) | `str_s00`–`str_s04`, the shopkeepers' lines: "You're here to buy today, are you?" |
 | `<LUIDA>` | 5 | **Patty's Party Planning Place**, mode 0 — see [Party](Party#recruitment--pattys-party-planning-place) | `str_lui`, `bm_lui` |
 | `<RIKKA>` | 6 | **the Quester's Rest counter**: Stay at the inn, Canvass for guests, View the guestbook, Leave | `str_rkm`; `str_rki`: "Would you like to stay the whole night or just rest until evening?" |
@@ -32,7 +32,7 @@ code, the table of where each flow begins, and the counts.
 | `<DAMA>` | 9 | **Alltrades Abbey**, Jack of Alltrades: change vocation, revocation — see [Party](Party#changing-vocation-alltrades-abbey) | `str_dam`, `bm_dama` |
 | `<DAMA_SATORI>` | 10 | **Alltrades Abbey, mode 1**: the same change, said by the "Voice of Vocation", HP and MP kept in proportion | `str_dam` 26–34, 50, 51 |
 | `<ARKSANDY>` | 11 | **the Starflight Express** — see [Starflight Express](Starflight-Express) | `str_ark`, its stops: "The Observatory", "Alltrades Abbey", "The Realm of the Almighty", … |
-| `<RIKKAFIRST>` | 12 | **the Quester's Rest counter**, as `<RIKKA>`; INFERRED from the name, the first visit | — |
+| `<RIKKAFIRST>` | 12 | **the Quester's Rest counter**, the same flow as `<RIKKA>` (read); on no line | — |
 
 The tags carry the Japanese names: ルイーダ, Patty's tavern; リッカ, the
 Quester's Rest's keeper (INFERRED Erinn in the English release); ダーマ, the
