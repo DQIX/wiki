@@ -51,6 +51,7 @@
 - [Articles](Articles)
 - [Battle text](Battle-Text)
 - [System strings](System-Strings)
+- [The Story So Far](Story-So-Far)
 
 **Game data**
 - [Party](Party)

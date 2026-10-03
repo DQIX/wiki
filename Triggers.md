@@ -142,7 +142,7 @@ All are cases of `func_02061c04` unless the row says otherwise. Some only queue 
 | 148 | moves **all five threads'** stage, with three values as `132`. `ev28800` at 13.1 brings the threads back together at 13.2; winning set battle 25 at 17.2 plays `ev29300` and sets all five to 19.2 (see [Story threads](Story-Threads)) |
 | 149, 150 | set a map piece on, off (`func_02019508`, `func_02013380`), or, for a piece not in the map, a bit of the thread's bank at `+0x08` or `+0x14` (`func_0206ea8c`) |
 | 155 : e | with a value `f : 0`, sets flag *f* (it runs `104` with its value) and plays event *e* (queued, as a `119`). All 14 are Gortress's, on its characters at 14.4: `52:203 7:2 155:28991 7:0` |
-| 197 : n | sets a number of the game's state (`func_02010810`), clearing a 40-byte block when the old and new fall in different ranges of a table of them (`0x020636b4`). A progress counter, INFERRED. It is on nearly every event's own record |
+| 197 : n | **sets the [Story So Far](Story-So-Far)'s number**, `GameState+0x5CBC` (`func_02010810`): the page the Y Button shows is message *n* of `str_ol`. Set at once, forwards or back; a 40-byte block is cleared when the old and new fall in different ranges of a table (`0x020636b4`), the continue screen's comment groups. On nearly every event's own record |
 | 214 : n | moves **thread *n*'s** stage, with three values as `132` (`0x02063e40`); see [Story threads](Story-Threads) |
 | 215, 216 | start the Starflight Express, and set the stop it is at (`0x02063e80`, `0x02063eac`); see [Starflight Express](Starflight-Express) |
 | 220 | **the Quarantomb's switches** (`func_020aee04`). Parsed as two bytes: which switch (1 or 0) in the high, whether it is on in the low. It does nothing outside map 7402. There it turns the map's pieces `0x4e`–`0x58` (which 1) or `0x37`–`0x4b` (which 0) on, and **sets game-wide flag 830 + 71 or 830 + 72 to it** (`func_020ae4ec`), the block that `88` and `89` test. `220:257` sets 901, `220:1` sets 902, and `ev24590`'s record clears both with `220:256 220:0`. Talking to `107` and `108`, in either order, sets both and plays `ev24590`. All 14 records with it are the Quarantomb's |
@@ -237,7 +237,7 @@ His event's record is `8:2200 133:1100 2210:0`: on to the village, 1100, and `ev
 
 A villager's record then holds only with flag 0 set and flag 1 not: `6:8 4:0 5:1 119:2220`.
 
-**EU only:** As the game's parser reads them, `0:2 0:2 0:1` is `132`'s own stage, not three conditions, and `2210:0` is `133`'s own event. `197:6` and `197:7` set the progress counter INFERRED above.
+**EU only:** As the game's parser reads them, `0:2 0:2 0:1` is `132`'s own stage, not three conditions, and `2210:0` is `133`'s own event. `197:6` and `197:7` set the [Story So Far](Story-So-Far)'s page.
 
 ## Evidence
 
