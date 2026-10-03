@@ -350,29 +350,71 @@ comparands by addition — `+0xB`, `+0xC`, `+0x17`. It **stops** on `0xFF01`
 `0xFF18`, the newline. It then multiplies `lines − 1` by the `<MOJI=>` line
 height to centre the window vertically.
 
-## Services in talk — `<SHOP=n>`, `<INN=n>`, `<CHURCH=n>`, `<BANK>`, `<RENKIN>`
+## Services in talk — the facility tags
 
-> **EU only.** Counts are from the European release's English talk files and
-> are not yet checked on the US release (`YDQE`). Code addresses are the USA
-> release's, from the decomp.
+> **USA only** for the code: the tag table and the functions were read in the
+> USA release through the decomp. **EU only** for the counts, which are from
+> the European release's English talk files.
 
-A talk line that hands over to a service ends `<ADD>` and a service tag: 352
-`<SHOP=n>`, 505 `<INN=n>`, 325 `<CHURCH=n>` and 48 `<BANK>` across the English
-[talk files](Character-Dialogue). `<RENKIN>`, the Krak Pot, is bare, since
-there is one pot, and appears both as a line of its own and after `<END>`.
+A talk line that hands over to a service ends with a **facility tag**: `<ADD>`
+and `<SHOP=n>`, say, or a bare `<RENKIN>`. The compiler drops these tags (see
+[The two parsers](#the-two-parsers)), so they never reach the message window.
+They are read straight off the line instead.
 
-**The compiler drops these tags** (see [The two parsers](#the-two-parsers)),
-so they never reach the message window. The service is reached by a facility
-code instead: `func_0206f6cc`, the one function the talk service calls for a
-facility, takes a code byte out of the message and switches on it through a
-table at `0x0206f70c` (1 the inn, 2 the church, 3 the bank, 4 the shop, 7 the
-Krak Pot, and the rest services with no text tag). The full table, the shops
-`<SHOP=n>` names, and what is known of the inn's price are on
-[Items](Items#services-in-talk--shopn-innn-churchn).
+**`func_0206f550` reads them.** Read 3 October 2026. It walks the line and,
+on each `<`, prefix-compares the text against a **thirteen-entry table of tag
+names at `0x020f0afc`** (`func_02001aec`, the length from `func_020d2ff0`).
+**A tag's place in that table is its facility code** (`0x0206f59c`–`0x0206f61c`).
+It keeps up to four codes for the line (`cmp r0, #4`, `0x0206f588`), and
+strips the tag from the text (`0x0206f63c`–`0x0206f64c`). Only codes 1, 2 and
+4 take a number, which `atoi` reads into a slot beside the code
+(`0x0206f5c4`–`0x0206f5f0`).
 
-**Not established:** what the inn's and the church's numbers select; where
-the codes of the services with no tag come from; and the step from an
-authored tag to its code byte, since the compiler emits nothing for it.
+`func_0206f6cc`, the one function the talk service calls for a facility, then
+switches on the code through its table at `0x0206f70c`:
+
+| code | tag | what it opens | flow begins | English talk lines |
+|---|---|---|---|---|
+| 0 | (empty) | nothing | — | — |
+| 1 | `<INN=n>` | the inn | `0x021bac24` | 508 |
+| 2 | `<CHURCH=n>` | the church | `0x021ba8e0` | 342 |
+| 3 | `<BANK>` | the bank | `0x0217e300` | 48 |
+| 4 | `<SHOP=n>` | a shop | `0x021b2c24` | 352 |
+| 5 | `<LUIDA>` | Patty's Party Planning Place, mode 0 | `0x021b65e0` | 48 |
+| 6 | `<RIKKA>` | the Quester's Rest counter | `0x0218d77c` | 252 |
+| 7 | `<RENKIN>` | the Krak Pot | `0x021b146c` | 88 |
+| 8 | `<LAVIELL>` | Patty's flow, mode 1 | `0x021b65e0` | 0 |
+| 9 | `<DAMA>` | [Alltrades Abbey](Party#changing-vocation-alltrades-abbey), mode 0 | `func_ov017_021c12fc` | 4 |
+| 10 | `<DAMA_SATORI>` | Alltrades Abbey, mode 1 | `func_ov017_021c12fc` | 0 |
+| 11 | `<ARKSANDY>` | the [Starflight Express](Starflight-Express) | `0x021a8614` | 0 |
+| 12 | `<RIKKAFIRST>` | the Quester's Rest counter | `0x0218d77c` | 0 |
+
+The Japanese names show through: ルイーダ (Patty's tavern), ダーマ (the Abbey),
+リッカ (whoever keeps the Quester's Rest counter, file 208; INFERRED to be
+Erinn in the English release, who runs the counter there in the strategy
+guide, p. 68).
+
+**Who says them** (EU only). The counts are of every chapter's copy of a
+talk file, so a character with one tag in four chapters counts four.
+- `<BANK>`, `<LUIDA>`, `<RIKKA>` and `<RENKIN>` are each one character's, at
+  the Quester's Rest (areas `R01`–`R04`, files 212, 210, 208 and 100).
+- `<DAMA>` is Jack of Alltrades' whole line, in his file `X02/017`, in
+  chapters F, G, K and Q.
+- `<SHOP=n>`, `<INN=n>` and `<CHURCH=n>` are spread through the towns.
+- **Four tags appear in no English talk line**: `<LAVIELL>`, `<DAMA_SATORI>`,
+  `<ARKSANDY>` and `<RIKKAFIRST>`. The Express is reached by a trigger's
+  action instead (see [Starflight Express](Starflight-Express)).
+- An earlier count on this page gave 505 `<INN=n>` and 325 `<CHURCH=n>`. How
+  that count was scoped was not recorded.
+
+The shops `<SHOP=n>` names, and what is known of the inn's price, are on
+[Items](Items#services-in-talk--shopn-innn-churchn). A facility can also be
+opened without a tag, by a trigger's [operation 145](Triggers), which has its
+own numbering: Cap'n Max's mini medals are 7 there, where the Krak Pot is 7 in
+the table above.
+
+**Not established:** what the inn's and the church's numbers select; and what
+`<LAVIELL>` and `<DAMA_SATORI>` are for, since no line uses them.
 
 ## Evidence
 
@@ -380,6 +422,7 @@ authored tag to its code byte, since the compiler emits nothing for it.
 |---|---|
 | tag table | USA ARM9 `0x020e7f84`, 40 entries, `{NULL, NULL}` at `0x020e80c4` |
 | dropped-tag list | USA ARM9 `0x020e7e74`, 5 entries |
+| facility tags | USA ARM9 `0x020f0afc`, 13 pointers, read by `func_0206f550`; codes switched on at `0x0206f70c` |
 | shake offsets | USA ARM9 `0x020e7e10` (x), `0x020e7e1c` (y), 4 signed bytes each |
 | the codes | each read from its own handler's literal pool, not from a table of names |
 | the interpreter | USA ARM9 `0x02065990`–`0x02066a60`, comparands derived from `0xFF4B` at `0x02066958` |
@@ -407,9 +450,9 @@ authored tag to its code byte, since the compiler emits nothing for it.
 - **EU only:** what reads the names in the game's own list that are in neither
   the tag table nor the leading pass: `WH=`, `XR=`, `/XR`, `XY=`, `SIZE=`,
   `/TITLE`, `TMAP_SEC`, `ADDRESSEE`, `LEADER`, `val_`, `VAL_`, `STR_`.
-- **EU only:** what the inn's and the church's numbers select, and the step
-  from an authored service tag to its facility code (see
-  [Services in talk](#services-in-talk--shopn-innn-churchn-bank-renkin)).
+- What the inn's and the church's numbers select (see
+  [Services in talk](#services-in-talk--the-facility-tags)). The step from a
+  tag to its code is settled there.
 
 ## The game's own list of tag names
 

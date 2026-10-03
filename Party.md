@@ -385,8 +385,77 @@ inn and the church are** — not an event-script call.
 of a service record and branches through a 79-entry table at `0x021a3564`.
 **Service 46 (`0x2E`)** leads to `0x021c1404`, which calls overlay 3's step
 dispatcher `0x02154af4`, whose seven-entry table at `0x0217f340` holds the
-flow: slot 0 the change itself, slot 3 the confirmation, **slot 4
-revocation**.
+flow — see [the flow](#the-flow-as-the-player-meets-it) below. *Corrected 3
+October 2026*: this page had slot 0 as the change itself and slot 3 as the
+confirmation; slot 0 greets, slot 3 is the list, the confirmation, the
+ceremony and the change, and **slot 4 is revocation**, as it said.
+
+**It is reached by talking to Jack of Alltrades**, whose line is nothing but
+the tag `<DAMA>` — facility code 9 (see
+[Text markup](Text-Markup#services-in-talk--the-facility-tags)).
+`func_0206f6cc` calls `func_ov017_021c12fc(?, 0, 0)` for it, which writes the
+service request — `+0x00 = 0x2E`, `+0x1E` the mode — and queues it
+(`0x021c1350`–`0x021c1380`). `func_ov003_02154720` keeps the mode as bit 0 of
+`svc+0x1FC`. Code 10, `<DAMA_SATORI>`, is **mode 1**: the same change said by
+the "Voice of Vocation" (`str_dam` 26–34, 50, 51), keeping HP and MP in
+proportion rather than filling them. No English talk line uses it.
+
+### The flow, as the player meets it
+
+> **USA only** for the code. **EU only** for the line numbers' text, read in
+> `/data/bin/menu/str_dam.gp2/str_dam_en.nat` (system strings, by number) —
+> the code's line numbers fit the English lines one for one.
+
+The step is `svc+0x1F8`, the sub-step `svc+0x1F9`. A line put up runs before
+the step does (`func_ov003_021552b8`): `svc+0x1EC` is the line now and
+`+0x1EE` the next. **A line whose box closes ends the visit**; a line ending
+`<ADD>` keeps the box for what follows (INFERRED: the `W+0x9A0 == 3` state).
+
+| step | function | what happens | lines |
+|---|---|---|---|
+| 0 | `0x021560e4` | load `str_dam`, the windows (`bm_dama`) and `str_daj`. **Flag `0x799` clear**: too soon, and done. **Flag `0x796` set**: the Change Vocation / Revocate menu. Otherwise a Yes or No | 0, 1; 0, 4; 0, 2 |
+| 1 | `0x02156ad4` | the menu (window 2): Change Vocation → as Yes at step 2; Revocate → step 4; B → 5 | 4, 5 |
+| 2 | `0x02156d40` | Yes: who (windows 3–5 for a party of 2–4), or the Hero alone; No or B: 3 | 6, 3 |
+| 2 | sub 3 | the member chosen: **fallen** → 49, **cursed** → 8, else 9 and step 3; B → 7 | 49, 8, 9, 7 |
+| 3 | `0x0215704c` | the vocation list (window 6), with a description panel for the one under the cursor; **the vocation already held is listed, and refused** (48, then 9 again); B → 7 | 9, 48, 7 |
+| 3 | sub 2–3 | Yes or No (cursor on Yes): No → 11 and the list; Yes → 12, the prayer | 10, 11, 12 |
+| 3 | sub 4–9 | the ceremony: the effect `data/effect/ev999991800.chr`, animation `"0"`, at the member; **jingle 52** (`0x02157404`); 140 ticks (`0x02157420`); **the change** (`0x0215582c`); HP and MP whole | 13 |
+| 4 | `0x021575dc` | revocation: nobody at level 99 → 14, 66; the member not at 99 → 16; fallen → 17, 65; cursed → 17, 18; else 17, 19 and a Yes or No **with the cursor on No**; No → 20; Yes → 21, the ceremony, the revocation, HP and MP whole | 14–25, 65, 66 |
+| 5 | `0x02158184` | tear down the description panel, then done | |
+| 6 | `0x02158214` | abort, for a wireless guest (`Session::IsGuest`) | |
+
+**The windows** are `/data/bin/menu/bm_dama.gp2`: `bm_dama_wnd.bin` (the
+windows), `bm_dama_txt.bin` (their items) and `bm_dama_<lang>.bin` (the
+labels, a `0x67` table): the twelve vocations, Yes, No, Change Vocation,
+Revocate, "Lv. ", "Vocation", and `<tc1>`…`<tc10>` for the revocation marks.
+**The who-list is the party only**, in order, each name coloured by its HP
+and nobody greyed. **The vocation list** is two columns of six — each name,
+"Lv." and the member's level in it, and a revocation mark when there is one.
+
+**What fills the lines** (`0x02155380`–`0x0215548c`): the member's name as
+`<TARGET>`; three value slots — the chosen vocation (`str_dam 35 + v`), the
+current one (`35 + v`) and the medal (`52 + v`) — which `<str_2>`, `<str_3>`
+and `<str_4>` read (INFERRED, `<str_n>` reads slot n − 1). The article in
+`<IF_VOWEL_VOCATION>` is tested against the chosen vocation's name, and the
+current one's in lines 16, 19 and 22 only.
+
+**The gates are three event flags**, each a raw bit of the game-wide bank at
+`+0x8c` tested by `0x0206dfb0`: **`0x799`** (open at all), **`0x796`**
+(revocation offered) and **`0x113F + v`** (the gated six). **EU only:** no
+trigger record on the cartridge sets or tests any of them — not by its raw
+bit (operation 100), and not by number through the quest operations 130 and
+131, all 427 searched. What sets them is the game's own code, not read.
+
+**The change** (`0x0215582c`) also, beyond the equipment below:
+- calls **`0x02083ca0`**, which writes `+0x950 = v` and ORs bit `v` into
+  `+0x954` — the same writes as `0x02086598`, which the Abbey does not call;
+- works out the base attributes afresh from the new vocation's level table,
+  at the member's level in it (`0x02083cbc`);
+- teaches **a Priest spell 26 and a Mage spell 0** (`0x02155d84`–`0x02155db8`,
+  `0x02083b60`) — the [spell table's](Spell-Table) only two level-one
+  learnings, Heal and Frizz;
+- and, after the ceremony, sets HP and MP to their maximums (mode 1: to the
+  same proportion, HP at least 1).
 
 ### What may be chosen
 
@@ -406,10 +475,11 @@ Priest, Mage, Martial Artist, Thief and Minstrel — the six a game begins with
 — and the gated six are the advanced ones. That the two lists fall out that
 way is a good independent check on the numbering.
 
-**Valid ids are 1 to 12.** The bounds check at `0x02155e14` is
-`cmp r1,#0 / ble fail; cmp r1,#0xd / blt ok`, so **zero is rejected** — though
-zero is what character creation writes, and zero is the Guardian, which is
-what the Hero is before the game rather than a trade to take up.
+**Valid ids are 1 to 12.** Zero is simply never offered — zero is what
+character creation writes, the Guardian, which is what the Hero is before the
+game rather than a trade to take up. *Corrected 3 October 2026*: this page
+called `0x02155e14` a bounds check on the choice; it is the per-vocation
+equipment-block accessor below, null outside 1 to 12.
 
 ### What changing costs
 
@@ -419,8 +489,10 @@ the pool at `+0xF4` nor the 27 tree bytes at `+0xF6` is touched by the apply
 or by revocation; a whole-image scan found writers of the live tree bytes only
 in the skill menu and the network apply.
 
-There is **no level requirement, nothing consults the "has held" mask at
-`+0x54`, and the vocation already held is not excluded** from the list.
+There is **no level requirement and nothing consults the "has held" mask at
+`+0x54`**. The vocation already held is not left out of the list, but
+**choosing it is refused** (`0x021571b0`, line 48) — *corrected 3 October
+2026*.
 
 **Equipment is kept per vocation.** The apply stows the outgoing vocation's
 eight equipment slot ids into `live+0x4A4 + (v-1)*16` — the indexer
@@ -497,12 +569,22 @@ currently held**:
 
 So it resets that one vocation to level 1 and no experience, and increments
 its counter at `+0x186+v` (the live mirror of `+0x0F+v`), **hard-capped at
-ten**. Other vocations, skill points and equipment are untouched. A first-time
-flag per vocation, `0x118B + v`, drives a message the first time.
+ten**. Other vocations, skill points and equipment are untouched. Base
+attributes come from level 1, and HP and MP are filled.
 
-Reaching ten matters: `0x02157c50` loops the twelve counters and, for each at
-ten, collects an id and calls `0x021ed6cc`. **What that grants is not
-established.**
+**It asks for level 99** (`0x02156cc8`, `0x02155ffc`, `cmp r0, #0x63`).
+
+**The first time a vocation is revoked** — event flag `0x118B + v` clear — the
+flag is set, lines 22 and 23 are said, and **a medal is given**, from the
+table at `0x0217f2e8` by vocation: 18043 to 18054, the soldier's medal to the
+Noscar, each named by `str_dam 52 + v` (**EU only**), through the common
+"obtain" routine `0x0207d300`; then lines 24 and 25.
+
+**Otherwise, the titles.** `0x02157c50` loops the twelve counters and, for
+each at ten, collects **a title** from the table at `0x0217f2ce` — 101 to 109,
+then 111, 112, 110 — where `0x021ed6cc` says it is not yet held (INFERRED),
+and an overlay 23 window awards them, named from `ttlname<sex>`. **The counts
+looked at are the Hero's, whoever was revoked.**
 
 ### The record is not edited in place
 
@@ -514,7 +596,8 @@ creation, a zero-init, a field copy and that sync.
 
 **EU only:** the setter at `0x02086598` writes the vocation and ORs its "has
 been held" bit. Its only caller in the ARM9 and all 35 overlays is character
-creation; the Abbey's apply does not go through it.
+creation; the Abbey's apply does not go through it. **USA only:** the Abbey
+calls `0x02083ca0` instead, which makes the same two writes.
 
 ## Recruitment — Patty's Party Planning Place
 
@@ -646,14 +729,16 @@ out that time at the ruins" — and sets that panel. It is the one place a
   [above](#the-party-in-play-is-a-sixteen-bit-mask).
 - What bit `0x800` means, beyond fitting "in the party".
 - That four is a limit rather than what the layout leaves room for.
-- **Where the service record carrying byte `0x2E` lives** in map data, so
-  nothing here ties the Abbey's flow to a map code by evidence.
-- The vocation id → name mapping. No string fetch for vocation names appears
-  in the list builder or the apply; whether `str_tm` 2100 on is the source is
-  not established.
+- ~~Where the service record carrying byte `0x2E` lives.~~ Settled 3 October
+  2026: it is made at runtime from Jack's `<DAMA>` (above).
+- ~~The vocation id → name mapping.~~ For the Abbey's own lines,
+  `str_dam 35 + v`, and for its windows, `bm_dama` label `v − 1`.
+- What sets the Abbey's flags `0x799`, `0x796` and `0x113F + v`.
+- The byte `[member+0x130]+0x08` the change zeroes; the 11-bit field at
+  `GameState+0x56A0` (bits 19–29) it rewrites for the Hero to `700 + v`, plus
+  50 for a woman; and the ceremony's fixed-position case (`0x02158908`).
 - What vocation id **0** means, beyond being what creation writes and what the
   Abbey refuses.
-- What `0x021ed6cc` grants for a vocation at ten revocations.
 - The contents of the thirteen twelve-byte blocks at `+0x58 + v*12`.
 - What the thirteen `0x0C`-byte sub-records at `+0x58` hold.
 - Whether thirteen character records is the whole roster or one page of it.
