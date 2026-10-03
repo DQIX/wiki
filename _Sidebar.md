@@ -40,6 +40,7 @@
 
 **Text and scripts**
 - [Text markup](Text-Markup)
+  - [Text events](Text-Events)
 - [Event text](Event-Text)
 - [Event scripts (.stb)](Event-Scripts)
 - [Event lists](Event-Lists)

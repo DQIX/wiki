@@ -413,8 +413,14 @@ opened without a tag, by a trigger's [operation 145](Triggers), which has its
 own numbering: Cap'n Max's mini medals are 7 there, where the Krak Pot is 7 in
 the table above.
 
+Every tag that makes the game do something, these with the rest, is listed
+on [Text events](Text-Events), with what each service offers in its own
+words.
+
 **Not established:** what the inn's and the church's numbers select; and what
-`<LAVIELL>` and `<DAMA_SATORI>` are for, since no line uses them.
+`<DAMA_SATORI>` is for, since no line uses it. `<LAVIELL>` is INFERRED to be
+Pavo's Rapportal, from `str_lav` holding his lines — see
+[Text events](Text-Events).
 
 ## Evidence
 
