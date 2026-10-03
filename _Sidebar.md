@@ -55,6 +55,7 @@
 
 **Game data**
 - [Party](Party)
+- [Heal All](Heal-All)
 - [Items](Items)
 - [Equipment battle parameters](Equipment-Battle-Parameters)
 - [Vocation skill trees](Vocation-Skill-Trees)
