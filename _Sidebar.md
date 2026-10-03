@@ -25,6 +25,7 @@
 - [Triggers](Triggers)
   - [Story threads](Story-Threads)
 - [Treasure](Treasure)
+- [The day's clock](Time-Of-Day)
 - [Bookshelves](Bookshelves)
 - [Mini-map](Mini-Map)
 - [Poison marsh](Poison-Marsh)
