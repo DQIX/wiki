@@ -150,6 +150,22 @@ The cartridge shows the difference. Read as five bits, the field is 0 to 13 on 9
 
 So **bit 11 is something else**, set on those three gloves and on nothing else in 944. What it is is **not established**.
 
+### The coup de grâce bonus — word 4, bits 20–26
+
+> **USA only** for the code. **EU only** for the values.
+
+**Read 4 October 2026**: `func_02085038` sums this field over the eleven places worn, reading the item def's `+0x04`, which is this word. The battle's resolver adds the sum to the vocation's own term before a member's draw after acting (`func_ov024_021eb5d0`, `0x021ed298`). See [The battle's other commands](Battle-Commands).
+
+| item | id | bonus |
+|---|---|---|
+| combat action medal | 18051 | 3 |
+| critical fan | 20120 | 6 |
+| overcritical fan | 20121 | 7 |
+| hypercritical fan | 20122 | 8 |
+| dire critical fan | 20123 | 10 |
+
+Every other piece in the eight tables has 0.
+
 ### Who may wear it — word 4, bits 0–11
 
 **Which bit is which — INFERRED, 16 September 2026: bit v − 1 is vocation v in the [level tables'](Level-Tables) order** (warrior, priest, mage, martial artist, thief, minstrel, gladiator, armamentalist, paladin, sage, luminary, ranger; `str_tm` 2101 to 2112 name them so, after 2100's Guardian — see [System-Strings](System-Strings)).

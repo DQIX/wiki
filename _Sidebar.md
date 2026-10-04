@@ -77,6 +77,7 @@
 - [Encounters](Encounters)
 - [Actions](Actions)
 - [Battle resolution](Battle-Resolution)
+- [The battle's other commands](Battle-Commands)
 - [Battle stages](Battle-Stages)
 - [Battle action scripts (.bact)](Battle-Action-Scripts)
 - [Weapon positions](Weapon-Positions)
