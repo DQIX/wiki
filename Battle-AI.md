@@ -281,7 +281,7 @@ Each evaluator fills a target set — up to 16 entries of 12 bytes: a float, an 
 5. weighs the state changes by three tables (`0x021ffc98`, `0x021ffca4`, `0x021ffcc5`) into four slots;
 6. puts the candidate into its lists, each score less its cost × 0.01 or 0.1: list 2 harm (and list 3 when free), 5 category 5, 6 heal, 8 cures, 9–11 the slots, 0 everything, 1 the same when it does no harm or costs nothing. Mix It Up multiplies harm by 0.3 there unless the action is Critical Claim.
 
-The forecast (`func_ov024_021fa7ec`) multiplies a blow's mean and least by tension, the weapon's killer bonus for the target's family or its element (see [Equipment battle parameters](Equipment-Battle-Parameters)), the target's resistances and levels, the combo chain (1.0, 1.2, 1.5, 2.0 at `0x021fefa0`), a metal body and the record's cap, then mixes them as `mean × 0.4 + least × 0.6` (`ai+0x170`; the mean alone under Show No Mercy).
+The forecast (`func_ov024_021fa7ec`) multiplies a blow's mean and least by tension, the weapon's killer bonus for the target's family or its element (see [Equipment battle parameters](Equipment-Battle-Parameters)), the target's resistances and levels, the combo chain (1.0, 1.2, 1.5, 2.0 at `0x021fefa0`), a metal body and the record's cap, then mixes them as `mean × 0.4 + least × 0.6` (`ai+0x170`; under Show No Mercy it is 0, so the least alone).
 
 The coups score a fixed 1,000 under their own condition, so a tactic that reaches list 0 with a coup ready plays it.
 
