@@ -23,7 +23,7 @@ All observations were made on the European release (game code `YDQP`).
 
 **`0x66` numbers every treasure in the game.** Take each file's span as its `0x66` value up to that plus its count of `0x67` records. **EU only:** the 265 spans run from 0 to 847 without overlapping and without a gap. So a treasure's number is its file's first plus its place in the file.
 
-INFERRED: that number is what an opened treasure is remembered by — it is the one numbering that covers every treasure exactly once.
+**It is not what an opened treasure is remembered by** (corrected 6 October 2026). The game keeps `0x66`'s number (`LootManager_Unknown_66`) and nothing found reads it; an opened treasure is remembered by its container's id — see [What is remembered, and what comes back](#what-is-remembered-and-what-comes-back).
 
 ### Integer and float values
 
@@ -43,7 +43,16 @@ A `0x67` record, by its number of values:
 
 - **Position**, values 2–4, is in the files' own units, like every other position in the map files. Scaled as the maps are, each one tested stands 0.002 to 0.02 world units above its floor: the 21 treasures of `M01M04`, `M01M07`, `M01M08`, `C02M01` and `C01M12`, and those of `C01M14`, `C01M15`, `C04M04` and `D03M05`. At a half, twice, eight or sixteen times that scale, none of them finds a floor under it at all. See [Map-Collision](Map-Collision).
 - **Facing**, value 5, INFERRED to be radians: the 128 float-typed ones run 0.05 to 6.28, with 3.14 and 1.57 among the commonest, and 98 of the other 100 are 0. Only the six-value kinds have one — which a chest would need and a pot would not, also INFERRED.
-- **Kind**, value 1: which kind is a chest, a pot or a barrel is not established. **`0x30`, the three-value kind with no position, is what a cabinet holds** — below. INFERRED: `0x10` is a pot and `0x20` a barrel. The random table they share with the cabinet is `randTTT` — *tsubo*, *taru*, *tansu*: pot, barrel, cabinet — and the cabinet is the third kind, `0x30`, so the first two are taken in the name's order. Nothing else says which is which.
+- **Kind**, value 1 — **read from the game's own reader**, `LootManager_CreateContainer` (USA `0x0207ba90`, decompiled in the [dqix-decomp](https://github.com/DQIX/dqix-decomp)'s `src/World/LootableContainer.cpp`):
+
+  | bits | meaning |
+  |---|---|
+  | 4–6 | the container: 0 a red chest, 1 a pot, 2 a barrel, 3 a cupboard, 4 a blue chest |
+  | 2–3 | what it holds: 0 nothing, 1 gold, 2 an item, 3 a monster |
+  | 0–1 | not read here; 1 on the five kind-`0x9` chests |
+
+  So `0x4` is gold, `0x8` an item, `0x10` a pot, `0x20` a barrel, `0x30` a cupboard (the cabinet below), `0x40` a blue chest. The code tells the chests from the rest by what it reads after the kind — a facing besides the position — and blue from red by the table it draws from. That 1 is the pot and 2 the barrel is the decomp's naming; they take different sprite sheets (`func_02013d24`).
+- **Value 0** (`unknown_0` until 6 October 2026): **the container's id** in the high half, and the item, the gold or the rank in the low. **EU only:** the ids run 0–206 on the red chests and 0–699 on the rest, repeated only by `C04M04` and `C04M05`, the same room's two versions, which share their three chests.
 - **`unknown_2`**, value 2 of a three-value record: in the village it is the number of the room's cabinet holding it, less one — `M01M03`'s two records read 0 and 1 beside cabinets `G1` and `G2`, `M01M09`'s and `M01M10`'s one reads 0 beside their `G1`. That holds on 45 of the 89 maps that have such records. Elsewhere it runs on across an area instead — `M03M05` 93, `M03M08` 94 and 95, `C01M14` 13 and 14 against cabinets `G1` and `G2` — so what it counts is not established.
 
 ## Cabinets
@@ -85,7 +94,7 @@ Read off the whole cartridge: taking bits 7–22 as an item id lands on one for 
 
 `randTBox` has ranks 1 to 5, `randTD` 1 to 10, each rank's weights coming to 100. `randTTT` has 1 to 20, its weights coming to 20 to 50.
 
-INFERRED: kind `0x40` draws from `randTBox` — its values are 1 to 5 — and pots, barrels and cabinets from `randTTT`, the shortfall below 100 being their chance of nothing. `randTD` is no village treasure's; its name and ten ranks suggest the treasure-map grottoes.
+**A blue chest draws from `randTBox`** at its rank, and **a pot, a barrel or a cupboard from `randTTT`** (`LoadZoneContainers`), the shortfall below 100 being their chance of nothing. **The draw is made at every load of the map**: a draw below 100 (`func_02032370(100)`), taken against the rank's rows in file order (`LootDistribution::Sample`); past their weights, nothing. Red chests are not drawn. `randTD` is no village treasure's; its name and ten ranks suggest the treasure-map grottoes.
 
 ### Kind 3: a chest that is a monster
 
@@ -184,3 +193,13 @@ It was first read as (pointer, id) from `0x4AFD0`, which paired each name with t
 - [Motion-Tables](Motion-Tables)
 - [Map-Collision](Map-Collision)
 - [Map-Objects](Map-Objects)
+
+
+## What is remembered, and what comes back
+
+Read 6 October 2026 (USA code; **EU** ids). The treasure service (overlay 17 `func_ov017_021adcb0`, at `0x021ae528`–`0x021ae58c`) sets a flag in the game-wide bank at `+0x8c` once a treasure is open:
+
+- **a red chest: `0x212 + id`**, for ever;
+- **anything else: `0x79e + id`** — except a grotto's, which comes from the grotto's own list.
+
+**The field's start clears 700 flags from `0x79e`** (`func_ov017_0218b688`, `0x0218c180`: `func_0206dfe8(bank, 0x79e, 0x2bc)`) — exactly the ids 0–699 the non-red containers use. The field starts at a new game and at a game continued from the title. So **a red chest never refills; blue chests, pots, barrels and cupboards are full again each time the game is started**, with contents drawn afresh at each load of their map. See also [Gathering](Gathering).

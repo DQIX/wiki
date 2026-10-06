@@ -25,6 +25,7 @@
 - [Triggers](Triggers)
   - [Story threads](Story-Threads)
 - [Treasure](Treasure)
+- [Gathering spots](Gathering)
 - [The day's clock](Time-Of-Day)
 - [Bookshelves](Bookshelves)
 - [Mini-map](Mini-Map)
