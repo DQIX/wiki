@@ -155,9 +155,35 @@ Each by its kind's handler; `func_02088xxx` and `02089xxx` are the statuses' tes
 | Roaring Tirade, Disco Tech | 10 | a lost turn of kind 5 and 4 on every monster — see above |
 | Choir of Angels, Tension Boost | 67, 71 | as above |
 
+## The round's end
+
+`func_ov000_0215e6e8` clears each one's guard, then calls `func_ov000_0215a23c` — what is given back and tolled — and then, unless `battle + 0x8e14` is set, `func_ov000_02157e1c`, the count-down.
+
+- **`0215a23c`**: for the party standing (`func_ov000_0215e9fc` with 1), HP — 25 where `func_02085230` holds of their record, plus under **Right as Rain** (`+0x14` bit 31) the larger of 10 and half their level in their vocation (`func_0202053c`, `asr #1`); then MP — under **Focus Pocus** (`+0x14` bit 30) the larger of 3 and a tenth of that level, plus trait `0x3f`'s; then envenomation's toll. Given by `func_ov000_0215a16c` and `0215a1d4`, held to the most, told by `func_ov000_0215c758` as actions 930–934 only where something was given. Then the monsters' Focus Pocus (`func_ov000_02159dbc`) and toll.
+- **`02157e1c`**: **a draw `R(100) / 100` at its head, every round** (`0x02157ea8`), kept for `+0x18` bit 6's wearing off. Then for each one standing: Focus Pocus (`+0x68`, second `+0x8b`) and Right as Rain (`+0x69`, `+0x8c`) — a draw of each holder's own first, whichever count runs; with the second count running, it less one and the status cleared where `0x02182ad4` by it is above the draw (lines `0x1c8`, `0x24c`), else the first less one and at 0 the second set to 4. Then `+0x18` bit 11 (its own draw, line `0x249`) and bit 6 (the head's draw against `0x02182bd4`), and the coup de grâce counted down.
+
+## Statuses: what each does
+
+Each set by the simple shape — on one who may take it (`+0x14` bit 0 clear), landed, the setter and the done line; else the fail line.
+
+| status | kind, handler | set | what it does |
+|---|---|---|---|
+| Right as Rain | 48, `021e01b8` | `+0x14` bit 31, 6 at `+0x69` | HP at the round's end, above |
+| Focus Pocus | 78, `021e268c` | `+0x14` bit 30, 6 at `+0x68` | MP at the round's end, above |
+| Vanish | 54, `021e093c` | `+0x14` bit 27, 5 at `+0x62` | in a monster's weighted pick (`func_ov000_02154f30`, `0x021550ac`–`0x021550c0`) the holder's weight is halved **after** it is added to the total, so the draw may pass every weight and fall to the even draw after; two of the party at 2, one vanished: 3 in 8 for them |
+| dazzle (Flower Power, Scandal Eyes) | 19, `021dd534` | `+0x14` bit 6, 4 at `+0x5f`, the record's `+0x30` at `+0x22` bits 6–8 | the last step of the accuracy roll (`func_ov000_02156648`, `0x02156a90`–`0x02156ac8`): for an action with `+0x10` bit 3 — 110 of 681, the Attack among them — a dazzled striker throws `R(8)` and misses under 5. A miss works no damage out (`0x021ec4e8`). The sorts' lines (`func_ov024_021e9198`): 1 hallucinating `0x26`/`0x27`, 2 dazzled `0x140`/`0x141`, 3 sand `0x126`/`0x137`, 4 ink `0x13d`/`0x13f` |
+| Schizofanic, Mist Me | 36 `021dec50`, 55 `021e0a50` | `+0x14` bit 20 or 21, each clearing the other, no count; may take also needs `+0x18` bit 6 clear | the head of the accuracy roll, before any draw and before the sure flag (`0x02156714`–`0x02156788`): an action a shield may block (`+0x10` bit 6) at its holder misses, flagged 8 or `0x10`, and the decoy goes |
+| Rotstopper | 40, `021df0f0` | `+0x14` bit 29, 4 at `+0x64` | the final damage (`func_ov024_021e6a90`, `0x021e74f8`–`0x021e7530`): times `0.5f` where the dealer is a monster of family 8 (`func_ov000_02156068` with 8 and 0), after the resistance and the killer bonuses, before the wards |
+| Alma Mater | 39, `021deff8` | `+0x14` bit 22, 6 at `+0x67` | the heavenly protection: Whack, Thwack, Kathwack and Kamikazee (`data_ov024_021fe6e0`; `func_ov024_021ea78c`) and the death rider leave its holder 1 HP, say `0xc8` "…'s heavenly protection keeps the reaper at bay for now", and clear it |
+| Holy Impregnable | 64, `021e1120` | `+0x18` bit 3, 5 at `+0x6b` | the resistance (`func_ov000_02156b38`, read whole: byte plus an adjustment, held at 0, over 100, in floats): −25 for the elements 9–21; none for the Attack's 8; elements 1–7 take their own statuses' −50 in its place (`func_020886b0` to `020887d0`); `+0x18` bit 31 gives +25 |
+| Feel the Burn | 47, `021e00c0` | `+0x14` bit 28, 4 at `+0x63` | after a pass of kind 1 or `0x23` that dealt something, its holder is marked (`+0x22` bit 14, `0x021ecab4`); `func_ov000_0215b5a0` draws `R(100)` against a table by their tension, and under it their tension goes a level up (action 928). Where it runs among the round's draws is not read |
+
+**The order of the run-down after a pass** (`func_ov000_0215858c`): Knight Watch, dazzle (`+0x82`, second table, line `0x1c7`), Fizzle, Bounce (`+0x84`, first), Vanish (`+0x85`, second, `0x1c9`), Feel the Burn (`+0x86`, second, `0x1d7`), Rotstopper (`+0x87`, second, `0x1d8`), Reverse Cycle (`+0x89`, first, `0x1c4`), Alma Mater (`+0x8a`, first, `0x1cb`), `+0x8d`, …, Holy Impregnable (`+0x8e`, first, `0x25d`), …, then attack's. Second counts start at 4 (`data_ov000_02182efc`), but 0 Zone's and Rough 'n' Tumble's at 1.
+
 ## Not yet read
 
-- What the statuses of kinds 19, 32, 37, 39, 40, 47, 48, 54, 63, 64 and 78 do — what each setter stores is in minstrel's `docs/readings/T18-handlers.md` §10. Schizofanic's and Mist Me's is read: one blow a shield could block, missed before the accuracy's draw (`func_ov000_02156648`, `0x02156714`), then gone.
+- What the statuses of kinds 32 (Reverse Cycle, in the redirection `func_ov024_021e9f68` at `0x021ea12c`), 37 (Immense Defence, a level at `+0x58` bits 24–26) and 63 (Twocus Pocus, `+0x18` bit 8) do — what each setter stores is in minstrel's `docs/readings/T18-handlers.md` §10; and kind 0's six stances, the Pathies, Fuddle, Tap Dance, Mens Sana, Half-Inch, Eye for Trouble, the Fources and the rest of §7's table.
+- Where Mist Me's taking of a blow is told — actmsg `0x1b9`, "The mist surrounding <TARGET> absorbs the attack and disperses", by its words — and Schizofanic's.
 - The riders 5, 6, 9, 10, 12–14, 19 and 21.
 - Bounce and Magic Mirror's reflection past what is above (`func_ov024_021e9f68`), and its lines 169 and 170.
 - What the game shows on a lost or paralysed turn.
