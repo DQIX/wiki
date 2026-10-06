@@ -114,7 +114,7 @@ The last field is the protagonist's `+0x566`, written whenever a map of kind 0 i
 1. Each fallen member gets up with **full HP and MP**. The living are left alone.
 2. The purse is halved (`lsr #1`). The bank is spared.
 3. `func_ov017_0219bfb4(2, map)` sends the party on:
-   - to the battle's own map, for a set battle (its request's `+0x3e`; not read);
+   - to the battle's own map, for a set battle whose request's `+0x3e` holds one — see **Trigger action 180** below;
    - otherwise to **the revival map**, `GameState+0x5698`.
 4. At story 16.2 step 1, flag `0x113a` is cleared.
 
@@ -129,7 +129,7 @@ The last field is the protagonist's `+0x566`, written whenever a map of kind 0 i
 | trigger action **179** | its second value, with flag `0x113c` (**EU only:** on no record) |
 | the battle that opens the postgame | 109 |
 
-**Arriving** (`func_ov017_0219bfb4`, mode 2): the map request carries only the map, with no position. Then **`data/scenario/chur_messet.bin`** picks what the priest says.
+**Arriving** (`func_ov017_0219bfb4`, mode 2): the map request carries only the map, with no position, so the party stands at **the map's start point** (below). Then **`data/scenario/chur_messet.bin`** picks what the priest says.
 
 The file's `0x67` records each hold a map, then three spans of four strings:
 
@@ -157,10 +157,51 @@ The first span that holds the current major gives the voice (`atoi`; an empty st
 
 Voice 5 (`str_ch4`) is the Dourbridge priest's: "Well that ain't very 'eroic, is it, gettin' wiped out like that?"
 
+### The map's start point
+
+A map request with no position (`+0x07` 0) puts the party at the map's **start point** (`func_ov017_0219c598`, `0x0219c648`–`0x0219c668`): the map's `+0x6c` block, filled when its **`.bmbl`** is run (`func_0201e1d0`, opcode table `data_020ef388`). **Opcode `0x6E`** (`func_0201d494`) holds four floats: x, y, z, and a facing in radians.
+
+Every `.bmbl` on the cartridge carries exactly one (667 of 667), typed four floats. The battle stages' are all 0. Angel Falls' church, `M01M0600.bmbl`, is (0, 0.15, −2.64), facing π.
+
+### Trigger action 180 — a set battle's own revival map
+
+`func_02061c04` case 80 (`0x0206339c`): **`180 : b, m`** runs during a battle that is a set battle (the request's `+0x0c` ≥ 0). It writes **m** into the request's `+0x22` (the battle task's `+0x3e`) when the battle being fought is **b**, and 0 when it is another.
+
+- **m** is the action's one parameter's high half (`func_0205ec70` case 72).
+- A lost battle runs its lost-record (`func_0206f81c`) *before* the wipe-out (`func_ov017_021b790c`), so the record decides where the party wakes.
+
+**EU only:** two records carry it.
+
+| map | record | wakes in |
+|---|---|---|
+| 8612, the Magmaroo's summit | `12:14 104:1 180:14 →2309` | 2309, Upover's church (`M13M09`) |
+| 5704, Gortress, floor 1 | `12:16 104:3 197:119 180:16 →5700` | 5700, Gortress's exterior |
+
+## The flight (`func_ov017_021acdf4`)
+
+The task `func_ov017_021acd30(gs, a, b, c)` starts. Zoom and the wing call it with `(0, 0, 0)` to fly off and `(0, 0, 1)` for the ceiling. Its **count** `+0x1d` adds the vblanks since the last pass (`GameState::GetTickCount`), which is two a pass in the field.
+
+| state | what |
+|---|---|
+| 0, 14 | `data/effect/em1810.chr` loaded and made into effect 8 |
+| 1 | **effect 8** at each one flown (the party's members in the field, plus object `0xCE` in a game of one's own); **sound archive `0xb2`, entry 0** |
+| 2 | past **40**: each one hidden (`Object3D::EnableFlag(1)`); then 10 for the ceiling, else 3 |
+| 3 | past **100**: both screens to black over 30 (`SetBrightness(_, −16, 30)`) |
+| 4 | past **140**: shown again, the map changed (`func_ov017_021a65c4`); game-wide flag **`0x113d`** set |
+| 5 | once the fade is done: the effect and sound let go; the task ends |
+| 10 | **the ceiling**, past **55**: shown again, **9.8 above** where they stood (`+0x124` = height + `0x9ccc`); **`strstd` 57** in the message window; **the camera shaken** (`0xcc` for 1000 ms) with its point held; **archive `0xb2`, entry 1** |
+| 11 | once all have landed (`+0x124` = 0), the count from 0 |
+| 12 | past **10** |
+| 13 | the camera given back, the effect let go, the window closed; the task ends |
+
+**The drop** (`func_0203348c`): while `+0x124` is not 0, `+0x12c` += 1 and `+0x124` −= `0x51 × +0x12c` each pass, until it falls below `+0x128`; the object is drawn at `+0x124` while it is set. From 9.8 that takes 31 passes.
+
+**The shake** (`func_0202e0a4`): each pass takes 33 ms off its time (`+0x1e8`) and shrinks the size `+0x1e4` by `33 × size ÷ time left`. While the size is above 0, one of four ways (`rand() & 3`) adds ± size times two fixed directions to the eye and the look-at. The directions (`data_0210a05c`) are set at run time and were not read.
+
+`func_ov017_0219577c` starts another variant (`+0x280`): `ev999991710.chr`, sound archive `0xa3` entry 5, a count of 25. It was not followed.
+
 ## Not established
 
-- Where the party stands in the revival map. The request carries no position, and how the map's load places a party then was not followed.
-- What fills a set battle's `+0x3e`.
-- The flight task's states (overlay 17 `0x021ad3c8` on).
-- Bit 0 of `GameState+0x63dc` (`func_02011b50`), which sends Zoom off at once.
+- The shake's two directions (`data_0210a05c`).
+- Bit 0 of `GameState+0x63dc` (`func_02011b50`), which sends Zoom off at once. It is set by `func_02011b24`, and its callers send the party to map 10000 and use the wireless code: **INFERRED** a guest in another player's world.
 - A `loola` entry's value 1 and value 10.
