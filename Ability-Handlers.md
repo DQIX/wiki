@@ -48,9 +48,16 @@ Might and mending are worked out again at `1 + 0.5 × level`, truncated, at most
 
 The lines: might `0xd0`/`0xd1` up, `0x1b5`/`0x1b6` down, `0x1b7` normal (`func_ov024_021e9904`); mending `0xc4`/`0xc5` up, **nothing for a fall** (`021e9990`); spells `0xab`–`0xaf` (`021e97f4`), and "But nothing happens" (`0x1f`) for a fall that landed on one already at −2; breaths `0x1b0`/`0x1b1` up, `0x1ae` down — **no "a lot" for a fall** — `0x1af` normal (kind 23's own).
 
-### How a level runs down
+### How a status runs down
 
-`func_ov000_0215858c`, for each status with its flag set and its count not 0: the count less one, then a draw `R(100) / 100` against the table at `0x02182ad4` by the count — 1.0, 0.875, 0.75, 0.625, and at 4 a denormal only a draw of 0 is under. Under it the status clears and its line is said: attack `0x1ce`, defence `0x1cf`, charm `0x1d0`, might `0x1d1`, mending `0x1d2`, spells `0x1d3`, breaths `0x1d4`, agility `0x1db`, Fizzle `0x1d6`. A count of 5 wears off by 1 in 100 after its first round, then 63, 75, 88 and 100.
+Two counts, and two functions, both run after each action for the one who acted (`func_ov000_02157d3c`):
+
+- **The count** — the status's byte at `+0x5c + n`, set by its setter: attack 5 (`+0x6e`), defence 6, agility 6, charm 6, might, mending and the two wards 5, Fizzle 6 (`+0x60`), 0 Zone 5 (`+0x78`), Rough 'n' Tumble 5 (`+0x79`), paralysis 3 (`+0x5c`). `func_ov000_021599f4` takes one off every status held on each of its holder's passes; at 0 it starts **the second count** at `+0x7f + n` — 4, or 1 for 0 Zone and Rough 'n' Tumble (the table at `data_ov000_02182efc`, 26 pairs). No draw.
+- **The wear-off** — `func_ov000_0215858c`, just before it on the same pass: its first draw `R(100)` always (`0x021585bc`); then, in the order of its blocks (Fizzle `+0x83` … attack `+0x91`, defence, agility, charm, might, mending, spells `+0x97`, breaths, … 0 Zone `+0x9b`, Rough 'n' Tumble `+0x9c`), each status with its second count running: that count less one, **a draw of its own** `R(100) / 100`, and the status cleared, its line said, where the table by the count is above the draw — `0x02182ad4` (1.0, 0.875, 0.75, 0.625) for most, `0x02182bd4` (1.0, 0.875, 0.625, 0.375) for the ward against spells, 0 Zone and Rough 'n' Tumble.
+
+So a level of defence holds its holder's next six passes, then wears off by 63, 75, 88 and 100 in 100 over the four after; 0 Zone holds five passes and goes on the sixth. Lines: attack `0x1ce`, defence `0x1cf`, charm `0x1d0`, might `0x1d1`, mending `0x1d2`, spells `0x1d3`, breaths `0x1d4`, agility `0x1db`, Fizzle `0x1d6`, 0 Zone `0x1c5`, Rough 'n' Tumble `0x1da`.
+
+**Paralysis** goes otherwise: its count runs down the same way, but its second (`+0x7f`, from 4) is looked up at the start of each of its holder's turns, against `0x02182ad4` and the turn-start draw (`func_ov000_0215833c`), which frees them — action 900, "is no longer paralysed" — as the same function wakes a sleeper (`+0x80`, `0x02182bd4`, action 901).
 
 ### Wave of Relief, Antimagic, Tingle
 
@@ -122,7 +129,35 @@ Kind 1 and damage handler 0, made theirs elsewhere:
 
 The tail of `func_ov024_021e6a90` zeroes a non-critical blow on a metal body when the action carries `+0x10` bit 24 and is aimed at the monsters (`+0x08` bits 8–9 at 1) — not `0x205`, not Needle Shot (`0x82`); the 0-or-1 coin follows.
 
+## The lost turn — status bit 19
+
+`+0x14` bit 19, its kind at `+0x22` bits 2–5 (`func_02088474`). Its holder **cannot act** (`func_ov000_02155f9c`, beside paralysis, bit 3, and sleep, bit 4): they cannot dodge, block or choose, and on their turn action 503 — nameless, with no line — takes their action's place (`func_ov000_0215767c`, `0x02157ac0`), which marks `+0x3b` bit 1; the run-down after that turn clears it first (`0x021585d4`). One turn lost.
+
+**Rider 1** (`func_ov024_021e2bd0`) sets it: from a blow that dealt something, the target's byte `+0x4c` (element 15) not 0, a draw under the action's chance times the byte (the byte passed over for `0x239` and Roaring Tirade); from **kind 10** (`021dc0b8`) none of that. The record's `+0x32` names the kind — 2 a fall off its feet, 3 Pratfall's, 4 a dance's, 5 terror — from the table at `data_ov024_021fe820`, which knows 2 to 8; 2 is refused where `mon_data +0x0A` bit 11 is set. One may take it (`func_02088418`) who stands, is not paralysed, is not at the maximum of tension — but for the coups `0x1fc` and `0x20f` — and is not under the same kind. It takes their tension away (`0x25c`, `func_ov024_021e8cfc`). From a blow, kind 2 says `0x150`, 5 `0x5e`.
+
+## Paralysis — rider 11
+
+`func_ov024_021e3a34`: from a blow that dealt something, the target's byte `+0x4e` (element 17) not 0 — for action `0x52` on family 9 alone at a flat 25, for `0x58` at a flat 12.5 on a metal body — on one standing and not at the maximum of tension, a draw under the chance times the byte. `func_0208826c` takes tension, a lost turn and sleep away and sets bit 3 with a count of 3; "is paralysed!" (`0x1e`), or "is frozen even further" (`0x6e`). See "How a status runs down" for how it goes.
+
+## The coups
+
+Each by its kind's handler; `func_02088xxx` and `02089xxx` are the statuses' tests and setters.
+
+| coup | kind | what it does |
+|---|---|---|
+| 0 Zone | 68, `021e1580` | `+0x18` bit 9, count 5: its holder's MP is neither asked (`func_ov024_021eaa50`, `0x021eabd8`) nor spent |
+| Rough 'n' Tumble | 70, `021e1824` | `+0x18` bit 10, count 5: a dodge on the pass's die under 50 with no draw of its own (`func_ov000_02156f98`); evasion 50.0; a counter on the die 50 to 74 |
+| Brownie Boost | 74, `021e1ed4` | defence, the ward against breaths and attack a level up each, no test of its landing |
+| Spelly Breath | 26, `021ddf5c` | MP back: damage handler 48 (`021d974c`), the most MP times `NextRandomFloatBetween(0.2, 0.5)` |
+| Itemised Kill | 69, `021e16a4` | the group's `+0x16`: the ordinary drop's chance one in 1 in the drop roll's first pass (`func_ov023_021f454c`, `0x021f4ab0`); fails on a group already marked or an ordinary drop of step 7; a draw under 100 (50 in a grotto's or legacy boss's battle) |
+| Voice of Experience | 72, `021e1cbc` | the resolver draws `NextRandomFloatScaled(1.1, min(2.0, 1 + (level + 11) × 0.01), 1)` (`0x021eba20`) into `battle + 0x8e3c`, which the victory multiplies the experience by |
+| Knight Watch | 73, `021e1de8` | each monster, a count `NextRandomBetween(record +0x28, +0x29)`: `+0x18` bit 12 and the Paladin at `+0x2e`; its weighted pick takes the Paladin with no draw while they stand (`func_ov000_02154f30`); it goes as the count runs out on its own passes, or when the Paladin is down; line `0x164` |
+| Roaring Tirade, Disco Tech | 10 | a lost turn of kind 5 and 4 on every monster — see above |
+| Choir of Angels, Tension Boost | 67, 71 | as above |
+
 ## Not yet read
 
-- The handlers of the kinds above not in the table, and the riders 1, 5, 6, 9–14, 19 and 21.
+- What the statuses of kinds 19, 32, 37, 39, 40, 47, 48, 54, 63, 64 and 78 do — what each setter stores is in minstrel's `docs/readings/T18-handlers.md` §10. Schizofanic's and Mist Me's is read: one blow a shield could block, missed before the accuracy's draw (`func_ov000_02156648`, `0x02156714`), then gone.
+- The riders 5, 6, 9, 10, 12–14, 19 and 21.
 - Bounce and Magic Mirror's reflection past what is above (`func_ov024_021e9f68`), and its lines 169 and 170.
+- What the game shows on a lost or paralysed turn.

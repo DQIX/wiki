@@ -58,6 +58,7 @@ Two files of 438 records each, one a monster, both opening with the shared head 
 | `+0x10`, bits 20–25 | | a per-slot mask: which of the six ways may be used once a battle only | read at `0x0208a0a0` |
 | `+0x24` | `u32` | **two statuses a blow of its can carry, and a chance for each**: bits 0–6 the first status, 7–13 its chance, 14–20 the second, 21–27 its chance | its one reader, `0x021eb124`, compares a requested status against each field and a draw below 100 against each chance; the chances in the file are 0, 25, 50, 75 and 100 |
 | `+0x27`, bit 4 | | set on the bosses, and **read by no instruction in the ROM** | set on 149 records — 144 of the 159 boss-coded monsters and five grotto bosses — and clear on the bosses' minions and every ordinary monster. It is bit 28 of the word above, which that word's only reader never touches; searches by byte, by halfword, by word and through every function handed the record found nothing that tests it. **EU only:** the byte's other values are `0x09`, `0x0C` and `0x19`; its other bits are not read |
+| `+0x28` | `u8` ×2 | **the least and most passes Knight Watch holds it** | the Paladin's coup draws between them by `NextRandomBetween`, the record being the combatant's `+0x148` (`func_ov024_021e1de8`, USA `0x021e1e34`–`0x021e1e40`) |
 | `+0x5C` | `u16` | maximum HP — **read by the game's code**, below | a median of 6,500 on the bosses against 134; the metal slime's 4 |
 | `+0x5E` | `u16` | maximum MP — likewise | 255 on most bosses and the metal family |
 | `+0x60` | `u16` | attack — likewise | by order |
@@ -113,7 +114,7 @@ A `mon_data_<lang>.nat` record:
 | `+0x00` | `u32` | the name's offset from the strings |
 | `+0x04` | `u32` | the code's offset from the strings |
 | `+0x08` | `u16` | the monster's number |
-| `+0x0A` | 2 bytes | not established |
+| `+0x0A` | `u16` | the level (bits 0–6), the family (bits 7–10), bit 11 — a fall off its feet refused (`func_ov000_02156068` with 2, asked before a lost turn of kind 2, `func_ov024_021e8fa4`) — and metal (bit 12) |
 | `+0x0C` | `s16` | **EU only:** its body's collision **radius**, in 1024ths — below |
 | `+0x0E` | `s16` | **EU only:** its body's collision **height**, `fx32` — below |
 | `+0x10` | `u16` | its **kind**: one value to a monster across its story versions, 1 to `0x133`, the bosses from `0x101` — the key of the command phase's fixed shots; see [Battle presentation](Battle-Presentation) |

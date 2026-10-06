@@ -179,12 +179,12 @@ under it.
 | Luminary | 527 | Disco Tech | 10 |
 | Ranger | 516 | Brownie Boost | 74 |
 
-There is no action 515 in the English table.
+There is no action 515 in the English table. What each does is on [Ability Handlers](Ability-Handlers#the-coups).
 
 ## Not established
 
 - Who writes Examine's surprise-round flags (`ui+0x950`, `0x954`).
 - `func_0207c984`, which builds a kind's weapon list.
 - Status `0x8000000` in the weighted pick.
-- The coups' handlers (kinds 10, 26, 67–77), and how the co-ops pair.
+- How the co-ops pair.
 - Whether a guest counts as a character for the coup.
