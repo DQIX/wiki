@@ -86,7 +86,32 @@ turn to face — see [text markup](Text-Markup), where every message turns the
 speaker toward the party leader unless `<N_TURN>` says otherwise. So the
 ordering is not cosmetic: **slot 0 is who the world talks to.**
 
-## What writes the slots: nothing, field by field
+## What writes the slots — found 4 October 2026
+
+> **Corrected.** This page said nothing writes the slots field-wise. That was
+> wrong: the search below tried the state and `state + 0x3000` as bases and
+> missed **`P = state + 0x2A04`** (`func_02010828`), through which the slots
+> are `P + 0xF78` and the count `P + 0xF7C`.
+
+- **`func_ov017_02191108`** rebuilds them (`strb list[i], [P+i, #0xf78]` then
+  `strb n, [P, #0xf7c]`, `0x02191204`–`0x02191220`), with 25 callers — action
+  `203`'s revival, the Quester's Rest, the field's setup, a member leaving.
+- Its list is **`func_ov017_02190884`**: objects 3 down to 0 that are party
+  members of this player, split by the fallen bit `[obj+0x130]+0` bit 0, each
+  placed by its own order byte `[obj+0x2D2]` — the living at 0–3, the fallen
+  at 4–7 — and compacted. **So the slots hold the living in order, then the
+  fallen**, and slot 0, the leader, is the first one alive. A slot is a
+  game-object index. On some maps (a condition `func_020981e4` tests) a
+  leader whose companion object is `0x2347`–`0x2349` is swapped with the
+  first who is not; what those are is not established.
+- The save load copies them (`func_020a95a4`, INFERRED from its caller); a new
+  game zeroes the count (`func_0208660c`); overlay 0 appends and drops object
+  1 in battle (INFERRED a guest).
+
+See [Single questions](Single-Questions). The search that missed it is kept
+below.
+
+### The search that missed it
 
 Three reads of `+0x397c` exist in the ARM9 (`0x0200fde4`, `0x020100b4`,
 `0x0201064c`) and no write; `+0x3980` has the one read above and nothing

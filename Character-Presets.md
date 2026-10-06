@@ -15,8 +15,8 @@ Four strings are names — ナイン, シャノン, テンバタラ, ミーナ, 
 | 0–74 | `unknown_items`: item ids, `0xFFFFFFFF` for none, in runs — weapons, then shields, legwear, footwear, gloves, armour, then headgear | every one an item's id; what the lists are for is not established |
 | 75 | `unknown_75` | 64, 66 and 55 on the vocations; 18 to 25 on the named four |
 | 76 | the name | a string, as above |
-| 77 | `unknown_77` | 9024 on all 23 vocations; 9023 or 9024 on the named |
-| 78 | a face, 9000 plus its number — INFERRED | `f006` on every man's vocation record, `f005` on every woman's; on all 41 presets here and in `presetdt` it lands on a face that exists |
+| 77 | **the face**, an item 9020–9033 — INFERRED, by `presetdt`'s order | 9024 on all 23 vocations (`p_f004` a man, `p_f014` a woman); 9023 or 9024 on the named |
+| 78 | **the hair**, an item 9000–9013 — INFERRED the same way | 9006 on the men (`p_h060`), 9005 on the women (`p_h150`) |
 | 79 | armour worn | 13xxx |
 | 80 | legwear worn | 16xxx; 8001 on the sage man, which names nothing |
 | 81 | gloves worn, or the arms when there are none | 15xxx or 14xxx |
@@ -69,7 +69,7 @@ One to a language in `/data/bin/presetdt.gp2` (see [GPC2](GPC2)): a tagged data 
 | 4–8 | `unknown_4` to `unknown_8` |
 | 9 | armour |
 | 10 | legwear |
-| 11, 12 | as `charapreset`'s 77 and 78 — 12 a face, INFERRED |
+| 11, 12 | **11 the face, 12 the hair** — read: the loader puts values 9–18 into slots h0–h9 in order, and h2 is the face, h3 the hair (`CharaParts_GetPartNumbers`). Corrected 4 October 2026; this page had 12 as the face |
 | 13 | none on all 12 — gloves, INFERRED |
 | 14 | footwear |
 | 15 | headgear |
@@ -83,16 +83,15 @@ One to a language in `/data/bin/presetdt.gp2` (see [GPC2](GPC2)): a tagged data 
 - Worn slots: the ids fall in the item id ranges of their slot (12xxx headgear, 13xxx armour, and so on) and the outfits match the vocations by item name.
 - In `charapreset`, 141 of the 155 ids the vocations' presets wear name a part that exists (see [Character-Parts](Character-Parts)).
 - In `presetdt`, 55 of the 57 ids the records wear name a part that exists.
-- Face: value 78 (and `presetdt`'s 12) lands on an existing face on all 41 presets.
+- Face and hair: a face or a hair is an **item**, drawn as its `itemdt` record's `+0x10` names it — a letter and a model number per sex, 999 the other's (`func_020de234`). See [Single questions](Single-Questions).
 - **EU only:** Sex: items carry their own sex bits, bit 27 of an item's stats word for "sex 0 may wear it" and bit 28 for "sex 1" (the game's check at USA `0x020dd6f8`). *Holy mail* and the *rogue's robes* are sex 0's, *holy femail* and the *roguess's robes* sex 1's, so 0 is a man and 1 a woman, as value 86 reads. Across the 29 presets, **33 of 33** sex-restricted pieces they wear allow the sex their value 86 names.
 
 ## Not established
 
 - `charapreset` values 0–74 (what the item lists are for), 75, 88, 89 and 92–101.
 - `presetdt` values 4–8 and 19–34.
-- The first of the two 90xx values (`charapreset` value 77, `presetdt` value 11).
 - **EU only:** Whether the game reads `charapreset.bin` at all (see [Which file the game reads](#which-file-the-game-reads)).
-- Where a preset's hair style, variant and colour are kept, if in it at all. (The Hero's own are the player's, chosen at character creation.)
+- A `charapreset` hair colour (`presetdt`'s is value 6). The hair's shape letter is not kept: it is the headgear's — see [Single questions](Single-Questions).
 - Why six legwear numbers name no part on the cartridge. See below — the reading that those bodies cover the legs is INFERRED from two of thirteen.
 
 ## Thirteen of the twenty-nine name legwear that is not on the cartridge

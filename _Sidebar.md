@@ -61,6 +61,7 @@
 - [Inns and churches](Inns-and-Churches)
 - [The Quester's Rest](Questers-Rest)
 - [Party tricks](Party-Tricks)
+- [Single questions](Single-Questions)
 - [Items](Items)
 - [Equipment battle parameters](Equipment-Battle-Parameters)
 - [Vocation skill trees](Vocation-Skill-Trees)
