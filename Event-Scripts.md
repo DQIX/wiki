@@ -77,6 +77,8 @@ Which event runs when is decided elsewhere. See [Triggers](Triggers). **EU only:
 
 **EU only:** a routine with nothing to answer ends `push 0`, then `0x0F`.
 
+**A return is the routine's end only when no jump lands past it.** A routine may return early and go on after the return, reached by a jump over it: the accolade scripts (`data/scenario/title_*.stb`, see [Accolades](Accolades)) end every candidate's `if` with `push 1`, `0x0F` and jump past it. Read on to the return at or after the furthest jump.
+
 ### Instructions
 
 **An instruction is three `u32`s**: an opcode and two arguments. Walking every section, and every routine it calls, down to its return finds only the opcodes below. No opcode is left unread, on all 523 scripts.
