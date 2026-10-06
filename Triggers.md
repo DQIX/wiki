@@ -107,7 +107,7 @@ All are cases of `func_0205faf4`. The game-wide flags, the thread's flags and ma
 | 6, 7, 9, 12 | the context's character, area, map, set battle is the argument (context `+0`, `+4`, `+0xc`, `+0x18`). `8`, the event, is the same test at `+8` |
 | 11 | the context's label (`+0x14`) is the argument: the label the talk was asked with |
 | 13, 14, 15 | the party's size, the filled slots of four with the Hero among them (`func_02010890`), is at least, at most, exactly the argument. Gortress's captain at 14.3 speaks one way to two or more (`13:2`) and another to the Hero alone (`15:1`) |
-| 18, 19 | the bag holds the item, holds none (`func_02086aec`) |
+| 18, 19 | the party holds the item, holds none (`func_02086aec`: what each member carries and wears, and the bag). The locked doors test the keys by it — see [Getting around](Getting-Around#locked-doors) |
 | 20, 21, 22 | a quest is taken, has its first flag, is cleared (see [Quests](Quests)) |
 | 23 | a test of a session object's first word and one more state: 0 with no session, 1 with one, 2 with none or one kind of player, 3 only the other. INFERRED multiplayer, from the flag actions using the same test to decide whether to send a change over the link. Played alone, 0 and 2 hold |
 | 26, 27 | a game-wide flag named by its number is set, clear (`func_0206eb98`): below `0x400` the bit itself, from there displaced by 1,786, the rule the cast's placement script uses too. 427 records |

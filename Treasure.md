@@ -49,7 +49,7 @@ A `0x67` record, by its number of values:
   |---|---|
   | 4–6 | the container: 0 a red chest, 1 a pot, 2 a barrel, 3 a cupboard, 4 a blue chest |
   | 2–3 | what it holds: 0 nothing, 1 gold, 2 an item, 3 a monster |
-  | 0–1 | not read here; 1 on the five kind-`0x9` chests |
+  | 0–1 | **the lock**: 1 a thief's lock, 2 a magic lock — see [Getting around](Getting-Around#locked-chests). **EU only:** six chests, all 1 |
 
   So `0x4` is gold, `0x8` an item, `0x10` a pot, `0x20` a barrel, `0x30` a cupboard (the cabinet below), `0x40` a blue chest. The code tells the chests from the rest by what it reads after the kind — a facing besides the position — and blue from red by the table it draws from. That 1 is the pot and 2 the barrel is the decomp's naming; they take different sprite sheets (`func_02013d24`).
 - **Value 0** (`unknown_0` until 6 October 2026): **the container's id** in the high half, and the item, the gold or the rank in the low. **EU only:** the ids run 0–206 on the red chests and 0–699 on the rest, repeated only by `C04M04` and `C04M05`, the same room's two versions, which share their three chests.

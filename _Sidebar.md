@@ -66,6 +66,7 @@
 - [Single questions](Single-Questions)
 - [The staff roll](Staff-Roll)
 - [Travel](Travel)
+- [Getting around](Getting-Around)
 - [Items](Items)
 - [Equipment battle parameters](Equipment-Battle-Parameters)
 - [Vocation skill trees](Vocation-Skill-Trees)
