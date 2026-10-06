@@ -178,12 +178,36 @@ Each set by the simple shape — on one who may take it (`+0x14` bit 0 clear), l
 | Holy Impregnable | 64, `021e1120` | `+0x18` bit 3, 5 at `+0x6b` | the resistance (`func_ov000_02156b38`, read whole: byte plus an adjustment, held at 0, over 100, in floats): −25 for the elements 9–21; none for the Attack's 8; elements 1–7 take their own statuses' −50 in its place (`func_020886b0` to `020887d0`); `+0x18` bit 31 gives +25 |
 | Feel the Burn | 47, `021e00c0` | `+0x14` bit 28, 4 at `+0x63` | after a pass of kind 1 or `0x23` that dealt something, its holder is marked (`+0x22` bit 14, `0x021ecab4`); `func_ov000_0215b5a0` draws `R(100)` against a table by their tension, and under it their tension goes a level up (action 928). Where it runs among the round's draws is not read |
 
-**The order of the run-down after a pass** (`func_ov000_0215858c`): Knight Watch, dazzle (`+0x82`, second table, line `0x1c7`), Fizzle, Bounce (`+0x84`, first), Vanish (`+0x85`, second, `0x1c9`), Feel the Burn (`+0x86`, second, `0x1d7`), Rotstopper (`+0x87`, second, `0x1d8`), Reverse Cycle (`+0x89`, first, `0x1c4`), Alma Mater (`+0x8a`, first, `0x1cb`), `+0x8d`, …, Holy Impregnable (`+0x8e`, first, `0x25d`), …, then attack's. Second counts start at 4 (`data_ov000_02182efc`), but 0 Zone's and Rough 'n' Tumble's at 1.
+| Bounce, Magic Mirror | 31, `021de678` | `+0x14` bit 9, 5 at `+0x61` | the redirection, below |
+| Reverse Cycle | 32, `021de770` | `+0x14` bit 26, 5 at `+0x66` | the redirection, below |
+| Tap Dance (evasion) | 25, `021dde08` | a level at `+0x58` bits 27–29, moved by the record's `+0x30`; `+0x14` bit 25 beside it while not 0; 5 at `+0x77` | the evasion (`func_ov000_02156270`, `0x021563ac`–`0x021563c8`) times `2.0f` under the flag — the level's size is never read. Second table, line `0x1d9` |
+| Immense Defence (a shield's block) | 37, `021ded48` | a level at `+0x58` bits 24–26; `+0x18` bit 0 beside it; 5 at `+0x76` | the chance of blocking (`func_ov000_02156118`, `0x02156230`–`0x0215624c`) times `2.0f` under the flag. Second table, line `0x1d5` |
+
+`+0x58` bits 9–11, between agility and magical might, is **charm** (Extreme Makeover, kind 50, `func_02087a9c`, count `+0x71`).
+
+**The order of the run-down after a pass** (`func_ov000_0215858c`): Knight Watch, dazzle (`+0x82`, second table, line `0x1c7`), Fizzle, Bounce (`+0x84`, first), Vanish (`+0x85`, second, `0x1c9`), Feel the Burn (`+0x86`, second, `0x1d7`), Rotstopper (`+0x87`, second, `0x1d8`), Reverse Cycle (`+0x89`, first, `0x1c4`), Alma Mater (`+0x8a`, first, `0x1cb`), `+0x8d`, …, Holy Impregnable (`+0x8e`, first, `0x25d`), …, then attack's, … the resistance to breaths' (`+0x98`), Immense Defence's (`+0x99`, second, `0x1d5`), Tap Dance's (`+0x9a`, second, `0x1d9`), 0 Zone's, Rough 'n' Tumble's. Second counts start at 4 (`data_ov000_02182efc`), but 0 Zone's and Rough 'n' Tumble's at 1.
+
+## A pass turned back — `func_ov024_021e9f68`
+
+Called by the resolver for each one reached, after their die (`0x021ec0f4`), with the actor's and the target's numbers by pointer:
+
+1. nothing where `func_02010088` holds, `func_ov024_021e6798` holds of the target, or `021e7ba8` does;
+2. an action with `+0x10` **bit 10** (74 of 681 — the spells, Heal among them, Buff, Snooze) aimed at the other side (`+0x08` bits 8–9 at 1), at one who is not its actor: under **Bounce**, note 1 (`func_ov000_0215ff50`), the actor and the target **swapped**, `ctx+0x76` cleared, the out flag set (`0x021ea008`–`0x021ea074`); else at one of the party whose equipment holds `func_02085474`, a draw `R(4)` and on 0 the same;
+3. a **breath** (`+0x10` bit 2) aimed at the other side, at one under **Reverse Cycle**: note 2, swapped, the out flag left clear (`0x021ea100`–`0x021ea158`);
+4. the other redirections after `0x021ea15c` (not read).
+
+The resolver goes on with the swapped numbers — the accuracy, the amount and the final damage are the turned-back one's — so it is drawn as the one it was aimed at would draw it, and lands on its actor. Where it was turned back the chain is not stepped (`func_ov000_0215cd80` in its place, `0x021ec154`–`0x021ec184`). Which of 169 "The wall of light deflects the spell" and 170 "The spell is deflected by the wall of light" the note says is not read.
+
+## Disruptive Wave, Mens Sana, the Pathies
+
+- **Disruptive Wave** (kind 49, `021e02b0`): landed, `func_ov024_021ea85c` clears the target — its tension (`+0x14` bits 23 and 24 with `+0x24`; `0x25c` said where it had any, `func_ov024_021e8cfc`), Bounce, Vanish, Feel the Burn, Rotstopper, the decoys, Alma Mater, Reverse Cycle, Focus Pocus, **Fizzle**, Right as Rain, Holy Impregnable, 0 Zone, Rough 'n' Tumble, Twocus Pocus, `+0x18` bits 1, 2, 4, 7 and 11, and every level of `+0x58` — then `ApplyCombatantBuffs`. Not sleep, poison, paralysis, a lost turn, dazzle or Knight Watch. Its own result has no line: the resolver says one for the action (`func_ov024_021e80e4`, `0x021e8560`–`0x021e85d4`), `0xf1` for one reached, `0xf2` "… and co." for more, the target the first, kept at `ctx+0x44`.
+- **Mens Sana** (kind 43, `021df454`): **no test of its landing**. Poison and envenomation (`+0x14` bit 1 with `+0x22` at 1 or 2), dazzle, Fizzle, `+0x18` bit 4, and every level of `+0x58` **below 0** cleared, each counted; any, the done line; none, the fail line.
+- **H-Pathy** (kind 14, `021dc700`) and **M-Pathy** (kind 13, `021dc540`): handed the resolver's amount — `GetAttackBaseDamage` on the record's range (30–200, 15–55), then the final damage, as a heal's. Nothing where the target is at their most, the user has none to spare (HP ≤ 1, MP 0) or is the target; else held to the user's HP less 1, or MP. H-Pathy strikes its user for **all of it** (`func_ov000_0215a004`) and heals the target as far as there is room (`0215a16c`); M-Pathy gives as far as there is room (`0215a1d4`, which writes what it gave) and takes **only that** from its user (`0215a124`).
 
 ## Not yet read
 
-- What the statuses of kinds 32 (Reverse Cycle, in the redirection `func_ov024_021e9f68` at `0x021ea12c`), 37 (Immense Defence, a level at `+0x58` bits 24–26) and 63 (Twocus Pocus, `+0x18` bit 8) do — what each setter stores is in minstrel's `docs/readings/T18-handlers.md` §10; and kind 0's six stances, the Pathies, Fuddle, Tap Dance, Mens Sana, Half-Inch, Eye for Trouble, the Fources and the rest of §7's table.
+- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); kind 0's six stances and Pincushion (a stance set at the command for `0x1dc`, `func_ov000_021539dc`) — counters; Fuddle and rider 10 (confusion); Half-Inch; Eye for Trouble (kind 45 sets a monster's `+0x17e`, for the defeated list, and its result has no line — which line is said, and where, is not read); the Fources (set by `func_0208869c` … `020887fc`; how they reach the resistance's statuses or the weapon's element table `data_ov024_021fe798` is not read); Extreme Makeover (charm); Eyes on Me, Mercy, Soothe Sayer, Whistle — minstrel's `docs/readings/T18-handlers.md` §7 and §12.
 - Where Mist Me's taking of a blow is told — actmsg `0x1b9`, "The mist surrounding <TARGET> absorbs the attack and disperses", by its words — and Schizofanic's.
 - The riders 5, 6, 9, 10, 12–14, 19 and 21.
-- Bounce and Magic Mirror's reflection past what is above (`func_ov024_021e9f68`), and its lines 169 and 170.
+- The redirections after `0x021ea15c`, and which of 169 and 170 a wall of light says.
 - What the game shows on a lost or paralysed turn.
