@@ -266,17 +266,57 @@ The turn asks every action's MP by its record's `+0x08` low byte (`func_ov024_02
 | 917 | | where the battle's `+0xc` is below 0 (`func_020a3694`) | 504, "flees the battle!" |
 
 - **219's target**, for one of the party (`func_ov000_021540fc` → `02153f98`): a draw among the party standing (`func_ov000_0215e9fc` with 4, 1), all but themselves for reach 8 — without `0215fbe0`'s two draws. A monster's targeting (`func_ov000_0215440c`) reads no confusion.
-- **A blow shaking one out of it** (`func_ov000_02157288`, from the resolver at `0x021ecca8`): after a pass that dealt something, gated by `ctx+0x70` — set for each target, cleared where the blow's own rider slept or confused them (`0x021dad74`) — for an action with `+0x10` bit 11, a draw `R(100)` **always**, under 100 × `func_02074968` for one asleep (1.0 at one of the party, 0.5 at a monster) or `func_02074978` for one confused (0.5, 0.25).
+- **A blow shaking one out of it** — see [A blow rousing its target](#a-blow-rousing-its-target).
 - The cure-all clears it (`func_ov024_021eae14`, `0x021eae70`).
 
 **Extreme Makeover** (kind 50, `func_ov024_021e0380`) moves charm a level by the record's `+0x30`, held to ±2 (`func_02087a48`, `02087a9c`), then `UpdateCombatantCharm`.
 
+## A blow rousing its target
+
+`func_ov000_02157288`, called by the resolver (`0x021ecc90`–`0x021ecca8`) after each pass whose own damage is above 0, unturned (`func_ov024_021e9f68` answered 0), and with `ctx+0x70` still set — set at each pass's head, cleared in kind 1's handler where the pass's own rider came back with flag 0xe (asleep) or 0x17 (confused), `0x021dad3c`–`0x021dad78`. It leaves at once unless the action has `+0x10` bit 11; then a draw `R(100)` is made **always**, whoever the target, and they are roused where it is under `_ffix(100 × c)`:
+
+| | one of the party | a monster |
+|---|---|---|
+| asleep (`func_02074968`) | 1.0 | 0.5 |
+| else confused (`func_02074978`) | 0.5 | 0.25 |
+
+Roused, sleep and confusion are both cleared (`func_02088390`, `func_020883fc`), `+0x3b` bit 0 set, and a result of its own says `0x40` "wakes up" or, confused, `0x173` "pulls … together". **154 of 681 actions carry bit 11**, every one of kind 1 and none a spell or breath — the plain Attack, the monsters' attacks (1, 2, 230–232, 273–275) and the abilities' blows. So a spell never wakes a sleeper.
+
+## Soothe Sayer, Morale Masher — tension and the watch
+
+- **Rider 9** (`func_ov024_021e373c`): one with tension (`+0x14` bit 23 or 24) a step less (`func_02087704`; from the most, bit 24 cleared and 23 set), no draw; the line by the level it came to — 0 `0x17f`, 1 `0x180`, 2 `0x181`, 3 `0x259` (and flag 8).
+- **Soothe Sayer** (kind 53, `func_ov024_021e07b0`), no test of its landing: rider 9 (through `021e4b14`, a pass of 1), then one watched by Knight Watch (`+0x18` bit 12, `func_ov024_021e05e4`) watched no more (`func_02088e64`), "…'s rage subsides" (`0x164`). Neither, its fail line.
+- **Rider 14** (Morale Masher, `func_ov024_021e3f14`), on a pass that dealt something: the watch ended, `0x164`, then rider 9's step — the other way about.
+- The monsters' attack 232 carries rider 9 too.
+
+## Half-Inch — kind 44
+
+`func_ov024_021df924`, no test of its landing; one of the party's (`func_0200ff1c`) at a monster with a record (`+0x148`). Two draws `NextRandomFloatBetween(0, 100)` first, one a slot, always. Then slot 0, the ordinary item (record `+0x02` step, `+0x04` item), and slot 1, the rare (`+0x03`, `+0x06`):
+
+- a step of 0 is passed over; so is one stolen from already (status `+0x3d` above 0), but where a quest's own pinch (`func_ov024_021df71c`) allows;
+- the share by the step, `data_ov024_021fe860`: 1, ⅛, ¹⁄₁₆, ¹⁄₃₂, ¹⁄₆₄, ¹⁄₁₂₈, ¹⁄₂₅₆, 0;
+- `lo = 2 × (share × 100)`, `hi = 6 × (share × 100)`, both doubled where equipment slot 9 (the accessory, `func_02052df8`) holds item 18047 (`0x467f`), each held to 50;
+- a deftness `d` (the character's ten bits) above 51: from 999 `lo = hi`, else `lo + (d − 51) × ((hi − lo) ÷ 948)`;
+- the slot's draw under `lo` pinches the item: `+0x3d` the slot and one, the item to the party (`func_0207ccf0`), the records' item list marked (`func_020ac020`).
+
+Lines: pinched, the record's done line (`0xd9`, "pinches <item> from …"); nothing stealable, `0x25a`, "But … isn't carrying anything."; else its fail line. The opening (`0xd8`) names the target.
+
+## Eye for Trouble — kind 45
+
+`func_ov024_021dfe9c`, no test of its landing: a monster with a record has `+0x17e` set to 1 — for the defeated monster list — and the action's count of those reached (`ctx+0x14`) is one more. Its result has no line; `ctx+0x14` is read by the resolver's line-picker (`func_ov024_021e80e4`), not followed.
+
+## Mercy — kind 52
+
+`func_ov024_021e05fc`: where the user's level (`func_ov000_02159e60`) is 7 or more above the target's, the battle's request (`battle+0x8e18`) has `+0xc` below 0 — a random encounter, as far as read — and the target's death byte (`+0x48`) is at least 1: the defeat routine `func_ov000_021554f4` with reason 4, its HP 0, `func_02088f68`, flag 0x24, `battle+0x8e15` one more; the done line, else the fail line. It is not added to the kinds beaten (`func_ov000_02155184`), so drops nothing. Whether it is worth experience and gold at the victory is not read.
+
 ## Not yet read
 
-- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); which lines the counter's notes 3, 4 and the cover's 6–8 say; Half-Inch; Eye for Trouble (kind 45 sets a monster's `+0x17e`, for the defeated list, and its result has no line — which line is said, and where, is not read); the Fources (set by `func_0208869c` … `020887fc`; how they reach the resistance's statuses or the weapon's element table `data_ov024_021fe798` is not read); what charm does to a monster (`func_ov000_0215704c`); Eyes on Me, Mercy, Soothe Sayer, Whistle — minstrel's `docs/readings/T18-handlers.md` §7 and §12.
+- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); which lines the counter's notes 3, 4 and the cover's 6–8 say; the Fources (set by `func_0208869c` … `020887fc`; how they reach the resistance's statuses or the weapon's element table `data_ov024_021fe798` is not read); what charm does to a monster (`func_ov000_0215704c`); Eyes on Me, Whistle — minstrel's `docs/readings/T18-handlers.md` §7, §12 and §15.
 - Where Mist Me's taking of a blow is told — actmsg `0x1b9`, "The mist surrounding <TARGET> absorbs the attack and disperses", by its words — and Schizofanic's.
-- The riders 9, 12–14 and 21.
+- The riders 12, 13 and 21.
 - Which action's damage `func_ov024_021d8db4` is — it doubles at one asleep or confused.
 - Stance 9 (`0x021ea2ec` on), and which of 169 and 170 a wall of light says.
-- Whistle and Eyes on Me make a monster watch their user by its record's own chance (`func_ov024_021eb08c`, kinds `0x11` and `0x12` against `mon_btldata +0x24`) and put in an action for it at once (`func_ov000_0215a908`); Mercy works on a monster seven or more levels below its user (`func_ov000_02159e60`) — read toward, not followed through.
+- Whistle and Eyes on Me make a monster watch their user by its record's own chance (`func_ov024_021eb08c`, kinds `0x11` and `0x12` against `mon_btldata +0x24`) and put in an action for it at once (`func_ov000_0215a908`) — read toward, not followed through.
+- Whether a monster Mercy sends off is worth its experience and gold.
+- Where Eye for Trouble's line is said.
 - What the game shows on a lost or paralysed turn.
