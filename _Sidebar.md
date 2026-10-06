@@ -87,6 +87,7 @@
 - [The battle's other commands](Battle-Commands)
 - [Battle presentation](Battle-Presentation)
 - [Battle AI](Battle-AI)
+- [Ability handlers](Ability-Handlers)
 - [Battle stages](Battle-Stages)
 - [Battle action scripts (.bact)](Battle-Action-Scripts)
 - [Weapon positions](Weapon-Positions)
