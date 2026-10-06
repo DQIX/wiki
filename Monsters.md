@@ -116,7 +116,7 @@ A `mon_data_<lang>.nat` record:
 | `+0x0A` | 2 bytes | not established |
 | `+0x0C` | `s16` | **EU only:** its body's collision **radius**, in 1024ths — below |
 | `+0x0E` | `s16` | **EU only:** its body's collision **height**, `fx32` — below |
-| `+0x10` | 2 bytes | not established |
+| `+0x10` | `u16` | its **kind**: one value to a monster across its story versions, 1 to `0x133`, the bosses from `0x101` — the key of the command phase's fixed shots; see [Battle presentation](Battle-Presentation) |
 | `+0x12` | `s16` | **EU only:** its **size in battle**, in 4096ths — below |
 | `+0x14` | `u32` | the plural's offset from the strings |
 | `+0x18` | `u32` | the name's grammar: its articles and gender — see [Articles](Articles) |
