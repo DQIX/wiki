@@ -33,6 +33,31 @@ Status `+0x58` holds three signed levels: **attack bits 0–2, defence 3–5, ag
 
 A level's line comes from the level it reaches (`func_ov024_021e94c4`): to ±2 "a lot", to 0 "returns to normal", else "a little" — attack `actmsg` `0x47`–`0x4b`, defence `0x3a`–`0x3e`, agility `0x4c`–`0x50`.
 
+### More levels: might, mending, and the resistances to spells and breaths
+
+Four more handlers have the same shape over their own bits of `+0x58`, each with a count of 5 and a flag in `+0x14`:
+
+| kind | handler | actions | bits | count, flag |
+|---|---|---|---|---|
+| 42 | `func_ov024_021df284` | Channel Anger, Caster Sugar | 12–14, magical might | `+0x72`, bit 14 |
+| 38 | `func_ov024_021dee84` | Care Prayer | 15–17, magical mending | `+0x73`, bit 15 |
+| 22 | `func_ov024_021dd968` | Wizard Ward, Spooky Aura | 18–20, resistance to spells | `+0x74`, bit 16 |
+| 23 | `func_ov024_021ddaa0` | Insulate, Insulatle, Mind Over Matter | 21–23, resistance to breaths | `+0x75`, bit 17 |
+
+Might and mending are worked out again at `1 + 0.5 × level`, truncated, at most 999 for anyone (`UpdateCombatantMagicalMight`, `…Mending`). The resistances act in the final damage (`func_ov024_021e6a90`): a **spell** — an action with `+0x10` bit 0 — not of kind 2, against one with `+0x14` bit 16, is multiplied by `1 + (−0.25 × level)` (`func_020748d0`, `0x021e7534`); then a **breath** — `+0x10` bit 2 — against bit 17, by the same of the breaths level (`func_020748a8`, `0x021e7588`). Both come after the element's resistance and before the guard. `+0x10` bit 1 marks a dance.
+
+The lines: might `0xd0`/`0xd1` up, `0x1b5`/`0x1b6` down, `0x1b7` normal (`func_ov024_021e9904`); mending `0xc4`/`0xc5` up, **nothing for a fall** (`021e9990`); spells `0xab`–`0xaf` (`021e97f4`), and "But nothing happens" (`0x1f`) for a fall that landed on one already at −2; breaths `0x1b0`/`0x1b1` up, `0x1ae` down — **no "a lot" for a fall** — `0x1af` normal (kind 23's own).
+
+### How a level runs down
+
+`func_ov000_0215858c`, for each status with its flag set and its count not 0: the count less one, then a draw `R(100) / 100` against the table at `0x02182ad4` by the count — 1.0, 0.875, 0.75, 0.625, and at 4 a denormal only a draw of 0 is under. Under it the status clears and its line is said: attack `0x1ce`, defence `0x1cf`, charm `0x1d0`, might `0x1d1`, mending `0x1d2`, spells `0x1d3`, breaths `0x1d4`, agility `0x1db`, Fizzle `0x1d6`. A count of 5 wears off by 1 in 100 after its first round, then 63, 75, 88 and 100.
+
+### Wave of Relief, Antimagic, Tingle
+
+- **Wave of Relief** (kind 41, `func_ov024_021df1e8`): the cure-all (`func_ov024_021eae14`) on each one reached, no landing test. The cure-all clears sleep, the poisons, paralysis, Fizzle, many statuses, and every level below 0.
+- **Antimagic** (kind 16, `func_ov024_021dced0`): Fizzle, `+0x14` bit 8, a count of 6 at `+0x60`; on one already fizzled, "further prevented" (`0x19`, `0x1a`). A fizzled caster's spell is put out as **action 914** — "tries to cast … but can't cast spells at the moment" — after the MP is asked (`func_ov024_021eaa50`, `0x021eacc4`).
+- **Tingle** (kind 20, `func_ov024_021dd6f0`): frees one paralysed, `+0x14` bit 3.
+
 ### Raising the fallen
 
 The share of the most HP, by the action (`0x021dd2fc`–`0x021dd3d0`):
@@ -100,4 +125,4 @@ The tail of `func_ov024_021e6a90` zeroes a non-critical blow on a metal body whe
 ## Not yet read
 
 - The handlers of the kinds above not in the table, and the riders 1, 5, 6, 9–14, 19 and 21.
-- How the levels' counts run down.
+- Bounce and Magic Mirror's reflection past what is above (`func_ov024_021e9f68`), and its lines 169 and 170.
