@@ -89,7 +89,7 @@ Every glyph begins one pixel after the one before it ends (241 of 241 and 244 of
 - **Bit 7** is set on exactly the small letters whose capital is in the font: 51 in both, a to z and the accented and joined ones. The one small letter without a capital here, ß, lacks it. INFERRED: marks a letter that can be made a capital.
 - **Bit 6** is set on the vowels, capital and small, plain and accented, and on Æ and æ, and on ñ, though not on Ñ, nor on Œ or œ: 55 glyphs, the same in both fonts. So it is not simply "a vowel", and what it marks is not established.
 - Neither bit is set on anything but a letter.
-- **The low six bits** are 1 on the letters and digits and 3 or 4 on most of the rest. Not established.
+- **The low six bits are the glyph name's length** — 1 on `A`, 4 on `<'e>`. **USA:** the glyph lookup (`func_0204254c`) takes the first glyph whose name matches the text's next bytes for that many bytes (`strncmp`). **EU only:** 242 of 242 in `fi_me`, 245 of 245 in `fi_s7`.
 
 #### Kerning pair (4 bytes)
 
@@ -101,6 +101,13 @@ Every glyph begins one pixel after the one before it ends (241 of 241 and 244 of
 | `+0x03` | 1 | `u8` | 0 on all 127 pairs |
 
 Pairs include `AT`, `AV`, `AW`, `AY`, `LT`, `Ty`, `F.`, `P.` and on, 105 in `fi_me` and 22 in `fi_s7`.
+
+### How the game sets a line (USA, read 6 October 2026)
+
+- The fonts are numbered **0 `s7`, 1 `me`**: `func_02042944` loads `fd_%s.bin` and `fi_%s.bin` for each into `data_0210782c`.
+- **A space** is `data_020e7bd8[font] + 1` pixels — **3 in `s7`, 4 in `me`** — and so is a character no glyph names, which is drawn as glyph 0.
+- **Drawing** (`func_0204f41c`) moves on by each glyph's width + 1, **with no kerning**.
+- **Measuring** (`func_020420e8`) adds each kerning pair's signed byte (`func_020425e4`: the glyph before, this one; a space breaks the pair) and takes 1 off the total. So a line placed by its width is placed by a kerned width and drawn unkerned. See [The staff roll](Staff-Roll).
 
 ### The space glyph
 
@@ -145,10 +152,8 @@ The Latin glyphs were first searched for in the `.mes` format, and not found. Th
 
 - The meaning of `unknown_0x01`, `unknown_0x04` and `unknown_0x05` in the `.mes` header beyond their observed constant values.
 - The version bytes of the strip and index files (INFERRED as versions).
-- Glyph flag bit 6 and the low six flag bits; bit 7 is INFERRED.
+- Glyph flag bit 6; bit 7 is INFERRED.
 - Which Latin face the game uses where.
-- The space the game leaves between Latin glyphs. The strip's one-pixel gap suggests one.
-- How wide the game makes a space.
 
 ## See also
 

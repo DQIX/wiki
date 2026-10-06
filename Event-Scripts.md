@@ -95,7 +95,7 @@ In the table, the letters after an opcode name its argument words. The first arg
 | `0x08` | multiply | found only in `/data/evspt_lv5`'s 164 scripts, where it is common: 4,777 uses, in 127 scripts. **4,761 follow `1 negate`**, so they multiply a value by −1. The rest are `3.14 1.5` (a three-quarter turn in radians), `2.0 3.14` (a whole turn), and `30 0.2` |
 | `0x09` | divide: the second value by the top | also only in `/data/evspt_lv5`, 9 times. `4.5 180 divide 3.14 multiply` turns 4.5° into radians; another is `0.95 L6 divide`. Every use divides a float, so what integer division does is not seen |
 | `0x0B` | negate the top value | follows coordinates, which are stored positive |
-| `0x0E c` | compare. `c` is 40 for `==`, 41 for `!=`, and 42–45 for the ordered comparisons | `==` is known from its use in "wait while busy is 1". The ordered ones are **INFERRED** to follow C's order |
+| `0x0E c` | compare the second value against the top: 40 `==`, 41 `!=`, 42 `<`, 43 `<=`, 44 `>`, 45 `>=`; an integer against a float compares as floats | **USA:** read from the interpreter's sub-table at `0x021d55a4` |
 | `0x0F` | return, with the top value | ends every routine |
 | `0x10 t` | jump | every target is inside its own routine |
 | `0x11 t w` | pop, and jump when the value's truth is `w` | loop exits |
@@ -105,8 +105,10 @@ In the table, the letters after an opcode name its argument words. The first arg
 | `0x15 n` | invoke an engine function with `n` values; the first value is the function's number | see [Engine functions](#engine-functions) |
 | `0x16 n` | nothing: a label | always at a jump's target |
 | `0x17` | wait for the next frame | inside every waiting loop |
-| `0x19` | or | only ever used on flags, as in `4 \| 16` and `1 \| 16`. **INFERRED** |
+| `0x19` | or | only ever used on flags, as in `4 \| 16` and `1 \| 16`. **USA:** read from the interpreter |
 | `0x1A` | not | appears before a jump on an engine function's answer |
+| `0x1D` | sine of the top value, in radians, pushed as a float | **USA:** read from the interpreter (`0x021d5d6c`) |
+| `0x1E` | cosine | **USA:** read from the interpreter (`0x021d5de4`) |
 
 **Opcodes found only in the second folder.** `0x08` and `0x09` belong to `/data/evspt_lv5`. In the 523 scripts of `/data/event`, `0x08` appears only in one shared routine that no event calls.
 
@@ -115,9 +117,11 @@ The second folder also has `0x1D` and `0x1E`, twice each, and only in `ev29350`:
 - `r θ 0x1E multiply cx add`
 - the same with `0x1D` and `cz`
 
-These look like the two coordinates of a point on a circle: one a cosine and the other a sine. Which is which is not settled, and neither opcode has been read.
+The two coordinates of a point on a circle.
 
-**EU only:** this matters for the ending. `ev29300` is what winning the last set battle plays, before trigger operation `148` sets every story thread to 19.2, so it is **INFERRED** to be the ending and its credits. Until `0x1E` is read, the eight scripts from `ev29300` to `ev29350` cannot be run (see [Triggers](Triggers) for `148`).
+**The interpreter (USA, read 6 October 2026)** is overlay 17's `func_ov017_021d4e38`, a jump table on the opcode at `0x021d4e5c` for 0 to `0x1E`; a value on its stack is a type word (0 integer, 1 float) and a word. `0x1D` and `0x1E` pop a value, make an integer a float, widen it to a double and hand it to the ARM9's `sin` (`func_02009424`) and `cos` (`func_02008dcc`) — fdlibm's, by their shape: the |x| ≤ π/4 test against `0x3fe921fb`, the reduction by π/2, the quadrant's kernel — and push the answer narrowed to a float. `0x18` is `and` (`0x021d5c2c`). `0x0A`, `0x0C`, `0x0D`, `0x18`, `0x1B` and `0x1C` are cases no script uses.
+
+**EU only:** `ev29350` is where the [staff roll](Staff-Roll) begins, in the chain `ev29300` starts when the last set battle is won; it stopped there until these two were read.
 
 ### Strings
 
@@ -232,9 +236,7 @@ The scripts were run in that order against a stand-in engine that answers every 
 - `+0x18` in the header (0 to 5 on 122 files).
 - Header words `+0x10` .. `+0x37` of a routine, beyond there being a 1 per parameter.
 - What the operand types are in the `3, 1` pattern before message numbers.
-- The meaning of `0x1D` and `0x1E`, including which is the cosine and which the sine.
 - What integer division does.
-- The ordered comparisons 42–45, beyond the **INFERRED** C order.
 - **EU only:** four numbers the scripts call have no reading at all: 837, 839, 843 and 844. Most of the rest are read from the code — see [Engine functions](Engine-Functions) — and the readings above that it does not cover are **INFERRED**.
 - Which section runs when, and whether 300 runs after 100 or beside it.
 - **EU only:** whether scopes other than 1, 8 and 64 exist.

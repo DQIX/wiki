@@ -507,6 +507,8 @@ All of those exist on the cartridge — `horii.pac`, `toriyama.pac`, `sugiyama.p
 | 822 | `0x02162a90` | the exact inverse of 821 |
 | 804 | `0x02161e8c` | **fog.** `LightingManager+0x85 = 0 or 1`, then `func_020c54a4(enable, fogInfo_.type, .depthShift, .offset)` — `FOG_OFFSET` at `0x0400035C` and the fog bits of `DISP3DCNT` at `0x04000060` |
 
+**The roll itself — overlay 28 — is read whole on [The staff roll](Staff-Roll)** (6 October 2026): its set-up, its clock, how it places each line, when it runs out, and `838`'s answer, 0 until the set-up is done.
+
 **804 is not inferred.** `src/Graphics/LightingManager.cpp:818` in the decomp's own hand-written C++ contains the identical call.
 
 **845 is not part of it.** It is the middle of a different set: **506** opens a preload batch (resetting the count at `eventAllocators+0x88`), **845** tops it up, **507** polls until every queued task is done. It shares 804 for the same reason 124 other scripts share 506.

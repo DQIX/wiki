@@ -10,7 +10,7 @@ A generic container of tagged records followed by a string table. It is used by 
 
 | offset | size | type | meaning |
 |---|---|---|---|
-| `+0x00` | 4 | `u32` | `unknown_0x00` |
+| `+0x00` | 4 | `u32` | the instruction count: the records, the `0x6E` terminator among them where there is one |
 | `+0x04` | 4 | `u32` | string table offset; the file size when there is no table |
 | `+0x08` | 4 | `u32` | string table size |
 | `+0x0C` | 4 | `u32` | string count |
@@ -69,6 +69,9 @@ Besides the map descriptors, attribute tables and `mapbgm.bin`, the files below 
 
 ## Tables the game runs as scripts
 
+**The container is the game's `Script` command file** (USA, read 6 October 2026 from the decomp's `src/Resource/Script.cpp`): a record is an instruction — a `u16` opcode, a `u8` parameter count, then two bits of type per parameter (0 a string's offset into the string section, 1 an integer, 2 a float), padded to a word, then the parameters — run in order by `Script::Execute`, which hands each to whatever function its reader registered for that opcode (`Script::SetOpcodeLookup`). The header is `FileHeader`: **the first word is the instruction count**. **EU only:** it equals the records on all 5,675 tables in the cartridge's files, counting the terminator on the 854 that have one. The type "byte" above is the first of those two-bit fields: `0x15` is three integers and a string, `0x55` four integers.
+
+
 > **EU only.** Code addresses are the USA release's, from the decomp; the files were read on the European release and are not yet checked on the US one.
 
 The game does not read every table as data. Several it loads and runs as a script, with an opcode table of `{tag, handler}` pairs: each record's tag picks its handler, and the handler reads the record's values (with `Script::Parameter::ToInt`, in the colour script's case). `palette.bin`'s opcode table is six pairs ended by a zero pair.
@@ -107,7 +110,6 @@ Two independent checks hold on every file: the string section decodes to exactly
 
 ## Not established
 
-- `unknown_0x00` in the header. **EU only:** it is the record count on the treasure files; 372 files begin with 16.
 - Record types other than `0x02`: `0x00`, `0x01`, `0x51`, `0xA5`, `0x55`.
 - The meaning of most tags, including `0x6D` and `0x71`.
 - **The map-to-music link.** No field in `.bmdj` or `.bats` has been shown to select a BGM track. `mapbgm.bin`'s values do not fall in the sequence archive's 0–81 index range either.
