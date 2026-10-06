@@ -204,10 +204,46 @@ The resolver goes on with the swapped numbers — the accuracy, the amount and t
 - **Mens Sana** (kind 43, `021df454`): **no test of its landing**. Poison and envenomation (`+0x14` bit 1 with `+0x22` at 1 or 2), dazzle, Fizzle, `+0x18` bit 4, and every level of `+0x58` **below 0** cleared, each counted; any, the done line; none, the fail line.
 - **H-Pathy** (kind 14, `021dc700`) and **M-Pathy** (kind 13, `021dc540`): handed the resolver's amount — `GetAttackBaseDamage` on the record's range (30–200, 15–55), then the final damage, as a heal's. Nothing where the target is at their most, the user has none to spare (HP ≤ 1, MP 0) or is the target; else held to the user's HP less 1, or MP. H-Pathy strikes its user for **all of it** (`func_ov000_0215a004`) and heals the target as far as there is room (`0215a16c`); M-Pathy gives as far as there is room (`0215a1d4`, which writes what it gave) and takes **only that** from its user (`0215a124`).
 
+## Stances — status `+0x21`, and Pincushion
+
+An action whose record has `+0x08` bit 28 is taken up **as the round
+begins**, before the order is drawn (overlay 0 `func_ov000_0215f110`, then
+`func_ov000_021537b8` for each): its MP asked and spent there — short of
+it, the action becomes `0x3a9` ("tries to use …", "Not enough MP") for an
+ability or `0x1f8` for a spell, and nothing is set — and its stance taken
+from the table at overlay 0 `0x02182e24` (action, stance, motion) into
+`+0x21`. Pincushion (`0x1dc`) sets `+0x18` bit 5 instead. The turn asks no
+MP of such an action (`func_ov024_021eaa50`, `0x021eabe8`). The round's end
+clears both; paralysis and a lost turn clear them as they land.
+
+| action | stance | what it does |
+|---|---|---|
+| 3 Defend, 134 Blockenspiel | 1 | the final damage of an action with `+0x10` bit 4 times 0.5 — the table at `0x020e88c0` by the stance, for a stance up to 3 (`func_02074938`) |
+| 135 Defending Champion | 2 | the same, times 0.1 |
+| 237 | 3 | the same, times 0 |
+| 96 Counter Wait | 4 | an action with `+0x10` bit 7 at its holder, who can act: actor and target swapped — the holder strikes the one who struck (`func_ov024_021e9f68`, `0x021ea1d4`) |
+| 138 Back Atcha | 5 | the same, but the holder strikes a monster drawn among those standing, the pick kept for the action's passes (`0x021ea224`) |
+| 146 Whipping Boy, 929 | 6 | an action with `+0x10` bit 12 at the one they protect (`+0x2a`, set as the round begins) taken in their place (`func_ov024_021e9b74`) |
+| 185 Selflessness | 7 | the same, for anyone of their side at 0.08 of their most HP or under, in floats |
+| 182 Forbearance | 8 | the same, for anyone of their side, first of the three |
+| 329 | 9 | read, not followed |
+
+The cover is a draw among those who can act in the stance, after the
+target's die; the three are tried in the order 8, 7, 6.
+
+**Pincushion** (`+0x18` bit 5): a half of what defending works on, after
+the stance's guard (`func_ov024_021e6a90`, `0x021e761c`); and after an action
+with `+0x10` bit 7, each holder it struck who stands pricks its actor with a
+quarter of all it dealt them, truncated in floats — a draw below 2 on a
+metal actor — "Does … points of damage to …" at a monster
+(`func_ov024_021e62cc`). The party's spiked equipment pricks with a fifth on
+half the draws (`func_02085400`).
+
 ## Not yet read
 
-- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); kind 0's six stances and Pincushion (a stance set at the command for `0x1dc`, `func_ov000_021539dc`) — counters; Fuddle and rider 10 (confusion); Half-Inch; Eye for Trouble (kind 45 sets a monster's `+0x17e`, for the defeated list, and its result has no line — which line is said, and where, is not read); the Fources (set by `func_0208869c` … `020887fc`; how they reach the resistance's statuses or the weapon's element table `data_ov024_021fe798` is not read); Extreme Makeover (charm); Eyes on Me, Mercy, Soothe Sayer, Whistle — minstrel's `docs/readings/T18-handlers.md` §7 and §12.
+- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); which lines the counter's notes 3, 4 and the cover's 6–8 say; Fuddle and rider 10 (confusion); Half-Inch; Eye for Trouble (kind 45 sets a monster's `+0x17e`, for the defeated list, and its result has no line — which line is said, and where, is not read); the Fources (set by `func_0208869c` … `020887fc`; how they reach the resistance's statuses or the weapon's element table `data_ov024_021fe798` is not read); Extreme Makeover (charm); Eyes on Me, Mercy, Soothe Sayer, Whistle — minstrel's `docs/readings/T18-handlers.md` §7 and §12.
 - Where Mist Me's taking of a blow is told — actmsg `0x1b9`, "The mist surrounding <TARGET> absorbs the attack and disperses", by its words — and Schizofanic's.
 - The riders 5, 6, 9, 10, 12–14, 19 and 21.
-- The redirections after `0x021ea15c`, and which of 169 and 170 a wall of light says.
+- Stance 9 (`0x021ea2ec` on), and which of 169 and 170 a wall of light says.
+- Whistle and Eyes on Me make a monster watch their user by its record's own chance (`func_ov024_021eb08c`, kinds `0x11` and `0x12` against `mon_btldata +0x24`) and put in an action for it at once (`func_ov000_0215a908`); Mercy works on a monster seven or more levels below its user (`func_ov000_02159e60`) — read toward, not followed through.
 - What the game shows on a lost or paralysed turn.
