@@ -14,13 +14,14 @@ Four of the 22 values are byte offsets into the string table, and three more are
 | slot | meaning |
 |---|---|
 | 0 | the map's own id, which is how placements and triggers name the map |
+| 1 | **the map's area**, the game's map record's `+0x02` (15 bits): a village and its houses share their exterior's id, a dungeon and its floors theirs, every field 1 (Stornway's maps are 198). [Evac](Travel#evac) is matched by it |
 | 2 | region, for example "Angel Falls" or "Gleeba" |
 | 4 | **map code**, which is also the name of the map's archive |
 | 5 | the name its builder wrote, for example "Inn", "Church", "Erinn's House Lv 1" |
 | 6 | **the music**: an index into `bgm.sdat`'s sequence list (INFERRED, below) |
 | 11 | a second code, usually one with a real attribute table, but not this map's |
 | 14, 15 | **EU only:** where the map lies: on a field region, its place in the world (integers); on a town or dungeon, its place in the sky map (floats). See [Where a map lies](#where-a-map-lies) |
-| 17 | the space: `1` indoors, `2` outdoors, `0` neither |
+| 17 | the space: `1` indoors, `2` outdoors, `0` neither — and, read from the code, **what [Zoom and the chimaera wing](Travel) do here**: 2 they go, 1 a bump on the ceiling, 0 nothing (`+0x0E` bits 0–1, `func_020995f8`) |
 | 18 | **EU only:** a battle stage's kind of ground, INFERRED. See [Battle-Stages](Battle-Stages) |
 
 Slot 0 is `0` on the 139 entries for maps that do not ship, and distinct on the rest (see [Area-Cast](Area-Cast) for how it was identified).

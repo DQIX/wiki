@@ -63,6 +63,7 @@
 - [Party tricks](Party-Tricks)
 - [Single questions](Single-Questions)
 - [The staff roll](Staff-Roll)
+- [Travel](Travel)
 - [Items](Items)
 - [Equipment battle parameters](Equipment-Battle-Parameters)
 - [Vocation skill trees](Vocation-Skill-Trees)
