@@ -82,6 +82,9 @@ The share of the most HP, by the action (`0x021dd2fc`–`0x021dd3d0`):
 | 2, 8 | `021e2ebc`, `021e3594` | a draw below 100 **first**; a fall lands under the target's own byte (`+0x4f`, `+0x50`) or on a critical — **the action's chance is not read**; a raise always. Double Up (`0xad`) skips the test |
 | 4 | `021e303c` | poison, or envenomation where `+0x32` is above 0: nothing and no draw for a target whose byte `+0x4d` is 0 or who cannot take it; then a draw under the action's chance (one of the party's `+0x14` bits 7–13, a monster's bits 0–6) times the byte over 100, or 100 on a critical |
 | 7 | `021e33a4` | sleep, the same with byte `+0x47` |
+| 10 | `021e386c` | confusion, the same with byte `+0x4a` (element 13, Fuddle's); one already confused is again, its count set anew |
+| 19 | `021e4588` | Sobering Slap's: one confused brought to their senses (`func_020883fc`), flag 0x19 — no draw. Kind 9 runs its rider before it wakes a sleeper (`0x021dbf7c`) |
+| 5, 6 | `021e324c`, `021e32f4` | the antidotes' items': poison and envenomation cured (flag 0x11, line 84); paralysis cured (flag 0x1a) |
 | 20 | `021e4604` | death: **not the action's chance** but a flat 12.5 (`0x021e47d0`) times byte `+0x48` over 100, or 100 on a critical. On a metal body (`func_ov000_02156068(…, 0, 1)`) the byte is passed over — a 0 does not refuse it — so the 12.5 stands |
 
 **The bytes are resistances.** Status `+0x3E + element − 1` is the target's resistance to an element, and each rider's byte is the one for the element its change lands with: `+0x47` sleep (10), `+0x48` death (11), `+0x4d` poison (16), `+0x4f` attack down (18), `+0x50` defence down (19) — the landing elements of Snooze, Whack, Toxic Dagger, Blunt and Sap. A monster's come from its record, as its other resistances do.
@@ -239,11 +242,41 @@ metal actor — "Does … points of damage to …" at a monster
 (`func_ov024_021e62cc`). The party's spiked equipment pricks with a fifth on
 half the draws (`func_02085400`).
 
+## An ability's MP
+
+The turn asks every action's MP by its record's `+0x08` low byte (`func_ov024_021eaa50`, `0x021eabe8`–`0x021eac68`) — 255 is all there is, short only of none; none for an action taken up as the round begins (`+0x08` bit 28) or under 0 Zone — and short of it the action becomes 0x3a9 for an ability (`+0x18` bits 12–15 at 1) or 0x1f8 for a spell: "tries to use …", "Not enough MP". The resolver spends it before the action strikes (`func_ov024_021eb5d0`, `0x021ebc10`–`0x021ebcb0`; `func_ov000_0215a124`), a party member's lessened by a trait (`func_020dd290`). Abilities' blows pay it as spells do.
+
+**Blockenspiel** (134) is one of the actions taken up as the round begins — stance 1, its MP spent then (`func_ov000_021537b8`) — so a monster striking before its turn meets the guard; its post-step 2 (`func_ov024_021e57c0`) sets `+0x21` to 1 again.
+
+## Confusion — status bit 5
+
+`+0x14` bit 5 is **confusion** (`func_020883cc` sets it: a count of 3 at `+0x5e`, its second `+0x81` cleared, the stance and Pincushion cleared); sleep is bit 4. `func_ov000_021543f4` and `func_ov024_021de25c` test it — the round start passes a confused actor over.
+
+- **Fuddle** (kind 21, `func_ov024_021dd828`): on one who may take it (`func_020883ac`: `+0x14` bits 0 and 24 clear), landed, confused — set anew on one already confused.
+- **The count** (`func_ov000_021599f4`): the first held of paralysis, sleep and confusion a pass less on its holder's action pass; at 0 its second count at 4. **At a turn's start** (`func_ov000_0215833c`, `0x0215846c`–`0x021584c8`) that count less one, and to their senses where `0x02182ad4` by it is above the turn-start draw: action 0x3aa, opening 458, "pulls … together".
+- **A confused turn** (`func_ov000_0215767c`, `0x02157c20`) is drawn by `func_ov000_0215f67c`: `R(2)`, and with two or more of their side standing a 0 is **219**, the Attack at an ally other than themselves ("is confused. … attacks at random!", 500). Otherwise a second draw among:
+
+| action | party | monster | lines |
+|---|---|---|---|
+| 221 | ✓ | ✓ | 135, "can't work out what to do" |
+| 915 | ✓ | ✓ | 501, "too flustered to move" |
+| 222 | ✓ | ✓ | 500, then 137, "But … body can't keep up" |
+| 918 | ✓ | | none |
+| 916 | | ✓ | 502, "calls for backup!", then 57, "But nobody shows up." |
+| 917 | | where the battle's `+0xc` is below 0 (`func_020a3694`) | 504, "flees the battle!" |
+
+- **219's target**, for one of the party (`func_ov000_021540fc` → `02153f98`): a draw among the party standing (`func_ov000_0215e9fc` with 4, 1), all but themselves for reach 8 — without `0215fbe0`'s two draws. A monster's targeting (`func_ov000_0215440c`) reads no confusion.
+- **A blow shaking one out of it** (`func_ov000_02157288`, from the resolver at `0x021ecca8`): after a pass that dealt something, gated by `ctx+0x70` — set for each target, cleared where the blow's own rider slept or confused them (`0x021dad74`) — for an action with `+0x10` bit 11, a draw `R(100)` **always**, under 100 × `func_02074968` for one asleep (1.0 at one of the party, 0.5 at a monster) or `func_02074978` for one confused (0.5, 0.25).
+- The cure-all clears it (`func_ov024_021eae14`, `0x021eae70`).
+
+**Extreme Makeover** (kind 50, `func_ov024_021e0380`) moves charm a level by the record's `+0x30`, held to ±2 (`func_02087a48`, `02087a9c`), then `UpdateCombatantCharm`.
+
 ## Not yet read
 
-- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); which lines the counter's notes 3, 4 and the cover's 6–8 say; Fuddle and rider 10 (confusion); Half-Inch; Eye for Trouble (kind 45 sets a monster's `+0x17e`, for the defeated list, and its result has no line — which line is said, and where, is not read); the Fources (set by `func_0208869c` … `020887fc`; how they reach the resistance's statuses or the weapon's element table `data_ov024_021fe798` is not read); Extreme Makeover (charm); Eyes on Me, Mercy, Soothe Sayer, Whistle — minstrel's `docs/readings/T18-handlers.md` §7 and §12.
+- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); which lines the counter's notes 3, 4 and the cover's 6–8 say; Half-Inch; Eye for Trouble (kind 45 sets a monster's `+0x17e`, for the defeated list, and its result has no line — which line is said, and where, is not read); the Fources (set by `func_0208869c` … `020887fc`; how they reach the resistance's statuses or the weapon's element table `data_ov024_021fe798` is not read); what charm does to a monster (`func_ov000_0215704c`); Eyes on Me, Mercy, Soothe Sayer, Whistle — minstrel's `docs/readings/T18-handlers.md` §7 and §12.
 - Where Mist Me's taking of a blow is told — actmsg `0x1b9`, "The mist surrounding <TARGET> absorbs the attack and disperses", by its words — and Schizofanic's.
-- The riders 5, 6, 9, 10, 12–14, 19 and 21.
+- The riders 9, 12–14 and 21.
+- Which action's damage `func_ov024_021d8db4` is — it doubles at one asleep or confused.
 - Stance 9 (`0x021ea2ec` on), and which of 169 and 170 a wall of light says.
 - Whistle and Eyes on Me make a monster watch their user by its record's own chance (`func_ov024_021eb08c`, kinds `0x11` and `0x12` against `mon_btldata +0x24`) and put in an action for it at once (`func_ov000_0215a908`); Mercy works on a monster seven or more levels below its user (`func_ov000_02159e60`) — read toward, not followed through.
 - What the game shows on a lost or paralysed turn.
