@@ -33,7 +33,7 @@ A `Script` command file ([Event scripts](Event-Scripts) has the format), run by 
 | 5 | `+0x0A` | the facing there, × 4096 (0 on all) |
 | 6–8 | `+0x0C` | x, y, z, × 4096 |
 | 9 | `+0x1A` | the map the ship is moved to, if the party has one (flag `0x2b`) |
-| 10 | `+0x1C` | passed with it to `func_ov017_021d1a18` |
+| 10 | `+0x1C` | **the mooring** the ship is tied up at there (`+0x2784`) — see [Ship](Ship) |
 | 11, 12 | `+0x20`, `+0x24` | the ship's x and z |
 
 **EU only:** 18 places, numbered 0 to 17:

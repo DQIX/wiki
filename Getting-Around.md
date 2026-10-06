@@ -1,6 +1,6 @@
 # Getting around
 
-Ladders and vines, locked doors and chests, the ferry, and where the ship's code lives. Read 6 October 2026.
+Ladders and vines, locked doors and chests, and the ferry. Read 6 October 2026. The ship has a page of its own: [Ship](Ship).
 
 > **USA only** for the code (the ARM9 and overlay 17), read through the [dqix-decomp](https://github.com/DQIX/dqix-decomp). **EU only** for the files and their values.
 
@@ -77,11 +77,11 @@ Porth Llaffan's ferryman (character 9 of `M05`, map 1500), from 8.1: his talk as
 
 ## The ship
 
-Not read yet. Its code is the ARM9 run just before the Starflight Express's, `func_020a6084` to `func_020a7eb8`, which names `data/chara_sub/s201.chr`, `data/bin/percol.bin` and `data/ani/bg_slime3.pac`. The field calls `func_020a654c` each pass and `func_020a6aac` as a map loads. Its place goes through `func_ov017_021d1a18`, which Zoom's landing also calls (see [Travel](Travel)), with game-wide flag `0x2b` set.
+See [Ship](Ship).
 
 ## See also
 
 - [Map archive](Map-Archive), [Map collision](Map-Collision)
 - [Triggers](Triggers)
 - [Treasure](Treasure)
-- [Travel](Travel)
+- [Travel](Travel), [Ship](Ship)
