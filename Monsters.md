@@ -77,7 +77,7 @@ The rest of the record is not established. Hexagoon is `b003a`.
 
 "The reference" is DQIX/BattleEmulator (MIT, © 2024 DaisukeDaisuke), which reproduces the game's arithmetic.
 
-**How a monster chooses among its six**: bits 5 to 7 of the word at `+0x10` pick one of eight handlers (`func_0208a91c`). Four of them draw a number from 1 to 256 against one of the four weight tables in the ARM9 — 96 monsters by the even table, 281 by the falling one, 2 by a steep one and 25 by a fourth. The other four ways are a round robin, a pair chosen by a counter with a coin inside it, and two passes over the slots; 34 monsters use those. `+0x27` bit 4 has nothing to do with it. See [Battle-Weight-Tables](Battle-Weight-Tables).
+**How a monster chooses among its six**: bits 5 to 7 of the word at `+0x10` pick one of eight handlers (`func_0208a91c`). Four of them draw a number from 1 to 256 against one of the four weight tables in the ARM9 — 96 monsters by the even table, 281 by the falling one, 2 by a steep one and 25 by a fourth. The other four take the ways in turn by a count of the monster's or its group's, a pair in turn with a coin within it, or the first way and the rest by turns; 34 monsters use those — see [Battle AI](Battle-AI). `+0x27` bit 4 has nothing to do with it. See [Battle-Weight-Tables](Battle-Weight-Tables).
 
 The field data's attack and defence equal the battle data's on all 438; see [Encounters](Encounters).
 

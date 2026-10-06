@@ -44,9 +44,10 @@ A slot the monster cannot use — no MP for it, a once-a-battle way already spen
 | 1 | weight table 1 | 281 |
 | 2 | weight table 2 | 2 |
 | 4 | weight table 3 | 25 |
-| 3, 7 | round robin over the six, by a counter kept for the monster | 9 |
-| 5 | a counter picks a pair of slots, and a coin picks within the pair | 22 |
-| 6 | two passes over the slots, the first often skipped | 3 |
+| 3 | in turn over the six, by a count kept for the monster | 9 |
+| 7 | in turn, by a count kept for its group | 0 |
+| 5 | a count picks a pair of slots, and `NextRandom`'s low bit picks within the pair | 22 |
+| 6 | the first slot one turn, a draw among the other five the next | 3 |
 
 So four of the eight ways draw by weights at all, and 34 of the 438 monsters choose some other way.
 
@@ -78,7 +79,7 @@ The party's flee chance, once looked for here, is in code: see [Battle resolutio
 
 ## Not established
 
-- What the four ways that do not draw by weights do in detail — the round robin's counter, the pair and the coin, the two passes.
+- What the counts of the four ways that do not draw by weights start at. Their workings are on [Battle AI](Battle-AI).
 - What makes a slot unusable, beyond MP, a spent once-a-battle way and a missing target.
 - **EU only:** the words and pairs beside the run, other than the heap sizes.
 
