@@ -26,6 +26,7 @@
   - [Story threads](Story-Threads)
 - [Treasure](Treasure)
 - [Gathering spots](Gathering)
+- [Accolades and the Battle Records](Accolades)
 - [The day's clock](Time-Of-Day)
 - [Bookshelves](Bookshelves)
 - [Mini-map](Mini-Map)
