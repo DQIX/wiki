@@ -50,7 +50,9 @@ The share of the most HP, by the action (`0x021dd2fc`–`0x021dd3d0`):
 | 2, 8 | `021e2ebc`, `021e3594` | a draw below 100 **first**; a fall lands under the target's own byte (`+0x4f`, `+0x50`) or on a critical — **the action's chance is not read**; a raise always. Double Up (`0xad`) skips the test |
 | 4 | `021e303c` | poison, or envenomation where `+0x32` is above 0: nothing and no draw for a target whose byte `+0x4d` is 0 or who cannot take it; then a draw under the action's chance (one of the party's `+0x14` bits 7–13, a monster's bits 0–6) times the byte over 100, or 100 on a critical |
 | 7 | `021e33a4` | sleep, the same with byte `+0x47` |
-| 20 | `021e4604` | death, the same with byte `+0x48`, never on a metal body |
+| 20 | `021e4604` | death: **not the action's chance** but a flat 12.5 (`0x021e47d0`) times byte `+0x48` over 100, or 100 on a critical. On a metal body (`func_ov000_02156068(…, 0, 1)`) the byte is passed over — a 0 does not refuse it — so the 12.5 stands |
+
+**The bytes are resistances.** Status `+0x3E + element − 1` is the target's resistance to an element, and each rider's byte is the one for the element its change lands with: `+0x47` sleep (10), `+0x48` death (11), `+0x4d` poison (16), `+0x4f` attack down (18), `+0x50` defence down (19) — the landing elements of Snooze, Whack, Toxic Dagger, Blunt and Sap. A monster's come from its record, as its other resistances do.
 
 ## Poison and envenomation
 
@@ -70,6 +72,27 @@ Three words of an action's record hold ten-bit `actmsg` numbers, the first of ea
 
 The Attack's: 1, 1, 2 / 5, 4, 7 / 8, 9, 140. Whack's fail lines are 621 and 27, its kill lines 8 and 69. What [Actions](Actions) had as the effect byte at `+0x24` is the low byte of the done line at a monster.
 
+## The skills that scale by the game's own table
+
+`GetAttackBaseDamage` (`0x021e7bc0`), for one of the party whose action's amount scales (`+0x18` bits 16–17 at 2), takes the number the record names (`+0x10` bit 14 magical might, bit 15 mending) and the record's `lo` and `hi` (`+0x04` bits 12–21, 22–31) — and then looks the action up in a table of its own at `data_ov024_021fe8b6`: seven quads of `u16`, action, number, `lo`, `hi`, ending `−1`. A match takes the table's in place of the record's and goes through the same three arms: the least at or under `lo`, the most at or over `hi`, between them in proportion.
+
+| action | number | `lo` – `hi` |
+|---|---|---|
+| 67 Gigaslash, 68 Gigagash, 74 Lightning Storm | record word 0 bits 0–9 + magical might | 500 – 1,998 |
+| 102 Hand of God | record word 0 bits 0–9 | 300 – 999 |
+| 114 Whopper Chop | record word 0 bits 0–9 | 250 – 600 |
+| 144 Boulder Toss | record word 0 bits 0–9 + deftness | 500 – 1,998 |
+
+The record is the character's at `[obj+0x150]`; its word 1 bits 0–9 is deftness (`RollCritical`). That word 0 bits 0–9 is strength is inferred from the level tables' order; magical might is the fighter's now (`[obj+0x138]+0x10` bits 10–19). Each sum is kept in sixteen bits, signed.
+
+## Propeller Blade, Crosscutter Throw, Gold Rush
+
+Kind 1 and damage handler 0, made theirs elsewhere:
+
+- **Propeller Blade** (`0x61`): the resolver lists its one target twice (`0x021eb954`). On the second pass the result's critical, dodged and blocked bits are cleared — their draws spent — and the accuracy roll is handed a flag that lands it with no draw (`func_ov000_02156648`, `0x0215678c`). The kind-1 handler says line `0x1f0` on that pass.
+- **Crosscutter Throw** (`0x79`): one more target, `func_ov000_0215cda0`'s — the standing monster whose place on the stage has the least first coordinate (`0x021eb974`).
+- **Gold Rush** (479): post-step 6 (`func_ov024_021e5be4`) takes the record's `+0x32` — 1,000 — from the party's gold (`func_02010828()+0xf6c`) after the action, or from a monster's own. Before it, `func_ov024_021eaa50` puts action 935 (its opening, actmsg 580) in its place when there is not enough.
+
 ## A metal body
 
 The tail of `func_ov024_021e6a90` zeroes a non-critical blow on a metal body when the action carries `+0x10` bit 24 and is aimed at the monsters (`+0x08` bits 8–9 at 1) — not `0x205`, not Needle Shot (`0x82`); the 0-or-1 coin follows.
@@ -77,5 +100,4 @@ The tail of `func_ov024_021e6a90` zeroes a non-critical blow on a metal body whe
 ## Not yet read
 
 - The handlers of the kinds above not in the table, and the riders 1, 5, 6, 9–14, 19 and 21.
-- The slot-0 blows with code of their own: Propeller Blade, Crosscutter Throw, Gold Rush, and the six that scale by the table at `0x021fe8b6`.
-- How the levels' counts run down, and where a monster's susceptibility bytes (`+0x46`–`+0x52`) come from.
+- How the levels' counts run down.
