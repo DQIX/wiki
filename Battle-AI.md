@@ -228,7 +228,7 @@ All 161, with the actions that name each on the EU cartridge:
 
 ## The party's tactics
 
-Read as far as their frame; the scoring is not read.
+Read whole, frame and scoring (6 October 2026); minstrel has not built them yet.
 
 The AI runs in two places, each time with a fresh object: in the command phase (`ProcessCombatTurn` → `func_ov024_021f9030`) and at a member's turn (`func_ov000_0215767c` → `func_ov024_021f8f20`). Both read the tactic, the signed byte at the character record's `+0x94c` — 0 Show No Mercy, 1 Fight Wisely, 2 Mix It Up, 3 Focus On Healing, 4 Don't Use MP, 5 Follow Orders — and act **only when the action handed in is 1, the Attack**.
 
@@ -246,6 +246,43 @@ The AI runs in two places, each time with a fresh object: in the command phase (
 
 Each list keeps the best four choices by a float score (`func_ov024_021f6830`), 12 bytes each: the action, an item's bag place, the score, the target group and target. The first list whose best score is above 0 is taken (`021f691c`); with none, **the Attack on the monster lowest in HP fraction** (`021f8628`). `+0x0c` is the setting up's estimate of the turns the party needs: over the monsters, `⌈size ÷ (0.9375 × blow + 0.5)⌉ + 1`, the blow `(attack − defence ÷ 2) ÷ 2`.
 
-The setting up (`func_ov024_021f7478`) also gathers the candidates — the Attack, the coup de grâce when ready, the spells and abilities usable in battle, the bag's usable items, up to 128 — and **at the turn only** draws from the battle's generator: one `NextRandomFloat01`; for each of 21 behaviours a `NextRandomMax(100)` against the tactic's chance and a `NextRandomBetween(lo, hi)`; and a `NextRandomFloatBetween(0, 0.9)`. The tables of 21 × (chance, MP need × 10, lo, hi) are at `0x021ff084` (Show No Mercy), `0x021ff0d8` (Fight Wisely, Don't Use MP), `0x021ff12c` (Mix It Up) and `0x021ff180` (Focus On Healing).
+The setting up (`func_ov024_021f7478`) also gathers the candidates — the Attack, the coup de grâce when ready, the spells and abilities usable in battle, the bag's usable items, up to 128 — and **at the turn only** draws from the battle's generator: one `NextRandomFloat01`; for each of 21 behaviours a `NextRandomMax(100)` against the tactic's chance and a `NextRandomBetween(lo, hi)`; and a `NextRandomFloatBetween(0, 0.9)`. The tables of 21 × (chance, gate, lo, hi) are at `0x021ff084` (Show No Mercy), `0x021ff0d8` (Fight Wisely, Don't Use MP), `0x021ff12c` (Mix It Up) and `0x021ff180` (Focus On Healing).
 
-Each candidate is scored by an evaluator chosen by the action's kind (`+0x18` bits 5–11) from the table at `0x021ffeac`. **Not read**: the scorer `func_ov024_021f9874`, the damage forecast `021fa7ec` past its first half, the evaluators of kinds 2 on, and what the 21 behaviours govern.
+Each candidate is scored by an evaluator chosen by the action's kind (`+0x18` bits 5–11) from the table at `0x021ffeac`: 79 pointers, 22 null and 21 empty functions.
+
+### The 21 behaviours
+
+Per behaviour *i*, the tactic's four bytes are (*chance*, *gate*, *lo*, *hi*). The flag at `ai+0x10+i` is set on `NextRandomMax(100) < chance`, and cleared when the party's turns needed (`ai+0x0c`) are fewer than `gate × ai+0x78 ÷ 10` — the second byte is a gate on the turns needed, not an MP need. Then a weight `ai+0x54+i = NextRandomBetween(lo, hi)` for each, and `ai+0x30 = NextRandomFloatBetween(0, 0.9)`. An evaluator asks a behaviour (`func_ov024_021fe698`) before it scores anything; the scorer weighs its state entries by `0.01 ×` the weight drawn.
+
+| behaviour | what asks it |
+|---|---|
+| 0 | always set |
+| 1 | a state on the monsters: sleep (kind 8), kinds 10, 16, 19, 21, 49 |
+| 2 | raising an ally's levels (kinds 3–5), kinds 15 and 46 |
+| 3 | lowering a monster's levels (kinds 3–5) |
+| 4 | Whack and its like (kind 17); and the scorer's pass over sure kills |
+| 5, 6, 7 | an ally's attack, defence, agility |
+| 10, 11, 12 | an ally's protections (kinds 22; 23, 32, 61, 62; 39) |
+| 13, 14, 15 | a monster's attack, defence, agility |
+| 16 | a monster's kind 22 |
+| 18 | the coups de grâce |
+| 8, 9, 17, 19, 20 | asked by no evaluator |
+
+Show No Mercy's table sets only 0 and 4.
+
+### The scorer
+
+Each evaluator fills a target set — up to 16 entries of 12 bytes: a float, an effect, whether it lands on a monster, the target, a chance in 100, a category, the hits — and hands it to `func_ov024_021f9874`, which, in order:
+
+1. sums each monster's forecast damage (× 1.2 on the combo chain's target), marking those it would kill;
+2. with behaviour 4, adds a sure kill's chance as `(HP − dealt) × min(p², 0.9)`, `p` lowered by `0.005 × MP` (as doubles) unless Show No Mercy;
+3. sums the HP given to each of the party;
+4. scores **harm** as Σ `100 × min(dealt, HP) ÷ max HP` (none for an item but under Show No Mercy) and **heal** as Σ `100 × given ÷ max HP`, doubled for the weakest member;
+5. weighs the state changes by three tables (`0x021ffc98`, `0x021ffca4`, `0x021ffcc5`) into four slots;
+6. puts the candidate into its lists, each score less its cost × 0.01 or 0.1: list 2 harm (and list 3 when free), 5 category 5, 6 heal, 8 cures, 9–11 the slots, 0 everything, 1 the same when it does no harm or costs nothing. Mix It Up multiplies harm by 0.3 there unless the action is Critical Claim.
+
+The forecast (`func_ov024_021fa7ec`) multiplies a blow's mean and least by tension, the weapon's killer bonus for the target's family or its element (see [Equipment battle parameters](Equipment-Battle-Parameters)), the target's resistances and levels, the combo chain (1.0, 1.2, 1.5, 2.0 at `0x021fefa0`), a metal body and the record's cap, then mixes them as `mean × 0.4 + least × 0.6` (`ai+0x170`; the mean alone under Show No Mercy).
+
+The coups score a fixed 1,000 under their own condition, so a tactic that reaches list 0 with a coup ready plays it.
+
+The full reading, every evaluator by kind with its address, is in minstrel's `docs/readings/T17-ai.md` §2b.

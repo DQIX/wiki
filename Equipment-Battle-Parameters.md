@@ -16,12 +16,35 @@ What a worn thing does in a battle, and where a **party member's resistances** c
 | offset | size | type | meaning |
 |---|---|---|---|
 | `+0x00` | 4 | `u32` | flags, tested a bit at a time by a run of accessors (`func_020852a4` … `func_020855d0`); not established |
-| `+0x08` | 10 | | not established; 1,178 of the 1,423 carry something |
+| `+0x08` | 12 | twelve 6-bit fields | **a weapon's killer bonus by monster family**, in tenths, signed — 10 is none; see below |
 | `+0x14` | 20 | `i8` ×20 | **what it adds to a resistance**, one an element — see below |
 | `+0x28` | 2 | `i16` | the item's id, as [Items](Items) gives it |
 | `+0x2A` | 2 | | 0 on every record |
 
 The records are sorted by the id at `+0x28` — strictly ascending from 994 to 22,290 — and the game finds one by binary search (`func_0209a004`, stride 44, key `+0x28`).
+
+## A weapon's killer bonuses and element
+
+Read 6 October 2026 from the party's damage forecast in the battle AI (overlay 24, `func_ov024_021fa7ec`, `0x021faa20`–`0x021fac98`). For each monster family *n* from 1 to 12, it asks whether the target is a monster of that family (`func_ov000_02156068(battle, target, n, 0)`: the monster's `mon_data +0x0A` bits 7–10 equal *n*) and, if so, multiplies by a six-bit signed field of the **weapon's** copied record over `10.0f` — 1.0 with no weapon. The twelve accessors and their fields:
+
+| family | accessor | word | bits |
+|---|---|---|---|
+| 1 | `func_02085968` | `+0x0C` | 6–11 |
+| 2 | `func_02085818` | `+0x08` | 0–5 |
+| 3 | `func_02085a10` | `+0x0C` | 24–29 |
+| 4 | `func_02085a48` | `+0x10` | 0–5 |
+| 5 | `func_020859d8` | `+0x0C` | 18–23 |
+| 6 | `func_020859a0` | `+0x0C` | 12–17 |
+| 7 | `func_02085930` | `+0x0C` | 0–5 |
+| 8 | `func_02085850` | `+0x08` | 6–11 |
+| 9 | `func_020858f8` | `+0x08` | 24–29 |
+| 10 | `func_02085a80` | `+0x10` | 6–11 |
+| 11 | `func_020858c0` | `+0x08` | 18–23 |
+| 12 | `func_02085888` | `+0x08` | 12–17 |
+
+On the European cartridge 928 records hold 10 in all twelve, 245 hold nothing (the records seen empty here before), and 250 hold 11 or 12 for one or two families.
+
+**The weapon's element** is the flags' bits 23–25 (`func_02085748`). The AI turns it into an element by pairs at ov024 `0x021fefb0` — 1 to 7 stand for themselves, 0 for 8, the plain Attack's — and asks the target's resistance to it. 23 records carry 1 to 5. That this is the weapon's element is inferred from that one use.
 
 ## The twenty resistance bytes
 
@@ -58,7 +81,7 @@ So a party member's resistances are **the sum of what they wear, onto a hundred*
 
 ## Not established
 
-- The flags word at `+0x00`, and the ten bytes at `+0x08`.
+- The flags word at `+0x00`, apart from bit 16 (the experience bonus) and bits 23–25 (the weapon's element); bits 4 and 10 are asked about a metal body by the AI and not read.
 - Which of the eleven equipment places each of the eight entries stands for, beyond the byte table at `0x021d6b20`.
 
 ## See also
