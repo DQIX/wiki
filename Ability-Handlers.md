@@ -309,14 +309,47 @@ Lines: pinched, the record's done line (`0xd9`, "pinches <item> from …"); noth
 
 `func_ov024_021e05fc`: where the user's level (`func_ov000_02159e60`) is 7 or more above the target's, the battle's request (`battle+0x8e18`) has `+0xc` below 0 — a random encounter, as far as read — and the target's death byte (`+0x48`) is at least 1: the defeat routine `func_ov000_021554f4` with reason 4, its HP 0, `func_02088f68`, flag 0x24, `battle+0x8e15` one more; the done line, else the fail line. It is not added to the kinds beaten (`func_ov000_02155184`), so drops nothing. Whether it is worth experience and gold at the victory is not read.
 
+## Riders 9, 12, 13 and 21
+
+- **9** (`func_ov024_021e373c`): where the pass is above 0, one with tension a step less, no draw, its line by the level it came to. It rides Soothe Sayer and the monsters' attack 232 (at 100). It ends no watch — Soothe Sayer's own handler does.
+- **12**, Rake 'n' Break's (`021e3cec`): the clear Disruptive Wave uses (`021ea85c`) on the one struck, no draw. The clear's **third** argument asks for a line: Disruptive Wave passes 0, rider 12 passes 1 — so the tension's "returns to normal" where they had any, else `0xf1`.
+- **13**, Conjury Conductor's (`021e3d88`): rider 2's shape on the resistance to spells — a draw `R(100)` first, always; a fall refused at a byte `+0x52` of 0, landing under it, sure on a critical; lines `0xab`–`0xaf`.
+- **21**, Caster Sugar's (`021e47f4`): magical mending by the record's `+0x32`, held to ±2 — **no draw, no byte** — run by kind 42 before its own level, its line first.
+
+## Monsters provoked — `func_ov024_021eb08c`
+
+`func_ov024_021eb08c(ctx, actor, target, kind)`: the target a monster with a record, the actor one of the party (0–3). A draw `R(100)`, always. Then, where it may be watched (`func_02088dd8`: standing, awake, not paralysed, confused or under a lost turn — `+0x14` bits 0, 4, 3, 5, 19 — and not watched), a count `NextRandomBetween(+0x28, +0x29)` of its record. The record's **`+0x24`** holds two pairs of a kind and a chance in 100 (bits 0–6/7–13 and 14–20/21–27); the first pair of the kind asked, the draw under its chance: watched by the actor (`func_02088e48` — Knight Watch's status, `+0x18` bit 12).
+
+Told by `func_ov000_0215a908`: action 921, actmsg `0x212`, "…is enraged! It now only has eyes for …", put in at once — or the watch ended where the watcher has fallen.
+
+| kind | asked by |
+|---|---|
+| 3 | kind 1's handler (`0x021daf9c`–`0x021db0a0`): a party member's blow that leaves a monster standing, its HP share (`func_ov024_021db358`, a float) at or above 0.5 before the pass and below after |
+| 4 | the same, at 0.25 — tried first |
+| `0x11` | Whistle (kind 56, `021e0b48`) |
+| `0x12` | Eyes on Me (kind 51, `021e04e0`); at one watched already, the watch turned to the user, no draw |
+| `0x13` | the resolver after a party member's action of the heal family (`+0x1c` bits 19–23 = 5), each monster (`0x021ed170`) |
+| `0x14` | the same, Zing's family (12) |
+| `0x18` | the same loop, where the turn's record has `+0xa` bit 0 — not read |
+
+The action record's `+0x1c` bits 19–23 are the spells' **family**: 1 Bang, 2 Zam, 3 Woosh, 4 Crack, 5 the heals, 6 Frizz, 7 Whack, 8 Oomph, 9 Dazzle, 10 Fuddle, 11 Snooze, 12 Zing, 13 Kamikazee, 14 Magic Burst, 16 Evac, 17 Gigagash; 0 on 616 of 681.
+
+## The Fources — kind 46
+
+`func_ov024_021dff3c`: a sort `+0x30` above 0 (1 Fire, 2 Frost, 3 Gale, 4 Funereal, 5 Life), landed, standing: status `+0x18` bit 7 with the sort at `+0x22` bits 9–11 and a count of 5 at `+0x6a` (`func_02088818`).
+
+- **Its holder's resistance** (`func_ov000_02156b38`): to its elements — Fire 1, Frost 2, Gale 3 and 4, Funereal 5 and 6, Life 7 — **50 lower**, in place of Holy Impregnable's −25, which applies to 9–21 only; the plain element, 8, takes neither.
+- **Its holder's blows** (`func_ov024_021e6a90`, `0x021e6f8c`–`0x021e71dc`): for an action of element 8 other than `0x1f9` and `0x205`, the amount after the resistance × 1.1 × the target's byte for the Fource's element ÷ 100 — the greater of two for Gale and Funereal — and the amount is the greater of that and what the weapon's own element makes (`0x021e6ea0`–`0x021e6f88`).
+- **It runs down** between Alma Mater and Holy Impregnable (`0x02158c20`), by the second table, its second count from 4 (`data_ov000_02182efc`, pairs of index and start: 14 → 4); worn off, `0x219` Fire to `0x21d` Life.
+- Its reach, 6, is the Fources' alone; how the command phase takes it is not read.
+
 ## Not yet read
 
-- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); which lines the counter's notes 3, 4 and the cover's 6–8 say; the Fources (set by `func_0208869c` … `020887fc`; how they reach the resistance's statuses or the weapon's element table `data_ov024_021fe798` is not read); what charm does to a monster (`func_ov000_0215704c`); Eyes on Me, Whistle — minstrel's `docs/readings/T18-handlers.md` §7, §12 and §15.
+- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); which lines the counter's notes 3, 4 and the cover's 6–8 say; what charm does to a monster (`func_ov000_0215704c`); the weapon's element table `data_ov024_021fe798`; whom reach 6 (the Fources') targets — minstrel's `docs/readings/T18-handlers.md` §7, §12 and §15.
 - Where Mist Me's taking of a blow is told — actmsg `0x1b9`, "The mist surrounding <TARGET> absorbs the attack and disperses", by its words — and Schizofanic's.
-- The riders 12, 13 and 21.
 - Which action's damage `func_ov024_021d8db4` is — it doubles at one asleep or confused.
 - Stance 9 (`0x021ea2ec` on), and which of 169 and 170 a wall of light says.
-- Whistle and Eyes on Me make a monster watch their user by its record's own chance (`func_ov024_021eb08c`, kinds `0x11` and `0x12` against `mon_btldata +0x24`) and put in an action for it at once (`func_ov000_0215a908`) — read toward, not followed through.
+- What the turn record's `+0xa` bit 0 is — the provocation of kind `0x18`.
 - Whether a monster Mercy sends off is worth its experience and gold.
 - Where Eye for Trouble's line is said.
 - What the game shows on a lost or paralysed turn.
