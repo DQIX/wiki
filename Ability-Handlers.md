@@ -307,7 +307,7 @@ Lines: pinched, the record's done line (`0xd9`, "pinches <item> from …"); noth
 
 ## Mercy — kind 52
 
-`func_ov024_021e05fc`: where the user's level (`func_ov000_02159e60`) is 7 or more above the target's, the battle's request (`battle+0x8e18`) has `+0xc` below 0 — a random encounter, as far as read — and the target's death byte (`+0x48`) is at least 1: the defeat routine `func_ov000_021554f4` with reason 4, its HP 0, `func_02088f68`, flag 0x24, `battle+0x8e15` one more; the done line, else the fail line. It is not added to the kinds beaten (`func_ov000_02155184`), so drops nothing. Whether it is worth experience and gold at the victory is not read.
+`func_ov024_021e05fc`: where the user's level (`func_ov000_02159e60`) is 7 or more above the target's, the battle's request (`battle+0x8e18`) has `+0xc` below 0 — a random encounter, as far as read — and the target's death byte (`+0x48`) is at least 1: the defeat routine `func_ov000_021554f4` with reason 4, its HP 0, `func_02088f68`, flag 0x24, `battle+0x8e15` one more; the done line, else the fail line. It is worth **nothing** at the victory: only `func_ov000_02155184` adds a monster's experience and gold to the battle's totals (`battle+0x8e28`, `+0x8e2c`; `0x0215524c`–`0x02155274`), which the victory multiplies and pays (`func_ov023_021edf54`), and only the HP-taking `func_ov000_0215a004` calls it — so one sent off by Mercy is neither paid for nor among the kinds beaten, and drops nothing.
 
 ## Riders 9, 12, 13 and 21
 
@@ -343,13 +343,30 @@ The action record's `+0x1c` bits 19–23 are the spells' **family**: 1 Bang, 2 Z
 - **It runs down** between Alma Mater and Holy Impregnable (`0x02158c20`), by the second table, its second count from 4 (`data_ov000_02182efc`, pairs of index and start: 14 → 4); worn off, `0x219` Fire to `0x21d` Life.
 - Its reach, 6, is the Fources' alone; how the command phase takes it is not read.
 
+## Twocus Pocus — kind 63
+
+`func_ov024_021e1028`, the simple shape: `+0x18` bit 8 with a count of 5 at `+0x7d` (`func_02088d7c`); run down last of all by the first table, its line `0x24b`. **The turn casts its holder's spell twice** (`ProcessCombatTurn`): the status is read before the action is built (`0x0215e178`); after a spell — `+0x10` bit 10, not Magic Burst (`0x1c`) — a second turn record is cast at those the first was aimed at who still stand (`0x0215e2b4`–`0x0215e578`), its actor able to act, through the resolver with its fifth argument 1: **no MP asked or spent** (`func_ov024_021eaa50`, `0x021ebbe0`), its targets built and put back as these (`0x021ebd54`). The first's run-down is skipped (`func_ov000_02157d3c` handed 1) and comes once, after the second.
+
+## Charm — Extreme Makeover (kind 50) and the charm draws
+
+`func_ov024_021e0380`: charm a level by the record's `+0x30`, held to ±2 (`func_02087a48`, `02087a9c`: `+0x58` bits 9–11, flag `+0x14` bit 13, a count of 6 at `+0x71`), then `UpdateCombatantCharm` — the charm times 1 below level 0, else `1 + 0.5 × level`, truncated, held at 999. Raised to 2 it says `0xf7`. Run down by the first table between agility and might, its line `0x1d0`.
+
+**The charm draws** (`func_ov000_0215704c`), at a monster's turn: a monster able to act whose `+0x53` is not 0 draws, for each of the party, against their pull (`func_ov000_0215641c`: the charm as levelled, less a hundred, times `0.02`) times `+0x53` over a hundred, in floats; under it, a second draw against **90, 5, 5** (`0x02182aa0`) — enthralled (a lost turn, `0x93`), frozen to the spot (paralysed, by its byte `+0x4e`, `0x94`), so taken it is confused (by `+0x4a`, `0x95`). Taken, its action is 503, kind 0's handler doing the rest (`0x021da7dc`–`0x021da8a4`).
+
+## Feel the Burn — kind 47
+
+`func_ov024_021e00c0`, the simple shape: `+0x14` bit 28 with a count of 4 at `+0x63`; run down by the second table between Vanish and Rotstopper, its line `0x1d7`. A pass of kind 1 or `0x23` that dealt its holder something, unturned, marks them (`+0x22` bit 14). After the action, past its run-down (`0x0215e278`), `func_ov000_0215b5a0` draws for each marked one standing, awake, neither paralysed nor losing a turn: under **100, 50, 25, 25, 25** by their tension (`0x02182bf4`), their tension a level up — told as action 928, `0x31`–`0x34`.
+
+## Kind `0x18`'s provocation
+
+The turn record's `+0xa` bit 0 is set as **the critical rolled once for all** lands (`0x021ebdc8`–`0x021ebe2c`: a reach of 3 or 4 with no hit code, `func_ov024_021ea4d0`; or the party's Attack with a weapon striking all, `021ea500`). Then each monster is asked of `0x18` (`0x021ed1dc`–`0x021ed204`), after the families' `0x13` and `0x14`.
+
 ## Not yet read
 
-- What Twocus Pocus's `+0x18` bit 8 does (the command phase's); which lines the counter's notes 3, 4 and the cover's 6–8 say; what charm does to a monster (`func_ov000_0215704c`); the weapon's element table `data_ov024_021fe798`; whom reach 6 (the Fources') targets — minstrel's `docs/readings/T18-handlers.md` §7, §12 and §15.
+- Which lines the counter's notes 3, 4 and the cover's 6–8 say; the weapon's element table `data_ov024_021fe798`; whom reach 6 (the Fources') targets — minstrel's `docs/readings/T18-handlers.md` §7, §12 and §15.
 - Where Mist Me's taking of a blow is told — actmsg `0x1b9`, "The mist surrounding <TARGET> absorbs the attack and disperses", by its words — and Schizofanic's.
 - Which action's damage `func_ov024_021d8db4` is — it doubles at one asleep or confused.
 - Stance 9 (`0x021ea2ec` on), and which of 169 and 170 a wall of light says.
-- What the turn record's `+0xa` bit 0 is — the provocation of kind `0x18`.
-- Whether a monster Mercy sends off is worth its experience and gold.
+- Where the battle lays its monsters out on the stage — what Crosscutter Throw's extra pass (`func_ov000_0215cda0`, the least first coordinate of `func_02049b54`) needs.
 - Where Eye for Trouble's line is said.
 - What the game shows on a lost or paralysed turn.
