@@ -1,6 +1,6 @@
 # Battle AI
 
-How a monster chooses among its ways and whom it aims at, and how far the party's tactics are read. Read 6 October 2026.
+How a monster chooses among its ways and whom it aims at, and how the party's tactics choose. Read 6 October 2026; the tactics read again and built 8 October 2026.
 
 > **USA only** for the code (the ARM9 and overlays 0 and 24), read through the [dqix-decomp](https://github.com/DQIX/dqix-decomp). **EU only** for the counts of monsters and actions, from `mon_btldata.nat` and the action tables.
 
@@ -228,11 +228,18 @@ All 161, with the actions that name each on the EU cartridge:
 
 ## The party's tactics
 
-Read whole, frame and scoring (6 October 2026); minstrel has not built them yet.
+Read whole, frame and scoring (6 October 2026); built in minstrel 8 October 2026, function by function, with the corrections below.
 
-The AI runs in two places, each time with a fresh object: in the command phase (`ProcessCombatTurn` → `func_ov024_021f9030`) and at a member's turn (`func_ov000_0215767c` → `func_ov024_021f8f20`). Both read the tactic, the signed byte at the character record's `+0x94c` — 0 Show No Mercy, 1 Fight Wisely, 2 Mix It Up, 3 Focus On Healing, 4 Don't Use MP, 5 Follow Orders — and act **only when the action handed in is 1, the Attack**.
+The AI runs in two places: in the command phase (`ProcessCombatTurn` → `func_ov024_021f9030`) and at a member's turn (`func_ov000_0215767c` → `func_ov024_021f8f20`). Both read the tactic, the signed byte at the character record's `+0x94c` — 0 Show No Mercy, 1 Fight Wisely, 2 Mix It Up, 3 Focus On Healing, 4 Don't Use MP, 5 Follow Orders — and act **only when the action handed in is 1, the Attack**.
 
-**The command phase** decides only ten actions that must be settled before anyone acts (the list at `0x021fefc2`): Knight Watch, Mercurial Thrust, `0x86`, Counter Wait, Back Atcha, Defending Champion, Whipping Boy, Forbearance, Selflessness, Pincushion — by the member's HP, the party's, and a damage forecast.
+**The command phase** looks for ten actions that must be settled before anyone acts (the list at `0x021fefc2`): Knight Watch, Mercurial Thrust, `0x86`, Counter Wait, Back Atcha, Defending Champion, Whipping Boy, Forbearance, Selflessness, Pincushion — each the member holds and can pay for (none that costs MP under Don't Use MP). Only six are ever chosen, in this order, with no draw:
+
+1. **Knight Watch**, unless anyone has `+0x18` bit 11 or has chosen it already, not under Show No Mercy, under Fight Wisely or Don't Use MP only with more than two turns needed; and then if the member has no heal at hand that costs no item, or is the weakest, or the weakest is not under the threshold.
+2. **Mercurial Thrust** with one monster standing, under any tactic but Focus On Healing, when the forecast's least of the member's own blow is above its HP.
+3. Under **Focus On Healing** at a quarter of the member's HP or less, with no heal at hand that costs no item and nobody on Knight Watch: **Defending Champion**, else **Defend**.
+4. Under **Focus On Healing** only, with one at 0.08 or less, nobody covering already and no free heal, the member at half HP or more and their HP at least twice the weakest's: **Forbearance** when two are at 0.08 or less, else **Selflessness**, **Whipping Boy**, **Forbearance** — Forbearance on oneself, the others on the weakest.
+
+The threshold there is 0.4, or 0.25 when the AI object's tactic byte says Mix It Up — read **before** it is written: the object is `ProcessCombatTurn`'s one stack slot, so it is the previous member's tactic.
 
 **At the turn**, by the table at `0x021ff054`:
 
@@ -277,7 +284,7 @@ Each evaluator fills a target set — up to 16 entries of 12 bytes: a float, an 
 1. sums each monster's forecast damage (× 1.2 on the combo chain's target), marking those it would kill;
 2. with behaviour 4, adds a sure kill's chance as `(HP − dealt) × min(p², 0.9)`, `p` lowered by `0.005 × MP` (as doubles) unless Show No Mercy;
 3. sums the HP given to each of the party;
-4. scores **harm** as Σ `100 × min(dealt, HP) ÷ max HP` (none for an item but under Show No Mercy) and **heal** as Σ `100 × given ÷ max HP`, doubled for the weakest member;
+4. scores **harm** as Σ `100 × min(dealt, HP) ÷ max HP` (none for an item that is used up, but under Show No Mercy; such an item costs 30 more) and **heal** as Σ `100 × given ÷ max HP`, doubled for the weakest member;
 5. weighs the state changes by three tables (`0x021ffc98`, `0x021ffca4`, `0x021ffcc5`) into four slots;
 6. puts the candidate into its lists, each score less its cost × 0.01 or 0.1: list 2 harm (and list 3 when free), 5 category 5, 6 heal, 8 cures, 9–11 the slots, 0 everything, 1 the same when it does no harm or costs nothing. Mix It Up multiplies harm by 0.3 there unless the action is Critical Claim.
 
@@ -285,4 +292,14 @@ The forecast (`func_ov024_021fa7ec`) multiplies a blow's mean and least by tensi
 
 The coups score a fixed 1,000 under their own condition, so a tactic that reaches list 0 with a coup ready plays it.
 
-The full reading, every evaluator by kind with its address, is in minstrel's `docs/readings/T17-ai.md` §2b.
+### What reading it again corrected (8 October 2026)
+
+- `func_ov000_0215e9fc`'s count, `ai+0x78`, is the party **standing**. The character's `+0x134 +0x34` and `+0x36` are the base attack and defence (`UpdateCombatantAttack`, `…Defense`). The bag entry's `+0x08` bit 19 is the item's "used up". `+0x2F4` is the weapon's `itembtlprm.nat` record: its flags' bits 0–1 widen a reach of 5, bits 4 and 10 are what the metal arithmetic asks.
+- A state change with a negative value weighs **−3** times its weight, not −1.5: the constant is `0 − 0x3fc00000` as a whole number, which is the float −3.0.
+- The heal's factors for `0x310` and `0x21` apply only when the action costs MP.
+- The wand's bonus (weapon kind 3) is by the **member's own** MP over their most, and its steps add: 50 at a tenth, 30 more at three tenths, 10 more at a half.
+- The forecast: action `0x79` is `0.8 + 0.125 ×` the monsters' count on the first and 0.8 after; the levels it reads are the target's against spells and breaths; Critical Claim's mean is the greater of the base attack and 1.2 × the mean. **Tension's bonus is thrown away**: `CalculateTensionBonus` is called, its result dropped, and the member's level added instead.
+- Kind 4 on a foe asks behaviours 2 and 14; kind 26 goes by the member's MP; the state evaluator's floors are 33.3, 35 (effects 4, 5, 7) and 50 (effect 8).
+- A list's insertion copies one entry down and leaves the rest; and the scorer's behaviour-4 pass walks the set's entries (16) over arrays of the monsters (8), so past the eighth it reads the member's own blows as sizes and writes into the kills' flags.
+
+The full reading, every evaluator by kind with its address, is in minstrel's `docs/readings/T17-ai.md` §2b and §2c; the port is `packages/sim/src/battle/tactics.ts`.
